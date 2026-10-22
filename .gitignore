@@ -2,5 +2,5 @@
 data/
 _*.mjs
 *.log
-upstream/
-_app-folder-archive/
+/upstream/
+/_app-folder-archive/
