@@ -10,7 +10,7 @@
  *   npm run hub -- status
  *
  * Setup-time work only: the clone stays pristine (npm touches only its
- * gitignored node_modules), builds are imported into cad-home's data folder,
+ * gitignored node_modules), builds are imported into the platform's data folder,
  * and the working copy must come out clean or the install aborts. One app is
  * built at a time. `--from` imports a dist folder built elsewhere instead of
  * npm-installing here.

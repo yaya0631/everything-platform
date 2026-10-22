@@ -7,7 +7,7 @@
  *   git status --porcelain                          â€” abort when the clone is dirty
  *
  * The clone stays pristine: tracked files never change. Build outputs are
- * imported into cad-home's data folder; `--prune` removes node_modules again.
+ * imported into the platform's data folder; `--prune` removes node_modules again.
  * Everything here is plain Node with no shell scripting, so it works on Windows.
  */
 import { spawnSync } from 'node:child_process';
