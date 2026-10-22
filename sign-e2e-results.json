@@ -1,9 +1,10 @@
 {
-  "at": "2026-10-21T22:30:32.607Z",
+  "at": "2026-10-22T13:48:44.112Z",
   "pass": false,
   "pubBase": "http://127.0.0.1:18142",
-  "workerName": "doc-sign-b32625c138",
-  "docId": "mviopv7h5dca4ff9",
+  "workerName": "doc-sign-1dda5dc491",
+  "signLink": "https://doc-sign-1dda5dc491.puter.work/sign/f2b2bed1484aacb98a2c89613b4f26c3a05b3be0",
+  "docId": "mvjljn3d5919b9c2",
   "steps": [
     {
       "step": "owner app opens on the private listener",
@@ -13,12 +14,12 @@
     {
       "step": "real document built from the uploaded PDF",
       "pass": true,
-      "detail": "#/doc/mviopv7h5dca4ff9/edit canvases=2"
+      "detail": "#/doc/mvjljn3d5919b9c2/edit canvases=2"
     },
     {
       "step": "signature field seeded in the saved document record",
       "pass": true,
-      "detail": "{\"id\":\"e2emviopzsx00000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mviopx9ce9593994\",\"required\":true}"
+      "detail": "{\"id\":\"e2emvjljq4900000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mvjljofg5beda68c\",\"required\":true}"
     },
     {
       "step": "editor loads the seeded field and is ready to send",
@@ -33,7 +34,7 @@
     {
       "step": "deploy consent overlay mounts on workers.create",
       "pass": true,
-      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-b32625c138\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
+      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-1dda5dc491\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
     },
     {
       "step": "overlay internals unreachable from page script (closed shadow root)",
@@ -62,33 +63,58 @@
     },
     {
       "step": "the app reports the send as sent",
-      "pass": false,
-      "detail": "Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to p"
+      "pass": true,
+      "detail": "E2E support contract 2 pages · Updated just now Out for signature 1 / 2 Signature 2 / 2 ACTIONS Download original Duplicate as draft Save as template SIGNERS · "
     },
     {
       "step": "the doc record holds the guest link, on the §23 public base",
       "pass": false,
-      "detail": "{}"
+      "detail": "https://doc-sign-1dda5dc491.puter.work/sign/f2b2bed1484aacb98a2c89613b4f26c3a05b3be0"
     },
     {
       "step": "doc left draft for sent by the send flow",
-      "pass": false,
-      "detail": "draft"
+      "pass": true,
+      "detail": "sent"
     },
     {
       "step": "the worker KV holds token hashes only (never raw tokens)",
-      "pass": false,
-      "detail": "0 token row(s)"
+      "pass": true,
+      "detail": "1 token row(s)"
     },
     {
       "step": "the app recorded its worker config (name/url/secret, hash-only)",
       "pass": false,
-      "detail": "{\"name\":\"doc-sign-b32625c138\",\"url\":\"https://doc-sign-b32625c138.puter.work\"}"
+      "detail": "{\"name\":\"doc-sign-1dda5dc491\",\"url\":\"https://doc-sign-1dda5dc491.puter.work\"}"
+    },
+    {
+      "step": "guest link lands on the signatures sign page (public listener)",
+      "pass": false,
+      "detail": "Subdomain not found"
+    },
+    {
+      "step": "the 303 redirects to the app sign page on the guest origin",
+      "pass": false,
+      "detail": "https://doc-sign-1dda5dc491.puter.work/sign/f2b2bed1484aacb98a2c89613b4f26c3a05b3be0"
+    },
+    {
+      "step": "the guest answer came from the member worker with §16 headers",
+      "pass": false,
+      "detail": "no /w/ response seen"
+    },
+    {
+      "step": "the sign page itself is served to the anonymous guest (strict CSP, no session)",
+      "pass": false,
+      "detail": "no page response seen; responses=[]"
+    },
+    {
+      "step": "no session cookie exists in the guest context",
+      "pass": true,
+      "detail": "[]"
     },
     {
       "step": "E2E driver ran to completion",
       "pass": false,
-      "detail": "sign link was not created"
+      "detail": "No element found for selector: .consent-check input"
     }
   ]
 }

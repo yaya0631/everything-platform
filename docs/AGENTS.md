@@ -179,6 +179,48 @@ Verified by running: root `npm test` **373/373 PASS** (364+9 new); app
 Assumed (not run): the restored craft rules apply at serve time only - disk dist stays
 unpatched (grep of raw slices still finds the old text, by design).
 
+### Decision 2 DONE - gate measurement diagnosed (honest, not broken) 2026-10-22
+- The 0/172 (signatures), 0/96 (invoicing), 0/45 (calendar) "server tests" numbers are
+  CORRECT and by design: `build-hub.mjs` prints `runtimeCovered / total`, and the
+  upstream adapters deliberately report `runtimeCovered: 0` because they run upstream
+  code in upstream harnesses only (`test\signatures-upstream.test.js:40`,
+  `test\invoicing-upstream.test.js:38`, `test\rsvp-upstream.test.js:55`). Nothing
+  broke in the alias round - the adapters still pass (they run in the green root
+  suite, 374/374). The runtime work (running those ~313 cases against cad-home's own
+  runner/shim/hub API) is genuinely NOT DONE yet; that is the real remaining gate
+  work, not a wiring bug.
+- Real staleness found and cleared: `sign-e2e-results.json` was an ABORTED run
+  (yesterday 22:30, killed mid-flight; "E2E driver ran to completion: false"). While
+  re-running it a REAL product bug surfaced and was fixed: the shim's fetch override
+  chained `new Request(new Request(url, init))`, which detaches the body stream in
+  real Chromium - every bodyful worker POST (e.g. the sign app's /admin/sync) failed
+  with net::ERR_ALPN_NEGOTIATION_FAILED, so the send flow never completed. Node/undici
+  tolerates the chain, which is why node suites stayed green. Fixed in
+  `lib\shim\puter.js` (unchanged URLs keep the original Request; a rewritten URL gets
+  exactly ONE Request with the body read once) + regression contract test
+  `test\shim-fetch-body.test.js`. Browser probe after the fix: GET and every POST
+  variant (plain/bearer/json/body/no-store) now reach the worker (200).
+- After the fix the sign E2E reaches 12/17 with the send flow fully working
+  (deploy row public+audited, send completes, doc status sent, token hashes-only KV).
+  The 5 remaining failures are ONE design conflict needing owner adjudication (see
+  pull below), not a code regression: §24's E2E driver asserts the OLD §23 shape for
+  app-generated guest links (`${pubBase}/w/<user>/...`) and the recorded worker config
+  url (`startsWith(pubBase)`), while the accepted §26 boundary has apps see/state ONLY
+  canonical `https://<label>.puter.work`. The driver's guest `page.goto(signLink)`
+  cannot map a canonical host (no local DNS) - so under §26 the stored link is
+  in-system canonical and a real out-of-system guest could never open it. Resolving
+  this needs a documented product decision (keep §23 guest-open links via a
+  `__CAD_GUEST_BASE__`-style serve-time value for link fields, or accept canonical
+  links + a public-listener route for alias navigation). No test expectation was
+  changed for it; the conflict is parked for the owner review paste.
+- `invoicing-e2e.mjs` re-ran end-to-end: **11/11 PASS** (also exercises the fixed shim).
+
+Verified by running: root `npm test` **374/374 PASS** (373+1 new); app suite 482/482
+(unchanged code); `node sign-e2e.mjs` (12/17, conflict documented);
+`node invoicing-e2e.mjs` 11/11; browser probe `_e2eprobe.mjs` all bodyful POST 200.
+Assumed: upstream adapters' pass counts (370, 749) unchanged since 2026-10-21 - their
+evidence JSONs (`data\hub\test-gates\*-suite.json`) carry today's timestamps.
+
 ### HANDOFF section 4 - which corrections already landed (verified 2026-10-22)
 Already in the repo (do not redo):
 - **4.1a mechanism**: the general worker-URL mapper exists - `lib\shim\worker-url-map.js`, the
