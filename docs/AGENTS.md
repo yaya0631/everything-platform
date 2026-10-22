@@ -179,6 +179,33 @@ Verified by running: root `npm test` **373/373 PASS** (364+9 new); app
 Assumed (not run): the restored craft rules apply at serve time only - disk dist stays
 unpatched (grep of raw slices still finds the old text, by design).
 
+### Decision 3 DONE - DB backup vs live compared; startup integrity gate added (2026-10-22)
+- Salvage analysis complete: the backup-kept `data\_dbdiag-20261022123133\cad.db` opens
+  standalone with `PRAGMA integrity_check = ok` and contains users 5, hub_workers 3,
+  hub_kv 5 - EXACTLY the state recorded after the step-0 repair, so the main file held
+  everything the repair claimed. The kept `cad.db-wal` holds ZERO reconstructable
+  frames: its header page-size field is torn (claims 1048576 while the main db uses
+  4096), no frame's salt/checksum chain validates. **Nothing was lost by dropping the
+  WAL.** A minimal WAL reader (`_walrecover.mjs`, throwaway) proves it against the
+  documented SQLite WAL checksum spec (little/big endian magic accepted).
+- NEW startup integrity gate in `lib\db.js` `open()`: every start opens the existing
+  db read-only and runs `PRAGMA integrity_check`; a malformed file gets a byte-for-byte
+  copy into `data\_dbrecover-<stamp>-<pid>\` FIRST and then the start REFUSES with a
+  clear message (nothing is auto-deleted). `close()` now checkpoints the WAL
+  (`wal_checkpoint(TRUNCATE)`) so a clean stop leaves a self-contained main file.
+- README gains a "Safely backing up the data folder" section: never copy `data\`
+  while the server runs, use the NEW `node tools\db-backup.mjs` (SQLite `VACUUM INTO`,
+  safe even while running; writes `data\backups\cad-<stamp>.db`), plus the
+  `_dbrecover-` folder explanation. The tool is real and verified
+  (`data\backups\cad-20261022140343.db`, 270 336 bytes).
+- Tests: `test\db-integrity.test.js` (3 tests: clean open passes; malformed file is
+  refused AFTER the bytes are backed up; a fresh db re-opens after replacement).
+
+Verified by running: root `npm test` **377/377 PASS** (374+3); `node tools\db-backup.mjs`;
+`_dbmaincheck.mjs` and `_walrecover.mjs` salvage probes on the kept backup bytes.
+Assumed: the live `data\cad.db` still matches its last verified state (integrity ran
+implicitly via build-hub status and the test-gate probes today).
+
 ### Decision 2 DONE - gate measurement diagnosed (honest, not broken) 2026-10-22
 - The 0/172 (signatures), 0/96 (invoicing), 0/45 (calendar) "server tests" numbers are
   CORRECT and by design: `build-hub.mjs` prints `runtimeCovered / total`, and the
