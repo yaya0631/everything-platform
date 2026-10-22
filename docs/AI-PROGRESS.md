@@ -16,10 +16,13 @@ protocol below.
    "verified by running" vs "assumed" split, open decisions, exact next steps.
 3. Commit after every finished step (clear message); update `AGENTS.md` §5 after every
    finished step; never leave a verdict on stale evidence — re-run the thing.
-4. Protected rules: no feature removal, no external network calls, no editing test
-   expectations to make red tests pass (declare any changed test + why), no peer-relay
-   code before owner re-approves design §29, upstream clone stays clean at `0fc4d361`,
-   keep `data\_dbdiag-20261022123133\` (proven lossless, kept on owner order).
+4. Protected rules: no feature removal. **No external network calls FROM APPS:** apps
+   never call Puter's cloud or any external API directly — everything goes through the
+   owner's server. Server-side code may call external services it is configured for
+   (AI providers, SMTP, etc.). No editing test expectations to make red tests pass
+   (declare any changed test + why: which, why), no peer-relay code before owner
+   re-approves design §29, upstream clone stays clean at `0fc4d361`, keep
+   `data\_dbdiag-20261022123133\` (proven lossless, kept on owner order).
 5. Throwaway probe scripts start with `_`; their `CAD_DATA_DIR` must be a fresh
    `fs.mkdtempSync` BEFORE importing `./server.js`, or they hit the REAL `data\cad.db`.
    Delete throwaways at docs pass. Root suite: `npm test`; app suite:
@@ -55,6 +58,30 @@ protocol below.
 - Next work queue: 4.3 easy-tier functional-gate wave (only accounting measured);
   runtime-coverage harness wave (0/172 etc. → real numbers); guest-link decision;
   then the §5 "Not started" list (peer relay LAST, after §29 approval).
+
+## Session 2 - 2026-10-22 - ARCHITECTURE CORRECTION + proposal only (awaiting approval)
+
+### Owner correction (verbatim intent, restated)
+- The product is a self-hosted replacement for Puter's cloud hosting ALL of
+  `upstream\src\<app>`; apps never call Puter's cloud/external APIs, server-side may.
+- `cad-home` is NOT special — it is ONE app (the AutoCAD clone), a first test.
+  **Nothing should depend on its folder.** Platform code must move out of it.
+- Signed order: (a) short proposal (no code, no moves) → owner approval →
+  (b) move code in small steps, one commit each, root+app suites green + real counts
+  reported each step; keep `data\cad.db`, the data folder and git history intact,
+  back up with `tools\db-backup.mjs` first; upstream stays clean at `0fc4d361`;
+  archive the 51 loose app folders (move, not delete); no peer-relay code; no
+  test-expectation edits.
+
+### Actions (running log)
+- ~14:xx Protocol rule updated in this file: apps no-external-calls wording (above).
+- Survey: `cad-home` = platform code (server.js, lib\, sdk\, panel\, test\, tools\,
+  build-hub.mjs and friends, data\, docs\) + the CAD client in `app\` (its own
+  package.json; the 482-test suite) + junk (`prototype-data-browsercheck`,
+  `browser-smoke-results*.json`, 27 earlier-phase `_*.mjs` probes).
+- 14:xx wrote `docs\PROPOSAL-platform-split.md` (layout, move list, 6 commit steps,
+  5 risks, 3 owner questions). NO CODE MOVED — awaiting owner approval, per order.
+- 4.3 else: nothing touched this turn except docs.
 
 ## Session log
 
