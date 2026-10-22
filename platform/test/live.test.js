@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import WebSocket from 'ws';
 import { DATA, start, cleanup, client } from './helpers.js';
-import { Drawing } from '../../cad/app/src/core/drawing.js';
-import { LiveSession } from '../../cad/app/src/collab/live.js';
+import { Drawing } from '../../upstream/src/cad/src/core/drawing.js';
+import { LiveSession } from '../../upstream/src/cad/src/collab/live.js';
 
 let running, store, live, cadfile;
 const clients = {};

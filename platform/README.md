@@ -25,17 +25,19 @@ everything/
     sdk/         the SDK and launcher pages that hosted apps run on
     test/        server tests (node:test)
     data/        created on first run: cad.db, everyone's drawings, history and deployed apps
-  cad/app/       the CAD app, connected to this server instead of Puter (own build; dist is served)
-  upstream/      the pristine HeyPuter/everything clone the hub builds every hosted app from
+  upstream/      the app tree the hub builds every hosted app from (52 apps incl. cad)
+    src/cad/     the CAD app — a local-fork commit since 2026-10-22 (owner's unification:
+                 one app folder per app, no special casing; its original upstream version
+                 stays recoverable in the clone's git history)
 ```
 
-The CAD client moved out of the server folder (2026-10-22 platform-split round):
-the server is platform/, the CAD app lives in ../cad/app next to it.
+All apps — cad included — live in `upstream\src\<app>` now; the platform builds,
+installs, serves and gates them through the same machinery.
 
 ## 1. Set up the server PC (once)
 
 1. Install **Node.js 22.13 or newer** from https://nodejs.org (Windows, macOS or Linux). The server needs 22.13 for the built-in SQLite module and the permission model that sandboxes serverless functions.
-2. Copy the `platform` folder (and, if you use the CAD app, the sibling `cad` folder) to the server PC.
+2. Copy the `platform` folder and the `upstream` tree (which contains the apps, including the CAD app) to the server PC.
 3. Open a terminal in the `platform` folder and run the setup. This needs internet once, to download the build tools and build the CAD app:
 
    ```sh
@@ -638,7 +640,7 @@ Shutting down gracefully (Ctrl+C, or stopping the service) flushes every open dr
 
 ## Changing the app
 
-Run `npm start` in `platform`, then `npm run dev` in `cad/app`. The dev server forwards `/api/` (including WebSockets) to port 8080. Run `npm run build` in `platform` (or in `cad/app`) to publish your changes.
+Run `npm start` in `platform`, then `npm run dev` in `upstream/src/cad`. The dev server forwards `/api/` (including WebSockets) to port 8080. Run `npm run build` in `platform` (or in `upstream/src/cad`) to publish your changes.
 
 All changes from the original app are app-side and additive:
 

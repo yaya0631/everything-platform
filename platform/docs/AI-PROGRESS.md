@@ -5,15 +5,17 @@ record of all progress and actions. `docs\AGENTS.md` §5 holds the same state in
 owner's step-report format; this file holds the chronological session log plus the
 protocol below.
 
-**FOLDER LAYOUT (post platform-split, S1–S6, 2026-10-22).** Repo root is
+**FOLDER LAYOUT (post platform-split S1–S6 + CAD unification, 2026-10-22).** Repo root is
 `D:\Stream\everything\` (`.git` at the root; history carried by renames):
 `platform\` (ALL platform code: server.js, hub.js, lib\, sdk\, panel\, test\, tools\,
-data\ with cad.db, docs\, package.json, e2e runners), `cad\app\` (the AutoCAD client
-app, own package.json + vitest suite; its built `dist\` is served by the platform),
-`upstream\` (pristine HeyPuter/everything clone, clean at `0fc4d361`), and
+data\ with cad.db, docs\, package.json, e2e runners), `upstream\` (our LOCAL FORK of
+the HeyPuter/everything tree: base `0fc4d361` + the locally committed cad rework
+`1d2588e8`; ALL app sources incl. cad are `upstream\src\<app>` — the cad original
+stays recoverable in the clone's history), and
 `D:\Stream\_app-folder-archive\` (50 loose per-app folders, archived out of the tree).
-Run root suite from `platform\`; app suite: `npm --prefix ..\cad\app test` (from
-platform) or `npm --prefix D:\Stream\everything\cad\app test`.
+Run root suite from `platform\`; CAD client suite:
+`npm --prefix ..\upstream\src\cad test` (from platform) or
+`npm --prefix D:\Stream\everything\upstream\src\cad test`.
 Internal identifiers deliberately NOT renamed: `cad.db`, `CAD_TEST`, `cad_session`
 cookie, `cad-home-<date>.db` db-download labels, the `cad-home serve-time guard`
 sw marker, `cad-session` etc.
@@ -39,8 +41,8 @@ sw marker, `cad-session` etc.
 5. Throwaway probe scripts start with `_`; their `CAD_DATA_DIR` must be a fresh
    `fs.mkdtempSync` BEFORE importing `./server.js`, or they hit the REAL `data\cad.db`.
    Delete throwaways at docs pass. Root suite: `npm test` (from `platform\`);
-   app suite: `npm --prefix ..\cad\app test` (from `platform\`); status:
-   `node build-hub.mjs status`. Capture `2>&1`.
+   cad client suite: `npm --prefix ..\upstream\src\cad test` (from `platform\`);
+   status: `node build-hub.mjs status`. Capture `2>&1`.
 
 ## Snapshot (as of 2026-10-22 — platform split S1–S6 EXECUTED, awaiting final commit)
 
@@ -266,8 +268,8 @@ sw marker, `cad-session` etc.
   app-readiness state + parked decisions, for an independent LLM audit.
   Committed; root suite re-run after: **377/377 PASS**.
 
-- Result (Session 2 + split execution, 2026-10-22): proposal APPROVED and executed
-  in full, S1–S6, one commit each; suites at every step: root **377/377 PASS**,
+- Result (Session 2 + split execution + cad unification, 2026-10-22): proposal APPROVED and
+  executed in full, S1–S6, one commit each; suites at every step: root **377/377 PASS**,
   app **482/482 PASS**, `build-hub.mjs status` PASS from `platform\`. Repo root
   now `D:\Stream\everything\` with `platform\` + `cad\app\` + `upstream\` (clean at
   `0fc4d361`); 50 loose app folders archived at `D:\Stream\_app-folder-archive\`;
@@ -277,3 +279,24 @@ sw marker, `cad-session` etc.
   cad/app/dist re-ignored + amend, package-lock BOM (repo's own encoding test).
   Next queue unchanged: 4.3 easy-tier functional-gate wave; runtime-coverage
   harness wave (0/172 etc. → real numbers); guest-link adjudication; §29 review.
+
+#### Cad onboarding + UNIFICATION (owner-driven, same day)
+- Onboarding 1/2: hub source mapping (SOURCE_OVERRIDES, src column, 3 tests).
+- Onboarding 2/2: hub-built + hub-served (build-one --only cad; local-cloud.js
+  API root /api/ under /h/<name>/; smoke clean; status row own/PASS/yes/yes).
+- UNIFICATION (the owner MOVED cad into the clone by hand): the agent restored
+  file-level correctness from this repo's git (owner's manual move had left the
+  app nested one level deep at upstream\src\cad\app, then an agent flattening
+  mistake deleted the nested dirs — ALL RECOVERED from our repo's tracked tree,
+  145/145 files verified identical, 0 diffs), made the fork commit proper:
+  clone commit `1d2588e8` on main (base `0fc4d361` recoverable), top-level
+  `cad\` DELETED from our tree, platform repointed (paths.js CAD_APP_ROOT,
+  test\live.test.js, package.json scripts, README/AGENTS layout), SOURCE_OVERRIDES
+  emptied (cad builds like every other app now). Hub copy rebuilt (17.9s) +
+  smoke clean + suites: root **380/380**, client **482/482** from
+  `..\upstream\src\cad`.
+- UPSTREAM SEMANTICS CHANGED (owner-approved): the clone is OUR LOCAL FORK now —
+  base upstream head `0fc4d361` + locally committed cad rework `1d2588e8`;
+  future pulls rebase cad only; the other 50 apps pull untouched.
+- WATCH: `test\hub-workers-rsvp.test.js:113` admin-guard flake (2 full-suite
+  occurrences, 200-vs-401 — root-cause next session, not touched yet).

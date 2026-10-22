@@ -1,5 +1,5 @@
 {
- "at": "2026-10-22T15:48:23.496Z",
+ "at": "2026-10-22T16:40:39.450Z",
  "base": "http://127.0.0.1:18100",
  "user": "appsmoke",
  "mode": "load",
@@ -105,7 +105,7 @@
     "badCount": 0,
     "failed": [],
     "failedCount": 0,
-    "swContextRequests": 0,
+    "swContextRequests": 2,
     "swContextExternal": [],
     "notAvailable": [],
     "otherErrors": [],
@@ -120,7 +120,7 @@
      "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
      "nosniff": "nosniff",
      "guarded": true,
-     "bytes": 4662
+     "bytes": 4780
     },
     "icon.svg": {
      "status": 404,
@@ -132,7 +132,7 @@
     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
     "nosniff": "nosniff",
     "guarded": true,
-    "bytes": 4662
+    "bytes": 4780
    }
   }
  ],

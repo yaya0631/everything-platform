@@ -62,8 +62,12 @@ export function sourceKind(name) {
   return SOURCE_OVERRIDES[name] ? 'own' : 'upstream';
 }
 
-/** name -> resolve(ROOT_DIR, value): apps whose buildable source is NOT upstream\src\<name>. */
-const SOURCE_OVERRIDES = { cad: '../cad/app' };
+/** name -> resolve(ROOT_DIR, value): apps whose buildable source is NOT upstream\src\<name>.
+ *  Empty today: since the 2026-10-22 unification the cad app lives at
+ *  upstream\src\cad as a local-fork commit (owner decision), like every other
+ *  app. The mechanism stays for any future own-source app that must not touch
+ *  the shared remote tree. */
+const SOURCE_OVERRIDES = {};
 
 function run(cmd, args, { cwd, quiet } = {}) {
   const res = spawnSync(cmd, args, {

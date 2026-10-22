@@ -4,4 +4,3 @@ _*.mjs
 *.log
 /upstream/
 /_app-folder-archive/
-cad/app/dist/

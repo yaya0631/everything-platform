@@ -10,8 +10,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-/** The CAD client app (separate suite; lives in ../cad/app). */
-export const CAD_APP_ROOT = path.resolve(ROOT, '..', 'cad', 'app');
+/** The CAD client app (separate suite; lives in upstream\src\cad as a local-fork commit, like the other apps). */
+export const CAD_APP_ROOT = path.resolve(ROOT, '..', 'upstream', 'src', 'cad');
 export const DATA_DIR = path.resolve(process.env.CAD_DATA_DIR || path.join(ROOT, 'data'));
 export const APP_DIR = path.join(CAD_APP_ROOT, 'dist');
 export const FILES_DIR = path.join(DATA_DIR, 'files');

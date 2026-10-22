@@ -40,25 +40,29 @@ workstation for all the owner's local apps, with no external cloud, no external 
 
 ## 3. Layout
 
-**(2026-10-22, platform-split S1–S6, owner-approved and executed — see
-`docs\AI-PROGRESS.md` for the round log.)** The git repo root is now
+**(2026-10-22, platform-split S1–S6 + the CAD unification, owner-approved.)** The git repo root is now
 `D:\Stream\everything\` (`.git` lifted from the old `cad-home\`; history carried
 by renames). One commit per step, suites green each step:
 S1 db backup + 50 loose app folders archived to `D:\Stream\_app-folder-archive\`;
 S2 git-root lift (all files became `cad-home\*` by rename);
-
 S3 `git mv` platform code → `platform\` (data\cad.db intact);
 S4 `git mv cad-home\app → cad\app`; S5 cad-home emptied + deleted, package name
 `platform`; S6 junk cleanup (probes, prototype-data, smoke-results).
+**CAD unification (same day):** the CAD client was moved INTO the upstream
+clone — `upstream\src\cad` is our platform-native cad as a local-fork commit
+(clone `1d2588e8`, base `0fc4d361` underneath); the old top-level `cad\` folder
+is deleted; the clone is now "our private fork" (pull-updates rebase cad only).
 
 Workspace: `D:\Stream\everything\`
 - `platform\` - the server (this is where you work). Suite: `npm test` from here.
 - `platform\data\` - the REAL data dir (`cad.db` internal name unchanged). Never ship it.
-- `cad\app\` - the AutoCAD client app (own package.json, vitest suite:
-  `npm --prefix ..\cad\app test` from platform). Its built `cad\app\dist\` is
-  served by the platform (`paths.js` `CAD_APP_ROOT`).
-- `upstream\` - fresh clone of HeyPuter/everything (`upstream\src\<app>`). Read-only for you, except
-  that `npm ci` / `npm install` and `vite build` inside `upstream\src\<app>` are allowed (try
+- `upstream\src\cad\` - the CAD app (own package.json, vitest suite:
+  `npm --prefix ..\upstream\src\cad test` from platform). Its built `dist\` is
+  served by the platform (`paths.js` CAD_APP_ROOT).
+- `upstream\` - YOUR local private fork of the HeyPuter/everything tree; ALL app
+  sources the builder uses are `upstream\src\<app>` and must stay identical to
+  their upstream versions EXCEPT the locally committed cad fork (`1d2588e8`);
+  `npm ci` / `npm install` and `vite build` inside `upstream\src\<app>` are allowed (try
   `--ignore-scripts` first, report any fallback). Almost every app imports `../../dev`, so never
   flatten this layout.
 - `D:\Stream\_app-folder-archive\` - the 50 old loose per-app folders (archived, not deleted; no
@@ -144,6 +148,25 @@ Key files in `platform\` (names as reported; confirm they exist):
   `test\hub-hosting.test.js`, `invoicing-e2e.mjs`, docs sections 25-29, `data\hub\test-gates\`
   evidence) is present in the main tree, so that work landed in `D:\Stream\everything\` and a
   copy of it never existed separately.
+
+### CAD unification (2026-10-22, owner-driven — cad is now ONE app like the others)
+- The owner moved the cad client into the upstream clone by hand; the agent made it a
+  PROPER VERSION-CONTROLLED state: `upstream\src\cad` now IS our platform-native cad
+  (local-fork commit `1d2588e8` in the clone, base HEAD stays `0fc4d361`; the original
+  upstream subtree is recoverable in the clone's git history). Verified file-for-file
+  against the pre-move tree in this repo's git: **145 tracked files = 145, 0 diffs**.
+- The old top-level `cad\` folder is GONE. The platform repointed everything:
+  `paths.js` CAD_APP_ROOT, `test\live.test.js` imports, package.json setup/build
+  scripts, README layout; `SOURCE_OVERRIDES` in hub-build.js is now EMPTY (cad builds
+  like every other app); the `src` status column stays for future own-source apps.
+- The hub copy was REBUILT from the unified source (`build-one --only cad`, 17.9s)
+  and re-smoked clean: 777 elements, ext=0, bad=0, fail=0, err=0, csp=0, sw guarded.
+- Suites: root **380/380 PASS**, cad client (from `upstream\src\cad`) **482/482 PASS**.
+- NEW upstream semantics (owner-approved): the clone is our local fork — base
+  `0fc4d361` + local cad commits; `git pull` updates for the other 50 apps keep
+  working, cad updates need a small rebase/merge.
+- WATCH IT: `test\hub-workers-rsvp.test.js:113` (admin guard) flaked 2x inside the
+  full suite (200-vs-401, green in isolation + rerun). Needs root-causing.
 
 ### Gates (measured 2026-10-22)
 - Root suite `npm test` (node --test, test\*.test.js): **364 tests, 360 pass, 4 FAIL**. All four

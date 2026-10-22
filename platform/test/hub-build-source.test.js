@@ -1,30 +1,34 @@
-// The hub's per-app source mapping. The owner's decision (2026-10-22): the CAD
-// app is built from OUR editable source (..\cad\app), never from the pristine
-// upstream clone; every other app builds from upstream\src\<name>.
+// The hub's per-app source mapping. The owner's unified layout (2026-10-22):
+// EVERY app - including the cad client - builds from the same home,
+// upstream\src\<name>. The cad app there is the local-fork commit of this
+// platform's rework (clone commit c2a28773 replacing the original at 0fc4d361;
+// the original stays recoverable in the clone's history).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import { appSourceDir, sourceKind } from '../lib/hub-build.js';
 
-test('source mapping: cad builds from the own-source override, not upstream', () => {
-  assert.equal(sourceKind('cad'), 'own');
+test('source mapping: all apps - cad included - build from upstream\\src\\<name>', () => {
+  for (const name of ['cad', 'chess', 'calendar']) {
+    assert.equal(sourceKind(name), 'upstream');
+    const dir = appSourceDir(name);
+    assert.ok(
+      path.normalize(dir).includes(path.join('upstream', 'src', name)),
+      `${name} source is upstream\\src\\${name}, got ${dir}`,
+    );
+  }
+});
+
+test('source mapping: the cad dir is OUR fork of it (platform-native rework markers)', () => {
   const dir = appSourceDir('cad');
-  assert.ok(dir.endsWith(path.join('cad', 'app')), `cad source is ..\\cad\\app, got ${dir}`);
-  assert.equal(
-    path.resolve(dir),
-    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'cad', 'app'),
-  );
+  assert.ok(path.normalize(dir).endsWith(path.join('upstream', 'src', 'cad')));
+  // The fork's identity markers: our local-cloud stand-in instead of the
+  // original Puter-SDK wiring, and the shipped test suite.
+  assert.ok(fs.existsSync(path.join(dir, 'src', 'local-cloud.js')), 'local-cloud.js is present (our rework, not the pristine original)');
+  assert.ok(fs.existsSync(path.join(dir, 'tests')), 'the cad suite moved with the app');
 });
 
-test('source mapping: upstream apps still resolve to upstream\\src\\<name>', () => {
-  assert.equal(sourceKind('chess'), 'upstream');
-  const dir = appSourceDir('chess');
-  assert.ok(path.normalize(dir).includes(path.join('upstream', 'src', 'chess')), `chess source is upstream\\src\\chess, got ${dir}`);
-});
-
-test('source mapping: an own-source override without a package.json is refused', () => {
-  // The override map only ships cad; a bogus dir would throw with the named
-  // BuildError. Simulate by asking for an app whose override would miss.
+test('source mapping: an unknown app is refused with the named error', () => {
   assert.throws(() => appSourceDir('__does_not_exist__'), /No app/);
 });
