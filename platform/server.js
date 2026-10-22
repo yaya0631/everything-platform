@@ -360,7 +360,7 @@ function banner({ privatePort, publicPort, tls }) {
 
 async function main() {
   if (!fs.existsSync(path.join(APP_DIR, 'index.html'))) {
-    console.error('The CAD app has not been built yet. Run "npm run setup" in the cad-home folder first.');
+    console.error('The CAD app has not been built yet. Run "npm run setup" in the platform folder first.');
     process.exit(1);
   }
   let running;

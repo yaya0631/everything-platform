@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Self-hosted cloud for the CAD app: accounts, a drive, sharing, live co-editing, AI, email and hosted apps on your own computer.",
   "scripts": {
-    "setup": "npm install && npm --prefix app install && npm --prefix app run build",
-    "build": "npm --prefix app run build",
+    "setup": "npm install && npm --prefix ../cad/app install && npm --prefix ../cad/app run build",
+    "build": "npm --prefix ../cad/app run build",
     "start": "node server.js",
     "user": "node users.js",
     "app": "node apps.js",
