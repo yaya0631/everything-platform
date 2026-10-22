@@ -8,7 +8,7 @@ import * as db from './db.js';
 export const DEFAULTS = {
   private_url: '',
   public_url: '',
-  /** Where the pristine HeyPuter/everything git clone lives, relative to cad-home. */
+  /** Where the pristine HeyPuter/everything git clone lives, relative to ROOT_DIR. */
   everythingDir: '../upstream',
   'ai.providers': {},
   'ai.models': [],

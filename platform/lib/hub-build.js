@@ -18,7 +18,7 @@ import * as config from './config.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-/** cad-home's root (â€¦/cad-home). */
+/** The platform root. */
 const ROOT_DIR = path.resolve(HERE, '..');
 export { ROOT_DIR };
 
