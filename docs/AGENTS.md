@@ -97,6 +97,10 @@ Key files in `cad-home\` (names as reported; confirm they exist):
 
 ## 5. Status - rebuilt from the real state (2026-10-22, this agent's Step 0)
 
+> **LLM sessions: read `docs\AI-PROGRESS.md` FIRST** (chronological session log +
+> the update protocol: append a session entry when you start working, refresh
+> suites/commits when you finish). This section the step reports.
+
 ### Folder question (answered)
 - `D:\Stream\everything\` is the ONLY code tree. `D:\Stream\everything - Copie\` is EMPTY
   (contains 0 files; there is nothing to merge and nothing to delete - leave it alone).
