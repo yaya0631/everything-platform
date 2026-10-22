@@ -101,6 +101,36 @@ To use another port, start it with `PORT=9000 npm start`. On Windows PowerShell,
 
 If other devices cannot connect, allow Node.js through the server PC's firewall. Windows asks the first time you run `npm start`; choose **Private networks**.
 
+### Safely backing up the data folder
+
+`data\` holds everything: `data\cad.db` (accounts, shares, the hub's app
+registry, per-user app data), the users' file trees, and work-in-progress like
+run logs. **Never copy `data\` while the server is running** — the database
+writes sidecar files (`cad.db-wal`) continuously, so a copy taken mid-run can
+end up half-written.
+
+Stop the server first (`Ctrl+C`), then copy the folder — or, from any state
+(including while the server is running), write one consistent single-file
+snapshot with the bundled tool:
+
+```sh
+node tools/db-backup.mjs
+```
+
+It writes `data\backups\cad-<stamp>.db` with every committed record folded in
+(no sidecar files involved). Give a different output folder as the argument
+(`node tools/db-backup.mjs D:\backups`) if you keep backups off the server
+disk.
+
+On a healthy shutdown the server also folds the WAL back into `data/cad.db`
+itself, so a plain folder copy taken after a clean stop is complete too.
+
+If the database file is damaged (the server refuses to start with
+`database disk image is malformed`), the startup check makes a byte-for-byte
+copy into `data\_dbrecover-...\` **before** it refuses to continue — do not
+delete that folder; it is your last working copy. The server never
+automatically deletes or rewrites it.
+
 ## 3. Reach it from anywhere (Tailscale)
 
 Accounts are Tailscale-only: the server is never opened to the whole internet. Install [Tailscale](https://tailscale.com) (free for personal use) on the server PC and on each person's device, and share the server PC with the people who should have access.
