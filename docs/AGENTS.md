@@ -132,6 +132,53 @@ Key files in `cad-home\` (names as reported; confirm they exist):
   WAL mode, and integrity re-verified (users 5, hub_workers 3, hub_kv 5). Anything committed
   only into the corrupt WAL is lost; the backup dir keeps the original bytes.
 
+### Decision 1 DONE - URL alias boundary (2026-10-22)
+The owner's boundary decision is implemented: server-internal shape stays §23
+(relative `/wr/<user>/<name>/`; `${base}/w/...` when a public base is set), and the
+app-visible canonical `https://<host_label>.puter.work` alias is applied at the shim
+boundary.
+- `lib\hub-workers.js` `shape()` reverted to §23 semantics (uses `cfg()` + `urlPath(row)`;
+  `host_label` is kept in the row). `allocateHostLabel()` strips trailing dashes so every
+  label matches the DNS shape (`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`).
+- `lib\shim\puter.js`: `canonicalWorkerRow()` converts every row the app receives
+  (create/list/get) to the canonical alias (§26).
+- `lib\hub-rewrite.js`: the two signatures craft rules (`sign-link-host`,
+  `sign-worker-self`) restored byte-exactly (REWRITE_RULES + doc block + APP_JS_RULES
+  order `sign-page-url`,`sign-link-host`,`sign-worker-self`).
+- `lib\hub-workers-http.js`: unknown-alias routes now refuse NAMED - 403
+  `external_not_allowed` ("...puter.work is a puter.work address this server does not
+  host.") on both the private host route and the public `/w/host/` arm (the public error
+  carries CORS).
+- NEW `test\worker-alias.test.js` - 9 tests, all PASS: shim boundary (canonical row,
+  null passthrough), shim wiring (create/list/get call `canonicalWorkerRow`), private
+  alias serves to owner, public route serves anonymous, private row stays not-found
+  publicly, cross-user private alias is denied (a dedicated admin account is created
+  first because the store bootstraps the FIRST user as admin), labels unique across
+  members + DNS shape + max 63 chars, unknown alias returns named `external_not_allowed`,
+  and the calendar `cal-<user>` round-trip both as `/w/cal-<user>/` and
+  `/w/host/cal-<user>.puter.work` alias.
+- TWO real defects found on the way and fixed:
+  1. Redeploy of an existing worker name crashed with `UNIQUE constraint failed: index
+     'hub_workers_host_label_ci'` (plain INSERT of a duplicate). `create()` now UPDATEs
+     the row in place for redeploys (keeps id + stable host label), and public approval
+     resets when the deployed source changed (the §10 packaged rule, generalized).
+  2. `parseW` in `lib\hub-workers-http.js` shadowed the calendar label arm: only a BARE
+     `/w/cal-<user>` was recognized, while `/w/cal-<user>/api/...` (how the calendar
+     actually calls its worker) fell into the generic user/name split and 404'd. The
+     `cal-` arm now leads both bare and pathed forms.
+- One existing test changed (declared per the owner's rule):
+  `test\hub-guest-links.test.js:91` expected the app-visible alias
+  (`https://ping-1.puter.work`) from the SERVER-internal `hubWorkers.approvePublic`
+  return value. Under the confirmed boundary that API keeps the relative route and the
+  shim applies the alias, so the assertion now expects `/wr/person1/ping-1/` (+ explicit
+  `public === true` check). The public-serving behavior it originally guarded is
+  unchanged and still asserted in the same test.
+
+Verified by running: root `npm test` **373/373 PASS** (364+9 new); app
+`npm --prefix app test` **482/482 PASS**; `node build-hub.mjs status` runs.
+Assumed (not run): the restored craft rules apply at serve time only - disk dist stays
+unpatched (grep of raw slices still finds the old text, by design).
+
 ### HANDOFF section 4 - which corrections already landed (verified 2026-10-22)
 Already in the repo (do not redo):
 - **4.1a mechanism**: the general worker-URL mapper exists - `lib\shim\worker-url-map.js`, the
@@ -156,7 +203,9 @@ Still NOT in (to do, in order):
   validate the worker address in their own code (patch required); which can unmapped-by-shim.
 - **4.5 hosting verify consumers**: section 27 written; the per-app published-page analysis
   (hiring, shifts, contracts, documents publish, whiteboard, vector-studio) still missing.
-- The 4 red root-suite tests above (first fix of section 6 work).
+- The 4 red root-suite tests: FIXED (see "Decision 1 DONE" above; the URL-alias boundary
+  decision resolved the conflict in favor of the §23 server shape - no test expectation
+  was rewritten except the one declared there).
 
 ### Not started (unchanged from the earlier report)
 peer relay code, AI engines (txt2img, TTS, STT, OCR, video), hosting/site, net, drivers, events,

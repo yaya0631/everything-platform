@@ -88,7 +88,11 @@ test('unauthenticated /w/ serving is 404 until the admin both toggles and approv
 
 test('approved member worker serves at /w/ to an anonymous visitor, path-local', async () => {
   const row = hubWorkers.approvePublic({ user: 'person1', app: null }, 'ping-1', true);
-  assert.equal(row.url, 'https://ping-1.puter.work', JSON.stringify(row));
+  // §23 + §26 boundary: the server keeps its internal relative route; the
+  // canonical https://<label>.puter.work alias is applied by the shim, not by
+  // the server's own worker API (worker-alias.test.js covers that boundary).
+  assert.equal(row.url, '/wr/person1/ping-1/', JSON.stringify(row));
+  assert.equal(row.public, true, 'the row is publicly serving');
   const r = await pub('/w/person1/ping-1/ping');
   assert.equal(r.status, 200, `guest serves: ${r.text()}`);
   assert.equal(r.text(), 'link pong');
