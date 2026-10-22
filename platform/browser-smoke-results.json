@@ -1,0 +1,140 @@
+{
+ "at": "2026-10-22T15:48:23.496Z",
+ "base": "http://127.0.0.1:18100",
+ "user": "appsmoke",
+ "mode": "load",
+ "results": [
+  {
+   "name": "cad",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Drawing1 - CAD",
+    "textLen": 608,
+    "textSample": "Drawing1 A Home Insert Annotate View Manage Output Line Polyline Circle Arc Draw Modify Text Dimension Annotation Layer Properties 0 Layers Insert Block Match Properties ByLayer ByLayer ByLayer Proper",
+    "els": 777,
+    "canvases": 2,
+    "svgs": 116,
+    "puter": false,
+    "puterApp": null,
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": {
+    "buttons": [
+     "Application menu",
+     "New drawing",
+     "Open",
+     "Save",
+     "Undo",
+     "Redo",
+     "Plot",
+     "Search commands",
+     "Theme",
+     "Help",
+     "A",
+     "Home",
+     "Insert",
+     "Annotate",
+     "View",
+     "Manage",
+     "Output",
+     "Minimize the ribbon",
+     "Line",
+     "Polyline",
+     "Circle",
+     "Circle options",
+     "Arc",
+     "Arc options",
+     "Rectangle",
+     "Rectangle options",
+     "Ellipse",
+     "Ellipse options",
+     "Hatch",
+     "Spline",
+     "Construction line",
+     "Point",
+     "Draw",
+     "Move",
+     "Copy",
+     "Stretch",
+     "Rotate",
+     "Mirror",
+     "Scale",
+     "Trim",
+     "Trim options",
+     "Fillet",
+     "Fillet options",
+     "Array",
+     "Array options",
+     "Erase",
+     "Explode",
+     "Offset"
+    ],
+    "links": [],
+    "inputs": 1
+   },
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "cad-home-shell-v1"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 12,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4662
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4662
+   }
+  }
+ ],
+ "persist": null
+}

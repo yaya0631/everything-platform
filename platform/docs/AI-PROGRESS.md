@@ -235,6 +235,37 @@ sw marker, `cad-session` etc.
   app-readiness state + parked decisions, for an independent LLM audit.
   Committed; root suite re-run after: **377/377 PASS**.
 
+#### Cad onboarding to the hub (owner-approved 2026-10-22, "cad must be ONE app like the rest")
+- WHY: owner challenged the double folder (upstream\src\cad inert vs our live cad
+  client) and the cad HOME row being special (served at root by server.js,
+  not installable, no status row). The GitHub upstream repo is NOT the owner's
+  (verified by Q&A), so the pristine copy stays inert bytes; our cad is THE cad.
+- Commit 1: hub source mapping — `SOURCE_OVERRIDES` in `lib\hub-build.js`
+  (`cad → ../cad/app`), `sourceKind()` exported, own-source apps skip the
+  pristine-clone guards in `buildOne`; status table gained the `src` column
+  (`own`/`up`) + `gates.source` in json; NEW `test\hub-build-source.test.js` (3).
+  Suites: 380/380 (377+3) + 482/482. One ORDER-DEPENDENT FLAKE noted:
+  `test\hub-workers-rsvp.test.js:113` (admin guard 200-vs-401) went red once
+  inside the 380, green in isolation and on the immediate rerun — watch it.
+- Commit 2: built + installed the hub copy — `node build-hub.mjs build-one
+  --only cad` (own-source build: npm ci + vite build from ..\cad\app; installed
+  into data\hub\apps\cad in 18.2s). ONE source change in the client:
+  `local-cloud.js` API root is server-rooted `/api/` when the page runs under
+  the hub's `/h/<name>/` path (root + `guest mode unchanged). Hub-load smoke:
+  `/h/cad/` **render non-blank, 777 elements, ext=0, bad=0, fail=0, err=0,
+  csp=0, sw guarded** (`node browser-smoke.mjs load cad`), full ribbon UI
+  present; the fresh `browser-smoke-results.json` (lean evidence, replaces the
+  stale junk cleared at S6) makes the status row read
+  `cad | own | PASS | services PASS | built yes | installed yes`.
+  Suites: root **380/380**, app **482/482**.
+- Remaining for full equality: the runtime server-tests gate (cad's 482 run in
+  the client suite, not through the hub adapter) and the functional gate
+  (`cad-functional.json`) — queued for the next owner-approved sub-step.
+- Wrote `docs\VERIFY-REPORT-2026-10-22.md` at the owner's request: full
+  direction + action timeline with commits + re-verification commands + honest
+  app-readiness state + parked decisions, for an independent LLM audit.
+  Committed; root suite re-run after: **377/377 PASS**.
+
 - Result (Session 2 + split execution, 2026-10-22): proposal APPROVED and executed
   in full, S1–S6, one commit each; suites at every step: root **377/377 PASS**,
   app **482/482 PASS**, `build-hub.mjs status` PASS from `platform\`. Repo root

@@ -8,7 +8,10 @@
 import { h } from './ui/dom.js';
 import { openDialog } from './ui/dialog.js';
 
-const API = new URL('api/', document.baseURI);
+// The platform API's root: today's default resolves api/ against the page base
+// (root serving and /s/<token>/ guest pages). When the app is served under the
+// hub's /h/<name>/ path, the API lives at the SERVER root instead.
+const API = new URL(/^\/h\/[a-z0-9_-]+\//.test(location.pathname) ? '/api/' : 'api/', document.baseURI);
 
 /** A share link opens the app at /s/<token>/ on the public listener: guest mode. */
 export const guest = /^\/s\/([A-Za-z0-9_-]+)\/?$/.exec(location.pathname)?.[1] ?? null;
