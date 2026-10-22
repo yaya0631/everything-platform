@@ -1,0 +1,64 @@
+﻿
+== ai.txt2speech  ÔÇö 2 distinct site(s), 2 app(s) ==
+  documents: documents\src\lib\puter.js:355
+  video-studio: video-studio\src\media\tts.js:36
+
+== ai.speech2txt  ÔÇö 2 distinct site(s), 1 app(s) ==
+  video-studio: video-studio\src\media\transcribe.js:478
+  video-studio: video-studio\src\media\transcribe.js:490 ├ù2 same line
+
+== ai.img2txt  ÔÇö 2 distinct site(s), 1 app(s) ==
+  contracts: contracts\src\lib\doctext.js:11
+  contracts: contracts\src\lib\doctext.js:158
+
+== ai.txt2img  ÔÇö 10 distinct site(s), 4 app(s) ==
+  documents: documents\src\lib\imagegen.js:2
+  documents: documents\src\lib\puter.js:345
+  photo-studio: photo-studio\src\imaging\ai\puter-ai.ts:8
+  vector-studio: vector-studio\src\features\generative\index.js:9
+  vector-studio: vector-studio\src\features\mockup\expand-image.js:11
+  video-studio: video-studio\src\media\imagegen.js:2
+  video-studio: video-studio\src\media\imagegen.js:64
+  video-studio: video-studio\src\media\imagegen.js:151
+  video-studio: video-studio\src\media\restyle.js:4
+  video-studio: video-studio\src\media\restyle.js:51
+
+== ai.txt2vid  ÔÇö 3 distinct site(s), 1 app(s) ==
+  video-studio: video-studio\src\media\ai-video.js:3
+  video-studio: video-studio\src\media\ai-video.js:194
+  video-studio: video-studio\src\media\ai-video.js:300
+
+== ai.chat  ÔÇö 31 distinct site(s), 13 app(s) ==
+  3d: 3d\src\assistant\ai.ts:71
+  contacts: contacts\src\ui\smartadd.js:118
+  contacts: contacts\src\ui\smartadd.js:128
+  contracts: contracts\src\lib\extract.js:107
+  crm: crm\src\lib\ai.js:4
+  crm: crm\src\lib\ai.js:67
+  documents: documents\src\lib\ai.js:3
+  documents: documents\src\lib\ai.js:43
+  documents: documents\src\lib\puter.js:335
+  documents: documents\src\views\smart-lookup.js:3
+  notes: notes\src\ui\assist.js:11
+  parametric: parametric\src\platform\ai.ts:70
+  photo-studio: photo-studio\src\imaging\ai\puter-ai.ts:14
+  photo-studio: photo-studio\src\imaging\ai\puter-ai.ts:483
+  presentation: presentation\src\draw\ink-ai.js:110
+  presentation: presentation\src\main.js:3940
+  survey: survey\src\model\ai.js:2
+  vector-studio: vector-studio\src\features\generative\index.js:10
+  video-studio: video-studio\src\media\ai-chat.js:3
+  video-studio: video-studio\src\media\ai-tools.js:158
+  video-studio: video-studio\src\media\edit-assistant.js:496
+  video-studio: video-studio\src\media\edit-assistant.js:746
+  video-studio: video-studio\src\media\highlights.js:165
+  video-studio: video-studio\src\media\transcript.js:129
+  video-studio: video-studio\src\media\transcript.js:151
+  video-studio: video-studio\src\media\transcript.js:177
+  video-studio: video-studio\src\ui\panels\text-ai.js:37
+  video-studio: video-studio\src\ui\script-video.js:83
+  whiteboard: whiteboard\public\worker\whiteboard-worker.js:33 ├ù2 same line
+  whiteboard: whiteboard\worker\admin.js:1068
+  whiteboard: whiteboard\worker\admin.js:1081
+
+TOTAL distinct ai.* call sites: 50, across 13 apps

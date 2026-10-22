@@ -1,0 +1,126 @@
+/* The cad-hub shim's picker and dialog styling. Served at /hub/shim.css and
+ * pulled in with a <link> so the strict CSP never needs inline styles.
+ * Deliberately tiny and framework-free.
+ */
+.cad-shim-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483000;
+  color: CanvasText;
+}
+.cad-shim-dialog {
+  background: Canvas;
+  border: 1px solid color-mix(in srgb, CanvasText 25%, Canvas);
+  border-radius: 10px;
+  min-width: 420px;
+  max-width: min(92vw, 560px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  font: 14px/1.45 system-ui, sans-serif;
+}
+.cad-shim-dialog.slim {
+  min-width: 340px;
+  padding-bottom: 8px;
+}
+.cad-shim-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px 6px;
+}
+.cad-shim-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.cad-shim-roots {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.cad-shim-rootlabel {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.cad-shim-path {
+  padding: 0 14px 6px;
+  font: 12px/1.2 ui-monospace, monospace;
+  opacity: 0.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cad-shim-body {
+  padding: 10px 14px;
+  white-space: pre-wrap;
+}
+.cad-shim-list {
+  min-height: 220px;
+  max-height: 46vh;
+  overflow: auto;
+  border-top: 1px solid color-mix(in srgb, CanvasText 12%, Canvas);
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, Canvas);
+  padding: 6px;
+}
+.cad-shim-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: CanvasText;
+  font: inherit;
+}
+.cad-shim-row:hover {
+  border-color: color-mix(in srgb, CanvasText 25%, Canvas);
+}
+.cad-shim-row.dir {
+  font-weight: 600;
+}
+.cad-shim-row.file {
+  padding-left: 26px;
+}
+.cad-shim-row.sel {
+  background: color-mix(in srgb, Highlight 30%, Canvas);
+  border-color: Highlight;
+}
+.cad-shim-foot {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+}
+.cad-shim-name {
+  flex: 1;
+  font: inherit;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, CanvasText 30%, Canvas);
+  border-radius: 6px;
+  background: Canvas;
+  color: CanvasText;
+}
+.cad-shim-foot button {
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, CanvasText 30%, Canvas);
+  background: Canvas;
+  color: CanvasText;
+  cursor: pointer;
+}
+.cad-shim-foot button.primary {
+  border-color: transparent;
+  background: Highlight;
+  color: HighlightText;
+}

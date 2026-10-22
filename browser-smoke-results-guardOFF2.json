@@ -1,0 +1,1564 @@
+{
+ "at": "2026-10-21T08:29:31.081Z",
+ "base": "http://127.0.0.1:18100",
+ "user": "appsmoke",
+ "mode": "load",
+ "results": [
+  {
+   "name": "3d",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "3D · Scene editor",
+    "textLen": 1434,
+    "textSample": "File Edit Render Window Help Layout Modeling Sculpting UV Editing Texture Paint Shading Animation Rendering Compositing Geometry Nodes Scripting Assistant Object Mode Global Select Box Options User Pe",
+    "els": 1336,
+    "canvases": 2,
+    "svgs": 182,
+    "puter": false,
+    "puterApp": null,
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "accounting",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Accounting",
+    "textLen": 1347,
+    "textSample": "Skip to content Create Home Banking Sales Purchases Reports Menu Settings My Company / Saved A Good morning, appsmoke Privacy Create actions Create invoice Record payment Record expense Enter bill Pay",
+    "els": 545,
+    "canvases": 1,
+    "svgs": 41,
+    "puter": true,
+    "puterApp": "accounting",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "bookkeeping-v10gsc1z"
+     ],
+     "cachedIn": [
+      "bookkeeping-v10gsc1z"
+     ],
+     "offlineFetch": "served-from-cache"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 24,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 1,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 2941
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 2941
+   }
+  },
+  {
+   "name": "audio-studio",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Audio Studio",
+    "textLen": 653,
+    "textSample": "Audio Studio File Edit Multitrack Clip Effects Favorites View Window Help Waveform Multitrack Editor Mixer No file open Open audio from your Puter files or this device, record something new, or start ",
+    "els": 425,
+    "canvases": 2,
+    "svgs": 58,
+    "puter": true,
+    "puterApp": "audio-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "keeps the WebAudio render/analyse loop streaming blobs (object URLs, no idle)",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 570
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 570
+   }
+  },
+  {
+   "name": "backgammon",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Backgammon Online — vs the Computer or a Friend",
+    "textLen": 473,
+    "textSample": "Backgammon — play the computer or a friend, free in your browser Player vs. Computer Highest die opens. Roll to start Computer Pass & Play Online Computer Medium 167 pips MOVES You Playing White 167 p",
+    "els": 465,
+    "canvases": 0,
+    "svgs": 30,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "backgammon"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "clicked \"Online\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "cap-table",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Free Cap Table Software for Startups | Cap Table by Puter",
+    "textLen": 120,
+    "textSample": "Couldn’t load your data Something went wrong talking to your Puter cloud. Check your connection and try again. Try again",
+    "els": 56,
+    "canvases": 0,
+    "svgs": 1,
+    "puter": true,
+    "puterApp": "cap-table",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 32,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "checkers",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Checkers Online — vs the Computer or a Friend",
+    "textLen": 363,
+    "textSample": "Checkers — play the computer or a friend, free in your browser Player vs. Computer Computer Pass & Play Online Computer Medium MOVES You Playing Black DIFFICULTY Easy Medium Hard CLOCK No limit 1 + 0 ",
+    "els": 442,
+    "canvases": 0,
+    "svgs": 28,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "checkers"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "clicked \"Online\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "chess",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Chess Online — vs the Computer or a Friend",
+    "textLen": 389,
+    "textSample": "Chess — play the computer or a friend, free in your browser Player vs. Computer Computer Pass & Play Online Computer Medium MOVES No moves yet — White begins. You Playing White DIFFICULTY Easy Medium ",
+    "els": 488,
+    "canvases": 0,
+    "svgs": 27,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "chess"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "clicked \"Online\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 23,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "circuits",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Circuits",
+    "textLen": 904,
+    "textSample": "Skip to the design canvas Circuits Start Alpha A File Edit View Project Reports Window Help Design circuit boards in your browser Draw schematics, lay out and route boards, pour copper, check design r",
+    "els": 279,
+    "canvases": 0,
+    "svgs": 31,
+    "puter": true,
+    "puterApp": "circuits",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 12,
+    "external": [],
+    "externalCount": 0,
+    "bad": [
+     "404 /api/hub/fs/read?path=Libraries%2FMy+components.circuitslib&app=circuits"
+    ],
+    "badCount": 1,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "contacts",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Contacts",
+    "textLen": 128,
+    "textSample": "Contacts New All Favorites Your address book is empty Add your first contact or import an existing .vcf file. New contact Import",
+    "els": 129,
+    "canvases": 0,
+    "svgs": 12,
+    "puter": true,
+    "puterApp": "contacts",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 8,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 3887
+    },
+    "icon.svg": {
+     "status": 200,
+     "csp": "default-src 'self'; object-src 'none'; report-uri /hub/csp-report",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 1569
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 3887
+   }
+  },
+  {
+   "name": "crm",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Sales CRM",
+    "textLen": 491,
+    "textSample": "Good morning, appsmoke Let’s get you selling Add the people you’re talking to and the deals in play, and this page becomes your morning briefing: what’s due, what moved, and what the pipeline is worth",
+    "els": 187,
+    "canvases": 0,
+    "svgs": 20,
+    "puter": true,
+    "puterApp": "crm",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "crm-shell-v1",
+      "crm-runtime-v1"
+     ],
+     "cachedIn": [
+      "crm-runtime-v1"
+     ],
+     "offlineFetch": "served-from-cache"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 21,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 2,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 4041
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 4041
+   }
+  },
+  {
+   "name": "expense",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Expenses",
+    "textLen": 625,
+    "textSample": "Skip to content Good morning, appsmoke octobre 2026 Manual entry Capture receipt THIS MONTH 0,00 $US vs. nothing last month NOT IN A REPORT 0,00 $US 0 expenses AWAITING REIMBURSEMENT 0,00 $US 0 expens",
+    "els": 181,
+    "canvases": 0,
+    "svgs": 19,
+    "puter": true,
+    "puterApp": "expense",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [
+     "404 /api/hub/fs/read?path=expenses-data%2Freports.json&app=expense",
+     "404 /api/hub/fs/read?path=expenses-data%2Fstatements.json&app=expense"
+    ],
+    "badCount": 2,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 1705
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 1705
+   }
+  },
+  {
+   "name": "inventory",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Inventory",
+    "textLen": 669,
+    "textSample": "Overview Good morning. mercredi 21 octobre. Products 0 0 units on hand Stock value 0,00 $US At purchase cost Low stock 0 All above thresholds Out of stock 0 Nothing missing Get started Add your first ",
+    "els": 302,
+    "canvases": 0,
+    "svgs": 34,
+    "puter": true,
+    "puterApp": "inventory",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "inv-shell-v5"
+     ],
+     "cachedIn": [
+      "inv-shell-v5"
+     ],
+     "offlineFetch": "served-from-cache"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 31,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 4,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 6475
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 6475
+   }
+  },
+  {
+   "name": "music-studio",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Demo Song - Music Studio",
+    "textLen": 2566,
+    "textSample": "Skip to workspace PAT SONG 124.000 1:01:00 Beat Playlist Line None 1/6 step 1/4 step 1/3 step 1/2 step Step 1/3 beat 1/2 beat Beat Bar PATTERNS Beat 8 Bassline 2 Chords 2 Lead 1 AUDIO CLIPS Drop audio",
+    "els": 2246,
+    "canvases": 13,
+    "svgs": 191,
+    "puter": true,
+    "puterApp": "music-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "keeps the WebAudio/audio-allow loop + meter polling alive on the landing view",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "notes",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled Page - Notes",
+    "textLen": 235,
+    "textSample": "Notes Untitled Page - appsmoke's Notebook Share File Home Insert Draw View Help Cut Copy Format Styles Tags AP appsmoke's Notebook Quick Notes New Section 1 Add section Untitled Page Add page Untitled",
+    "els": 561,
+    "canvases": 0,
+    "svgs": 76,
+    "puter": true,
+    "puterApp": "notes",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 15,
+    "external": [],
+    "externalCount": 0,
+    "bad": [
+     "404 /api/hub/fs/read?path=notes%2Flibrary.json&app=notes",
+     "404 /api/hub/fs/read?path=notes%2Ftrash.json&app=notes"
+    ],
+    "badCount": 2,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "parametric",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Part1 - Parametric",
+    "textLen": 1758,
+    "textSample": "Skip to the graphics area ALPHA File Edit View Insert Tools Help Part1 A Extruded Boss Revolved Boss Swept Boss Lofted Boss Extruded Cut Revolved Cut Swept Cut Lofted Cut Hole Fillet Linear Pattern Ch",
+    "els": 547,
+    "canvases": 1,
+    "svgs": 69,
+    "puter": true,
+    "puterApp": "parametric",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [
+     "wasm streaming compile failed: CompileError: WebAssembly.instantiateStreaming(): Compiling or instantiating WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allo",
+     "failed to asynchronously prepare wasm: CompileError: WebAssembly.instantiate(): Compiling or instantiating WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allow",
+     "Aborted(CompileError: WebAssembly.instantiate(): Compiling or instantiating WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script in the foll"
+    ],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "pos",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Register · Point of Sale",
+    "textLen": 369,
+    "textSample": "Register All No products yet Add your catalog in the Products tab, or ring up a one-off item below. Add products Custom item Register Products Receipts Customers Reports Settings Welcome Your register",
+    "els": 216,
+    "canvases": 0,
+    "svgs": 23,
+    "puter": true,
+    "puterApp": "pos",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "pos-shell-v3"
+     ],
+     "cachedIn": [
+      "pos-shell-v3"
+     ],
+     "offlineFetch": "served-from-cache"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 27,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 2,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 8421
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 8421
+   }
+  },
+  {
+   "name": "presentation",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled presentation",
+    "textLen": 352,
+    "textSample": "Skip to content File Edit View Insert Format Arrange Slide Tools Slide Show Help Untitled presentation Not saved yet Save Ask AI Present Home Insert Draw Design Transitions Animations Slide Show Recor",
+    "els": 4253,
+    "canvases": 0,
+    "svgs": 429,
+    "puter": true,
+    "puterApp": "presentation",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "projects",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Project Management",
+    "textLen": 338,
+    "textSample": "Projects New project No projects yet A project holds one board, its timeline, and its milestones. Create a project Welcome Plan it. Move it. Ship it. Kanban boards, timelines, and milestones for small",
+    "els": 150,
+    "canvases": 0,
+    "svgs": 15,
+    "puter": true,
+    "puterApp": "projects",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "pm-shell-v2"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 15,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 5,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 3516
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 3516
+   }
+  },
+  {
+   "name": "solitaire",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Klondike Solitaire Online — Draw-One, Undo Any Move",
+    "textLen": 63,
+    "textSample": "Solitaire Moves0 Klondike · Draw 1 Undo New 24 Powered by Puter",
+    "els": 237,
+    "canvases": 0,
+    "svgs": 16,
+    "puter": true,
+    "puterApp": "solitaire",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "solitaire-v2"
+     ],
+     "cachedIn": [
+      "solitaire-v2"
+     ],
+     "offlineFetch": "served-from-cache"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 1,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "renders via canvas and keeps an offscreen rAF-driven animation with a periodic fetch probe",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 4570
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 4570
+   }
+  },
+  {
+   "name": "sudoku",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Sudoku: Play Free in Your Browser",
+    "textLen": 436,
+    "textSample": "Sudoku , play free in your browser Light theme Dark theme Match system theme appsmoke 9 2 6 4 1 3 3 2 8 9 2 7 4 9 1 3 9 4 3 7 6 4 1 7 2 1 5 9 3 5 Medium 30 clues 0:36 Undo Redo Erase Notes Hint 1 5 2 ",
+    "els": 1216,
+    "canvases": 0,
+    "svgs": 18,
+    "puter": true,
+    "puterApp": "sudoku",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 22,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "pre-solves the daily puzzle in a web worker that stays busy; page IS interactive when timed out",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "survey",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Surveys",
+    "textLen": 613,
+    "textSample": "Skip to content A Surveys Create survey Start from scratch A blank survey Use a template Ready-made, fully editable Import questions Paste a list or open a file Generate Your surveys All statuses Draf",
+    "els": 159,
+    "canvases": 0,
+    "svgs": 14,
+    "puter": true,
+    "puterApp": "survey",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "tasks",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Tasks",
+    "textLen": 379,
+    "textSample": "Skip to content Today mer. 21 oct. Add for today Nothing due today Add a task for today, or check Upcoming for what is ahead. Today Upcoming Lists Calendar More Welcome Your day, sorted Personal and s",
+    "els": 203,
+    "canvases": 0,
+    "svgs": 22,
+    "puter": true,
+    "puterApp": "tasks",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "tasks-04ff3ca755e4",
+      "tasks-sdk"
+     ],
+     "cachedIn": [
+      "tasks-04ff3ca755e4"
+     ],
+     "offlineFetch": "served-from-cache"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 14,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 1,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 5937
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 5937
+   }
+  },
+  {
+   "name": "time-tracking",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Hourly · Time Tracking",
+    "textLen": 431,
+    "textSample": "Skip to content Timer mercredi 21 octobre Set up a client and a project, then start tracking. Add a client TODAY 0m THIS WEEK 0m AMOUNT 0,00 $US billable this week Today Nothing logged yet today. Time",
+    "els": 175,
+    "canvases": 0,
+    "svgs": 15,
+    "puter": true,
+    "puterApp": "time-tracking",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 18,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 2842
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": false,
+    "bytes": 2842
+   }
+  }
+ ],
+ "persist": null
+}

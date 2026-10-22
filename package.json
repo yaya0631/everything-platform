@@ -1,0 +1,26 @@
+{
+  "name": "cad-home",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Self-hosted cloud for the CAD app: accounts, a drive, sharing, live co-editing, AI, email and hosted apps on your own computer.",
+  "scripts": {
+    "setup": "npm install && npm --prefix app install && npm --prefix app run build",
+    "build": "npm --prefix app run build",
+    "start": "node server.js",
+    "user": "node users.js",
+    "app": "node apps.js",
+    "hub": "node hub.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "nodemailer": "^10.1.7",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.15.0"
+  }
+}

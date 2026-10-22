@@ -1,0 +1,7 @@
+node v24.21.0 — 2026-10-21T08:51:18.825Z
+execs: 12 (1 cold + 11 warm), payload GET /ping -> 200 'pong'
+cold exec (spawn + import + route + dispatch): 265 ms
+warm execs ms: 11, 9, 9, 10, 10, 11, 8, 9, 8, 7, 6
+warm p50/p95: 9 / 11 ms
+pool telemetry: [{"key":"person1:perf-1","user":"person1","app":"alpha","name":"perf-1","bootMs":220,"rssBytes":49729536,"lastBeatAgoMs":973,"ageMs":29212,"busy":0,"queued":0}]
+parent RSS: 61 MB

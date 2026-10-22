@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>fixture</title>
+<!-- The Puter loader, exactly the shape 46 upstream apps use. -->
+<script src="https://js.puter.com/v2/"></script>
+<!-- Plausible analytics must be stripped at serve time. -->
+<script defer data-domain="fixture.example" src="https://plausible.io/js/script.tagged-events.js"></script>
+<!-- A CDN stylesheet must be stripped too. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fix">
+<style>body { color: slateblue }</style>
+<!-- Root-absolute references to the app's own root must be rebased to /h/<name>/. -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<h1 id="title">fixture</h1>
+<!-- An inline script: the CSP must allow exactly this one via its hash. -->
+<script>document.getElementById('title').textContent = 'fixture-rewritten';</script>
+<script src="assets/app.js" type="module"></script>
+</body>
+</html>

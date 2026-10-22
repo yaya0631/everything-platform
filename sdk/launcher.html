@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAD Home app</title>
+<style>
+:root { color-scheme: light dark; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: #f8f8f8; color: #1c222b; }
+@media (prefers-color-scheme: dark) { body { background: #101215; color: #f2f2f2; } }
+header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(128,128,128,.25); }
+.brand { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+main { flex: 1; min-height: 0; display: flex; }
+#gate { margin: auto; max-width: 22rem; padding: 24px; text-align: center; }
+#gate h1 { font-size: 18px; margin: 0 0 8px; }
+#gate p { margin: 0 0 16px; opacity: .75; }
+form, .stack { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+input { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(128,128,128,.4); background: neutral; color: inherit; font: inherit; }
+button { padding: 9px 14px; border-radius: 8px; border: 0; background: #1f6feb; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+button[disabled] { opacity: .6; cursor: default; }
+button.link { background: none; color: inherit; text-decoration: underline; font-weight: 400; padding: 0; }
+.err { color: #c62828; margin: 0; font-size: 14px; }
+dialog { border: 1px solid rgba(128,128,128,.3); border-radius: 12px; padding: 18px; width: min(30rem, 92vw); max-width: 92vw; background: inherit; color: inherit; }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+#pickList { max-height: 50vh; overflow: auto; border: 1px solid rgba(128,128,128,.3); border-radius: 8px; padding: 4px; }
+#pickList button.row { display: flex; align-items: center; gap: 8px; width: 100%; background: none; color: inherit; font-weight: 400; text-align: left; padding: 7px 8px; border-radius: 6px; }
+#pickList button.row:hover { background: rgba(128,128,128,.15); }
+#pickList .picked { outline: 2px solid #1f6feb; }
+.crumb { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+.crumb button { background: rgba(128,128,128,.15); color: inherit; font-size: 13px; padding: 3px 8px; border-radius: 6px; }
+.dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+button.ghost { background: none; border: 1px solid rgba(128,128,128,.4); color: inherit; }
+#iframe { flex: 1; width: 100%; height: 100%; border: 0; display: none; }
+body.open #iframe { display: block; }
+body.open #gate { display: none; }
+</style>
+</head>
+<body>
+<header><span class="brand">&#9998;&#65039;</span> <b>CAD Home</b> <span id="appLabel" style="opacity:.65"></span></header>
+<main>
+  <div id="gate"><p id="gateMsg">Loading…</p></div>
+  <iframe id="iframe" title="App" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"></iframe>
+</main>
+<dialog id="pickDlg">
+  <h2 id="pickTitle" style="font-size:16px;margin:0 0 4px">Choose a file</h2>
+  <p style="margin:0 0 10px;opacity:.75;font-size:13px" id="pickHint"></p>
+  <div class="crumb" id="crumb"></div>
+  <div id="pickList" role="listbox"></div>
+  <div class="dlg-actions">
+    <button type="button" class="ghost" id="pickCancel">Cancel</button>
+    <button type="submit" id="pickAllow">Allow access</button>
+  </div>
+</dialog>
+<dialog id="askDlg">
+  <h2 id="askTitle" style="font-size:16px;margin:0 0 8px"></h2>
+  <p style="margin:0;opacity:.75" id="askText"></p>
+  <div class="dlg-actions">
+    <button type="button" class="ghost" id="askNo">Deny</button>
+    <button type="submit" id="askYes">Allow</button>
+  </div>
+</dialog>
+<script src="/sdk/launcher.js"></script>
+</body>
+</html>

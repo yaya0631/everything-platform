@@ -1,0 +1,94 @@
+{
+  "at": "2026-10-21T22:30:32.607Z",
+  "pass": false,
+  "pubBase": "http://127.0.0.1:18142",
+  "workerName": "doc-sign-b32625c138",
+  "docId": "mviopv7h5dca4ff9",
+  "steps": [
+    {
+      "step": "owner app opens on the private listener",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "real document built from the uploaded PDF",
+      "pass": true,
+      "detail": "#/doc/mviopv7h5dca4ff9/edit canvases=2"
+    },
+    {
+      "step": "signature field seeded in the saved document record",
+      "pass": true,
+      "detail": "{\"id\":\"e2emviopzsx00000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mviopx9ce9593994\",\"required\":true}"
+    },
+    {
+      "step": "editor loads the seeded field and is ready to send",
+      "pass": true,
+      "detail": "Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click"
+    },
+    {
+      "step": "send-for-signature modal opened",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "deploy consent overlay mounts on workers.create",
+      "pass": true,
+      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-b32625c138\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
+    },
+    {
+      "step": "overlay internals unreachable from page script (closed shadow root)",
+      "pass": true,
+      "detail": "{\"dialog\":false,\"shadow\":false}"
+    },
+    {
+      "step": "synthetic clicks cannot decide the deploy",
+      "pass": true,
+      "detail": "host click events seen: 0"
+    },
+    {
+      "step": "workers.create made the member worker row",
+      "pass": true,
+      "detail": "hub_workers query"
+    },
+    {
+      "step": "the deployed worker is publicly served (auto-approved)",
+      "pass": true,
+      "detail": "{\"public\":true,\"publicApproved\":true}"
+    },
+    {
+      "step": "the deploy is audited (create + auto-approved)",
+      "pass": true,
+      "detail": "create,auto-approved"
+    },
+    {
+      "step": "the app reports the send as sent",
+      "pass": false,
+      "detail": "Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to p"
+    },
+    {
+      "step": "the doc record holds the guest link, on the §23 public base",
+      "pass": false,
+      "detail": "{}"
+    },
+    {
+      "step": "doc left draft for sent by the send flow",
+      "pass": false,
+      "detail": "draft"
+    },
+    {
+      "step": "the worker KV holds token hashes only (never raw tokens)",
+      "pass": false,
+      "detail": "0 token row(s)"
+    },
+    {
+      "step": "the app recorded its worker config (name/url/secret, hash-only)",
+      "pass": false,
+      "detail": "{\"name\":\"doc-sign-b32625c138\",\"url\":\"https://doc-sign-b32625c138.puter.work\"}"
+    },
+    {
+      "step": "E2E driver ran to completion",
+      "pass": false,
+      "detail": "sign link was not created"
+    }
+  ]
+}

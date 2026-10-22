@@ -1,0 +1,61 @@
+{
+  "at": "2026-10-21T22:30:32.238Z",
+  "pass": true,
+  "steps": [
+    {
+      "step": "fresh invoice owner signs in",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "shim receives the configured public hosting base",
+      "pass": true,
+      "detail": "\"http://127.0.0.1:18152/site/\""
+    },
+    {
+      "step": "invoice app opens with sample data available",
+      "pass": true,
+      "detail": "Skip to content\nSample data: explore freely, nothing here is yours\nStart fresh\nHome\n\nYour billing at a glance\n\nNew estimate\nNew invoice\nOutstanding\n5 272,40 $US\n4 open invoices\nOve"
+    },
+    {
+      "step": "sample invoice opens in the real detail view",
+      "pass": true,
+      "detail": "Sample data: explore freely, nothing here is yours\nStart fresh\nInvoices\nINV-0007\nDraft\n\nTom Aldana\n\nSend by email\nMark as sent\nDownload PDF\nEdit\nMore\nAurora Studio\n412 Fremont Ave\nPortland, OR 97227\nhello@aurorastudio.example\n(503) 555-0199"
+    },
+    {
+      "step": "invoice can be marked sent before publishing",
+      "pass": true,
+      "detail": "Skip to content\nSample data: explore freely, nothing here is yours\nStart fresh\nInvoices\nINV-0007\nSent\n\nTom Aldana\n\nSend by email\nRecord payment\nSend reminder\nDownload PDF\nEdit\nMore\nAurora Studio\n412 Fremont Ave\nPortland, OR 97227\nhello@aurorastudio.example\n(503) 555-0199\nINVOICE\nINV-0007\nBILLED TO\nT"
+    },
+    {
+      "step": "share creates a hosting site and maps the .puter.site link to /site",
+      "pass": true,
+      "detail": "{\"shareHref\":\"http://127.0.0.1:18152/site/inv-rvcv1mr11i/amitx7q3da275pg0awtg.html\",\"hrefs\":[\"http://127.0.0.1:18152/site/inv-rvcv1mr11i/amitx7q3da275pg0awtg.html\"]}"
+    },
+    {
+      "step": "anonymous public listener renders the shared invoice",
+      "pass": true,
+      "detail": "Invoice INV-0007\nDownload PDF\nPrint\nAurora Studio\n412 Fremont Ave\nPortland, OR 97227\nhello@aurorastudio.example\n(503) 555-0199\nINVOICE\nINV-0007\nBILLED TO\nTom Aldana\ntom.aldana@example.com\nISSUED\n19 oct. 2026\nDUE\n2 nov. 2026\nDESCRIPTION\tQTY\tRATE\tAMOUNT\nConsulting session\t2\t240,00 $US\t480,00 $US\nPAYME"
+    },
+    {
+      "step": "public page has strict CSP and nosniff with no cookie",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "guest context has no session cookie",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "stop sharing removes public page",
+      "pass": true,
+      "detail": "HTTP 404"
+    },
+    {
+      "step": "owner page reports no uncaught errors",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}
