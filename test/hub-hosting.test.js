@@ -62,6 +62,13 @@ test('shared hosting API and public static site lifecycle', async () => {
     assert.equal((await pub('POST', '/site/alpha-site/')).status, 405);
     assert.equal((await pub('GET', '/site/alpha-site/%2e%2e/secret')).status, 404);
 
+    // contracts publishes subscribable deadline feeds (.ics, §27 census).
+    assert.equal((await owner.call('PUT', path + 'site/deadlines.ics', { body: 'BEGIN:VCALENDAR\nEND:VCALENDAR', raw: true })).status, 200);
+    const ics = await pub('GET', '/site/alpha-site/deadlines.ics');
+    assert.equal(ics.status, 200);
+    assert.equal(ics.headers['content-type'], 'text/calendar; charset=utf-8');
+    assert.equal((await pub('GET', '/site/alpha-site/nonexistent.ics2')).status, 415, 'the extension list stays closed');
+
     config.set('hosting.quota_bytes', 22);
     const overWrite = await owner.call('PUT', path + 'site/extra.txt', { body: 'x', raw: true });
     assert.equal(overWrite.status, 413, 'later app writes cannot grow hosted data beyond the per-user quota');

@@ -267,14 +267,35 @@ Already in the repo (do not redo):
 - **4.5b**: cad-home-cloud.md noted as not required (5.8 of handoff is fine without it).
 
 Still NOT in (to do, in order):
-- **4.1 honest rewrite-census**: section 28's table counts rules ADDED, not rules NEEDED.
-  Needs a real grep census with file:line evidence per remaining worker app; which apps
-  validate the worker address in their own code (patch required); which can unmapped-by-shim.
-- **4.5 hosting verify consumers**: section 27 written; the per-app published-page analysis
-  (hiring, shifts, contracts, documents publish, whiteboard, vector-studio) still missing.
-- The 4 red root-suite tests: FIXED (see "Decision 1 DONE" above; the URL-alias boundary
-  decision resolved the conflict in favor of the §23 server shape - no test expectation
-  was rewritten except the one declared there).
+- **4.3 easy-tier functional gate wave**: implemented and verified for accounting only;
+  the remaining easy-tier apps need their own `<app>-functional.json` round-trip probes
+  before their status rows can say "works".
+- The guest-link shape pull (Decision 2 report above): §24's E2E driver vs §26 canonical
+  app state - owner adjudication parked, no test changed for it.
+
+### HANDOFF section 4 - final state of the review items (2026-10-22)
+- **4.1 census DONE**: section 28 of the design doc rewritten as a grep census with
+  file:line evidence per app (`_census.mjs` inventory; raw refs in today's run log).
+  Conclusion: 0 new per-app serve-time rules are needed; the two apps with their own
+  validators (teamchat config.js:10-29; video-studio/vector-studio protocol checks)
+  accept the canonical `https://<label>.puter.work` shape as-is; packaged system names
+  (`field-service-email`, `invoicing-email`, `puter-meetings-rooms`) resolve through
+  `workers.exec` server-side (`lib\shim\puter.js:1002`). Honest diffs flagged:
+  meetings' build-time `VITE_ROOMS_ORIGIN` override, calendar's book.html guard (fine);
+  hiring/shifts/contracts have NO `puter.work` refs (their old table row was only
+  about `.puter.site` hosting links).
+- **4.5 hosting consumers DONE**: section 27 gained a per-app published-page table
+  (invoicing html, hiring html/xml/txt, shifts html, documents html/json, contracts
+  **ics**). The census found a REAL gap: contracts publishes `.ics` feeds and the
+  `/site` MIME allowlist was closed to them - `.ics -> text/calendar` added to
+  `lib\hub-hosting.js` with a test in `test\hub-hosting.test.js`. Whiteboard and
+  vector-studio do NOT publish pages (they are worker-only); earlier listing was wrong.
+- **4.2 gate honesty DONE** (via Decision 2 diagnosis, report above): runtime coverage
+  0/172, 0/96, 0/45 IS the correct measurement; adapters did not break; the work is the
+  runtime harness wave itself.
+- **4.4 §29 peer design**: section 29 remains the awaiting-review WebRTC design; no
+  peer code written (per owner order). Paste it for their review - do not start.
+- **4.5b**: cad-home-cloud.md still noted as not required.
 
 ### Not started (unchanged from the earlier report)
 peer relay code, AI engines (txt2img, TTS, STT, OCR, video), hosting/site, net, drivers, events,

@@ -803,38 +803,93 @@ quota (100 MiB by default), including later app writes under published roots.
 Admin can disable hosting in Server settings. Invoice sharing is covered end-to-end by
 the public listener test and `invoicing-e2e.mjs`.
 
-## 28. URL rewrite count for remaining worker apps
+### Per-app published-page census (2026-10-22, upstream src evidence)
 
-The hosting URL conversion is one shared shim mapping, so these apps need zero
-app-specific serve-time rules for `.puter.site`. Worker `.puter.work` targets
-are also translated by `puter.workers.exec` at the shim boundary. The count is
-for additional per-app URL rewrite rules; shared shim mappings are one each
-across the whole catalog. Static per-app rules should be added only if an app
-has a URL path that cannot pass through these shim methods.
+| App | hosting calls | Published file set | /site allowlist status |
+| --- | --- | --- | --- |
+| invoicing | `src\lib\share.js:163,167` create per share | `<token>.html` per shared invoice | covered (E2E 11/11) |
+| hiring | `src\ui\publish.js:80` create, `:96` delete | `index.html` + `<job>.html` + `sitemap.xml` + `robots.txt` | covered (.xml/.txt present) |
+| shifts | `src\ui\share.js:43` create + delete | `index.html` schedule page | covered |
+| documents | `src\lib\puter.js:375-383` (create/update/delete), `src\lib\publish.js` | `index.html` page + `site.json` records, `<dir>.json` | covered (.json present) |
+| contracts | `src\lib\calendar.js:86` create, `:129` delete | `deadlines.ics` subscribable feed | **was NOT covered — `.ics` added to `lib\hub-hosting.js` MIME table (2026-10-22), test in `test\hub-hosting.test.js`** |
+| whiteboard | none | — | n/a (no publishing in upstream src) |
+| vector-studio | none | — | n/a |
 
-| App | New per-app serve-time rules needed | Mapping |
+Every publisher writes through `puter.fs.write` under a per-app SHARE/SITE dir first,
+so the quota check on later app writes (§27) applies. No app relies on directory
+listing or on extensions outside the closed allowlist. The earlier §4.5 assumption
+that whiteboard and vector-studio publish pages does not hold in upstream src — they
+use workers only (census in §28).
+
+## 28. URL rewrite count for remaining worker apps — honest census (2026-10-22)
+
+Method: the hosting URL conversion is one shared shim mapping, so these apps need zero
+app-specific serve-time rules for `.puter.site`, and worker `.puter.work` targets are
+translated by `puter.workers.exec` at the shim boundary (`lib\shim\puter.js:1002-1023`:
+canonical alias targets are split to the bare label; `/wr/...` targets are direct
+same-origin). The census below greps EVERY app's own code in `upstream\src\` (tests and
+dev mocks noted where they carry behavior) and records, with file:line evidence, where
+an app touches a worker address itself and whether its own validation accepts the
+canonical `https://<host_label>.puter.work` shape the shim produces.
+
+Census output (raw): `_census.mjs` over `upstream\src`; whole-app inventory at the
+bottom. `${name}.puter.work`-from-`dep.url` silence means the row's URL from the shim
+is canonical and the app stores what it gets.
+
+| App | puter.work refs (own code, no tests) | Own address handling → patch needed? | Evidence |
+| --- | ---: | --- | --- |
+| calendar | 27 | the `cal-<host>` alias is built from hash params in the PUBLIC page and re-checked against a strict *.puter.work guard; canonical passes. Served guest pages get the mapper at serve time (§26). | `calendar\public\book.html:275-283,471-477`, `calendar\src\js\booking.js:108` |
+| childcare | 7 | `normalizeWorkerUrl(dep.url || \`https://${name}.puter.work\`)` — canonical row URL wins over the name guess. | `childcare\src\team.js:274-284,346` |
+| documents | 4 | collab deploy family (same shape as documents below). | `documents\src\collab\api.js:36,69-82` |
+| field-service | 16 | team.js normalizeWorkerUrl family; the EMAIL constant is a packaged system name. | `field-service\src\team.js:199-209`, `field-service\src\mailer.js:9` |
+| fleet | 8 | same family + `workers.delete`. | `fleet\src\team.js:237-252,423` |
+| help-desk | 9 | builds `https://${server}.puter.work` from its saved config (the owner's stored label), portal API the same. | `help-desk\src\client\api.js:32`, `help-desk\src\client\portal-api.js:30` |
+| legal | 8 | team.js family, incl. `workers.delete`. | `legal\src\team.js:233-261,321` |
+| meetings | 2 | rooms origin constant `https://puter-meetings-rooms.puter.work` overridable by build-time env — default resolves by packaged name. | `meetings\src\lib\rooms.js:14,108` |
+| photo-studio | 6 | collab deploy family. | `photo-studio\src\collab\api.ts:33,73-86` |
+| property-management | 15 | team + mailer family. | `property-management\src\team.js:219-229`, `property-management\src\mailer.js:10` |
+| signatures | 21 | RESTORED craft rules (sign-page-url, sign-link-host, sign-worker-self) cover the guest-page and 303 self-address; dev mock routes *.puter.work in-page. | `lib\hub-rewrite.js:354-370,377-390`, `signatures\dev\puter-mock.js:108,147,167-177` |
+| spreadsheet | 19 | collab + email mocks (dev only), collab family in src. | `spreadsheet\src\collab\api.js:41,78` |
+| survey | 8 | strict CSP `connect-src 'self' https://*.puter.work` and `sv-<label>` naming; canonical passes the CSP. | `survey\src\respond\main.js:36,63`, `survey\src\data\collector-client.js:68,215` |
+| teamchat | 44 | OWN validator: `u.protocol === 'https:' && u.hostname.endsWith('.puter.work')` — accepts exactly the canonical shape. | `teamchat\src\config.js:10-29,56` |
+| vector-studio | 6 | protocol type documents "https *.puter.work origin" only. | `vector-studio\src\features\collab\api.js:37-89`, `vector-studio\src\features\collab\protocol.js:88` |
+| video-studio | 7 | protocol: "Only https://<name>.puter.work is trusted". | `video-studio\src\review\api.js:32-104`, `video-studio\src\review\protocol.js:124` |
+| whiteboard | 190 | most refs live inside the BUILT worker chunk (`public\worker\whiteboard-worker.js`, minified); src collab family is the standard one. | `whiteboard\src\collaboration\api.js:53-147` |
+| wiki | 5 | collab family + dev constant. | `wiki\src\collab\api.js:56-129` |
+
+Honest conclusion: **0 new per-app serve-time rules are needed** for the whole list —
+every app's own handling either consumes the shim's canonical row (`dep.url`) or
+hardcodes a packaged system name that `workers.exec` resolves server-side
+(`field-service-email`, `invoicing-email`, `puter-meetings-rooms`, `wiki-dev` in dev
+only). The two apps with OWN validators (teamchat, video-studio/vector-studio protocol
+checks) accept the canonical shape as-is.
+
+Caveats the census found (honest diffs, no rule added):
+- `meetings\src\lib\rooms.js:108` trusts a BUILD-TIME `VITE_ROOMS_ORIGIN` override — a
+  build-time constant can point outside *.puter.work; runtime fetches then bypass the
+  shim. Product flag for the §4.5 hosting analysis, not a serve-time rewrite.
+- `calendar\public\book.html:283` restricts contacts to well-formed page ids/tokens —
+  good; depends on the server-side `cal-<user>` label arm (`lib\hub-workers-http.js`
+  `parseW`, fixed 2026-10-22 in the alias round).
+
+### Earlier (now-corrected) claims kept for traceability
+
+| App | Old count | Old mapping |
 | --- | ---: | --- |
-| calendar | 0 | shared `.puter.work` worker mapping |
-| childcare | 0 | shared `.puter.work` worker mapping |
-| email | 0 | shared `.puter.work` worker mapping |
-| field-service | 0 | shared `.puter.work` worker mapping |
-| fleet | 0 | shared `.puter.work` worker mapping |
-| help-desk | 0 | shared `.puter.work` worker mapping |
-| legal | 0 | shared `.puter.work` worker mapping |
-| meetings | 0 | shared `.puter.work` worker mapping |
-| photo-studio | 0 | shared `.puter.work` worker mapping |
-| property-management | 0 | shared `.puter.work` worker mapping |
-| spreadsheet | 0 | shared `.puter.work` worker mapping |
-| teamchat | 0 | shared `.puter.work` worker mapping |
-| video-studio | 0 | shared `.puter.work` worker mapping |
-| wiki | 0 | shared `.puter.work` worker mapping |
-| invoicing | 0 | shared `.puter.site` mapping to `/site/` |
-| hiring | 0 | shared `.puter.site` mapping to `/site/` |
-| shifts | 0 | shared `.puter.site` mapping to `/site/` |
-| contracts | 0 | shared `.puter.site` mapping to `/site/` |
-| documents | 0 | shared hosting mapping; `.puter.work` worker exec mapping |
-| whiteboard | 0 | shared hosting mapping; `.puter.work` worker exec mapping |
-| vector-studio | 0 | shared hosting mapping; `.puter.work` worker exec mapping |
+| (the table's per-app "0" rows all hold per the census above) | 0 | shared `.puter.work` worker mapping |
+| invoicing / hiring / shifts / contracts | 0 | shared `.puter.site` mapping to `/site/` |
+
+Correction to the earlier table: hiring, shifts, contracts have **no `puter.work`
+references in their own code** (they appear in the "no refs" list below together with
+all easy-tier apps); their row in the old table was about `.puter.site` hosting links,
+which the shared `/site/` mapping covers with no per-app rule. The old table's
+counts stand; the reasoning is now backed by greppable evidence instead of assertion.
+
+Apps with NO `puter.work` references in upstream src (worker-tier list shrinks): 3d,
+accounting, api-client, assets, audio-studio, backgammon, building-design, cad,
+cap-table, checkers, chess, circuits, contacts, contracts, crm, email, expense,
+hiring, inventory, music-studio, notes, parametric, pdf, pos, presentation, projects,
+records, shifts, solitaire, sudoku, tasks, time-tracking.
 
 ## 29. Peer relay proposal for review before implementation
 
