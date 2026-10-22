@@ -1,4 +1,4 @@
-# AGENTS.md - cad-home hub: global view and handoff
+# AGENTS.md - the platform hub + cad app: global view and handoff
 
 Read this whole file first. It is the handoff from the previous agent (GLM 5.3, opencode).
 Its last session stopped on a provider quota error, in the middle of a test. You take over from there.
@@ -40,14 +40,31 @@ workstation for all the owner's local apps, with no external cloud, no external 
 
 ## 3. Layout
 
+**(2026-10-22, platform-split S1–S6, owner-approved and executed — see
+`docs\AI-PROGRESS.md` for the round log.)** The git repo root is now
+`D:\Stream\everything\` (`.git` lifted from the old `cad-home\`; history carried
+by renames). One commit per step, suites green each step:
+S1 db backup + 50 loose app folders archived to `D:\Stream\_app-folder-archive\`;
+S2 git-root lift (all files became `cad-home\*` by rename);
+
+S3 `git mv` platform code → `platform\` (data\cad.db intact);
+S4 `git mv cad-home\app → cad\app`; S5 cad-home emptied + deleted, package name
+`platform`; S6 junk cleanup (probes, prototype-data, smoke-results).
+
 Workspace: `D:\Stream\everything\`
-- `cad-home\` - the server (this is where you work).
+- `platform\` - the server (this is where you work). Suite: `npm test` from here.
+- `platform\data\` - the REAL data dir (`cad.db` internal name unchanged). Never ship it.
+- `cad\app\` - the AutoCAD client app (own package.json, vitest suite:
+  `npm --prefix ..\cad\app test` from platform). Its built `cad\app\dist\` is
+  served by the platform (`paths.js` `CAD_APP_ROOT`).
 - `upstream\` - fresh clone of HeyPuter/everything (`upstream\src\<app>`). Read-only for you, except
   that `npm ci` / `npm install` and `vite build` inside `upstream\src\<app>` are allowed (try
   `--ignore-scripts` first, report any fallback). Almost every app imports `../../dev`, so never
   flatten this layout.
+- `D:\Stream\_app-folder-archive\` - the 50 old loose per-app folders (archived, not deleted; no
+  references exist to them).
 
-Key files in `cad-home\` (names as reported; confirm they exist):
+Key files in `platform\` (names as reported; confirm they exist):
 - `plans\cad-home-cloud.md` - the original approved plan for CAD (steps 1-8).
 - `docs\phase3-workers-design.md` - the workers design and the status board (sections numbered 1-24).
 - `README.md` - setup, honest diffs, per-app table.
@@ -100,6 +117,24 @@ Key files in `cad-home\` (names as reported; confirm they exist):
 > **LLM sessions: read `docs\AI-PROGRESS.md` FIRST** (chronological session log +
 > the update protocol: append a session entry when you start working, refresh
 > suites/commits when you finish). This section the step reports.
+
+### Platform split DONE (owner-approved, 2026-10-22, S1–S6)
+- S1 `tools\db-backup.mjs` → `data\backups\cad-20261022150412.db`; 50 loose app
+  folders moved to `D:\Stream\_app-folder-archive\`; suites 377/377 + 482/482.
+- S2 `.git` lifted to `D:\Stream\everything`; git read the whole repositioning as
+  **518 pure renames** (history intact). Self-caught: the first `.gitignore` used an
+  unanchored `upstream/` that also ignored `test\fixtures\upstream\` — anchored and
+  the rsvp-worker.js fixture re-tracked.
+- S3 platform code → `platform\` (db + node_modules moved with the fs); anchors
+  fixed (`test\live.test.js`, `lib\paths.js`); suites 377/377 + 482/482; status PASS.
+- S4 `cad-home\app` → `cad\app` (dist + node_modules wholesale); scripts/paths
+  repointed; self-caught: `cad/app/dist` briefly git-tracked — re-ignored + amend.
+- S5 cad-home emptied and deleted; package name `platform`; self-caught via the
+  repo's own encoding test: BOM written into package-lock.json — stripped. Suite 377/377.
+- S6 junk removed (probes, prototype-data-browsercheck, smoke results); docs updated.
+- Layout NOW: `everything\.git`, `platform\` (server; `npm test`), `cad\app\`
+  (client; `npm --prefix ..\cad\app test`), `upstream\` (clean `0fc4d361`),
+  archive outside the repo. `node build-hub.mjs status` runs from `platform\`.
 
 ### Folder question (answered)
 - `D:\Stream\everything\` is the ONLY code tree. `D:\Stream\everything - Copie\` is EMPTY
@@ -378,8 +413,8 @@ vector/video/photo collaboration and the games' online play (peer). `assets` has
 ## 9. First steps for you
 
 1. Read `plans\cad-home-cloud.md`, `README.md`, `docs\phase3-workers-design.md`.
-2. Run both suites (root `npm test`, app `npm test` in `app\`) and report exact counts. Run
-   `node build-hub.mjs status` and `git status` inside `upstream\` (must be clean).
+2. Run both suites (root `npm test` in `platform\`, app `npm --prefix ..\cad\app test`)
+   and report exact counts. Run `node build-hub.mjs status` and `git status` inside `upstream\` (must be clean).
 3. Find out which signatures productization items actually landed (list in section 5), each with a
    test. Rebuild with `node build-hub.mjs build-one --only signatures` and confirm the packaged
    `signatures-email` row is created.

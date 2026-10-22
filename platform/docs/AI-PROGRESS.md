@@ -1,9 +1,22 @@
-# AI PROGRESS LOG — cad-home
+# AI PROGRESS LOG — cad-home → platform/cad RESTRUCTURED
 
 **Read this file FIRST if you are an LLM session taking over.** It is the continuable
 record of all progress and actions. `docs\AGENTS.md` §5 holds the same state in the
 owner's step-report format; this file holds the chronological session log plus the
 protocol below.
+
+**FOLDER LAYOUT (post platform-split, S1–S6, 2026-10-22).** Repo root is
+`D:\Stream\everything\` (`.git` at the root; history carried by renames):
+`platform\` (ALL platform code: server.js, hub.js, lib\, sdk\, panel\, test\, tools\,
+data\ with cad.db, docs\, package.json, e2e runners), `cad\app\` (the AutoCAD client
+app, own package.json + vitest suite; its built `dist\` is served by the platform),
+`upstream\` (pristine HeyPuter/everything clone, clean at `0fc4d361`), and
+`D:\Stream\_app-folder-archive\` (50 loose per-app folders, archived out of the tree).
+Run root suite from `platform\`; app suite: `npm --prefix ..\cad\app test` (from
+platform) or `npm --prefix D:\Stream\everything\cad\app test`.
+Internal identifiers deliberately NOT renamed: `cad.db`, `CAD_TEST`, `cad_session`
+cookie, `cad-home-<date>.db` db-download labels, the `cad-home serve-time guard`
+sw marker, `cad-session` etc.
 
 ## Protocol (every session, no prompting needed)
 
@@ -25,15 +38,16 @@ protocol below.
    `data\_dbdiag-20261022123133\` (proven lossless, kept on owner order).
 5. Throwaway probe scripts start with `_`; their `CAD_DATA_DIR` must be a fresh
    `fs.mkdtempSync` BEFORE importing `./server.js`, or they hit the REAL `data\cad.db`.
-   Delete throwaways at docs pass. Root suite: `npm test`; app suite:
-   `npm --prefix app test`; status: `node build-hub.mjs status`. Capture `2>&1`.
+   Delete throwaways at docs pass. Root suite: `npm test` (from `platform\`);
+   app suite: `npm --prefix ..\cad\app test` (from `platform\`); status:
+   `node build-hub.mjs status`. Capture `2>&1`.
 
-## Snapshot (as of 2026-10-22 — session of git `c8e1d5a → 107c76f`)
+## Snapshot (as of 2026-10-22 — platform split S1–S6 EXECUTED, awaiting final commit)
 
-- Root suite: **377/377 PASS**; app suite: **482/482 PASS**; `build-hub.mjs status` runs.
+- Root suite: **377/377 PASS**; app suite: **482/482 PASS**; `build-hub.mjs status`
+  runs and its upstream sha check passes from `platform\`.
 - `invoicing-e2e.mjs` **11/11**; `sign-e2e.mjs` **12/17** (one owner-decision conflict, below).
-- Git head `107c76f` on `master` (baseline `c8e1d5a`); user identity configured locally
-  (`cad-home-agent <agent@local>`); upstream clone clean at `0fc4d361`.
+- Git head after S5 commit; repo root `D:\Stream\everything`; upstream clone clean at `0fc4d361`.
 - Owner decisions LIVE in code: URL-alias boundary (§23 server shape + §26 shim
   canonical alias), redeploy-UPDATE with approval-reset audit, cal-arm parseW ordering.
 - Real defect fixed this round: shim fetch-override Request-chaining detached POST
@@ -48,13 +62,11 @@ protocol below.
   worker-config urls in the OLD §23 pubBase form while §26 gives apps only the
   canonical alias — the driver's guest `page.goto` cannot map an alias host
   (details in `AGENTS.md` §5, "Decision 2" block). No test was changed for it.
-- Folder layout (verified 2026-10-22, evidence-based): `D:\Stream\everything\` holds
-  `upstream\` (the HeyPuter/everything clone; ALL app sources the builder uses are
-  `upstream\src\<app>` — `lib\hub-build.js:45`, `run-upstream-suite.mjs:22`),
-  `cad-home\` (the product: server, tests, docs, git history, user db `data\cad.db`),
-  and 51 LOOSE per-app folders (3d…wiki) that NOTHING references (no `.git`, not in
-  any build/test path) — owner plans to archive them out of the tree; if the root
-  suite stays 377/377 after removal, they were pure dead weight.
+- Folder layout: **PLATFORM SPLIT DONE (S1–S6)** — see the layout block at the top of
+  this file. `upstream\src\<app>` remains the builder's source dir
+  (`lib\hub-build.js:45`, `run-upstream-suite.mjs:22`); `everythingDir` default
+  unchanged (`../upstream`, resolved against the platform ROOT_DIR). The guest-link
+  shape conflict above is UNCHANGED by the split.
 - Next work queue: 4.3 easy-tier functional-gate wave (only accounting measured);
   runtime-coverage harness wave (0/172 etc. → real numbers); guest-link decision;
   then the §5 "Not started" list (peer relay LAST, after §29 approval).
@@ -175,4 +187,58 @@ protocol below.
 - Suites after the lift: root **377/377**, app **482/482 PASS** (run before the
   ignore-pattern fix; the fix touches tracking only).
 
-#### S3 — platform move (running log below)
+#### S3 — platform move (commit; suites 377/377 + 482/482)
+- `git mv` for every tracked platform entry (server/hub/users/apps js, build-hub.mjs
+  + 7 runner scripts, sdk\ panel\ lib\ test\ tools\ docs\, package.json[-lock],
+  README, e2e files, junk tracked files) → `platform\`; `data\` + `node_modules\`
+  + ignored `_*.mjs` moved with the filesystem (db intact).
+- `cad-home` reduced to `.gitignore` + `app\`.
+- Anchor fixes: `test\live.test.js` imports repointed to the CAD app source
+  (temporarily `../cad-home/app`, final at S4 `../cad/app`); `lib\paths.js`
+  `CAD_APP_ROOT` indirection added (temporarily cad-home, final S4); stale
+  `hub-build.js` comment fixed. `everythingDir` default `../upstream` stays CORRECT
+  (it resolves against ROOT_DIR = platform root) — a momentary wrong default change
+  ("../../upstream") was reverted after `build-hub.mjs status` flagged it.
+- Suites: root 374 loaded→2 fail (APP_DIR/TOKENS_CSS unanchored) → fixed →
+  **377/377 PASS**; app **482/482 PASS** (from `..\cad-home\app`); `build-hub.mjs status`
+  **PASS** incl. upstream sha.
+
+#### S4 — CAD client move `cad-home\app` → `cad\app` (commit; suites 377/377 + 482/482)
+- `git mv cad-home/app cad/app` (dist\ + node_modules\ moved wholesale).
+- Repointed: `paths.js` CAD_APP_ROOT → `..\cad\app` (final), `test\live.test.js`
+  imports, platform `package.json` setup/build scripts (`--prefix ../cad/app`),
+  server.js boot message text.
+- CAUGHT: `cad/app/dist` had become git-tracked (no ignore pattern covered the new
+  path) — untracked, `cad/app/dist/` added to the root .gitignore, commit amended.
+- Suites: root **377/377 PASS**; app **482/482 PASS** (from `..\cad\app`).
+
+#### S5 — rename complete (commit; suites 377/377)
+- `cad-home` dir fully emptied → deleted; folder-rename decision implemented via
+  the moves (app lives at `cad\app`, per the proposal layout sketch).
+- platform package.json + package-lock name `cad-home` → `platform`; stale
+  comment sweep (hub.js, hub-build.js). Cosmetic labels kept on purpose: db
+  download name `cad-home-<date>.db`, `cad-home serve-time guard` sw marker,
+  `cad-home:` error prefix in db.js (internal identifiers not renamed per owner).
+- CAUGHT BY THE REPO'S OWN TEST: my PowerShell `Set-Content -Encoding utf8` added a
+  BOM to package-lock.json → `test\encoding.test.js` failed → stripped via Node.
+- Suites: root **377/377 PASS** (after BOM fix).
+
+#### S6 — junk cleanup + docs pass (commit)
+- Deleted: `prototype-data-browsercheck\` (git rm), 4 `browser-smoke-results*.json`,
+  31 throwaway `_*.mjs/_*.cjs/_*.txt/_*.json` probes (grep-verified: only comment
+  references remain). `invoicing-e2e-results.json` (11/11) and
+  `sign-e2e-results.json` (aborted-run record) kept as evidence files.
+- Docs: this file (layout block, protocol suite commands, snapshot), AGENTS.md
+  §3/§5 layout + split report.
+
+- Result (Session 2 + split execution, 2026-10-22): proposal APPROVED and executed
+  in full, S1–S6, one commit each; suites at every step: root **377/377 PASS**,
+  app **482/482 PASS**, `build-hub.mjs status` PASS from `platform\`. Repo root
+  now `D:\Stream\everything\` with `platform\` + `cad\app\` + `upstream\` (clean at
+  `0fc4d361`); 50 loose app folders archived at `D:\Stream\_app-folder-archive\`;
+  `data\cad.db` moved intact inside `platform\data\`; git history carried by
+  renames (git log --follow works across the split). Three self-caught issues
+  fixed inside the round: gitignore upstream/ anchor (fixture re-tracked),
+  cad/app/dist re-ignored + amend, package-lock BOM (repo's own encoding test).
+  Next queue unchanged: 4.3 easy-tier functional-gate wave; runtime-coverage
+  harness wave (0/172 etc. → real numbers); guest-link adjudication; §29 review.

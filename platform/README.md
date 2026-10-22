@@ -15,23 +15,28 @@ Run the CAD app (from [HeyPuter/everything](https://github.com/HeyPuter/everythi
 The server's only dependencies are Node.js itself plus `ws` (WebSockets) and `nodemailer` (email). There are no native modules. All data stays in the `data` folder on this machine.
 
 ```
-cad-home/
-  server.js      the server: two listeners, the /api/, live sessions and graceful shutdown
-  users.js       add, remove and manage accounts from the command line
-  apps.js        deploy, list, roll back and remove hosted apps from the command line
-  lib/           the server modules (database, drive, sharing, live, ai, mail, apps, functions…)
-  panel/         the admin panel and account page (static, no build step)
-  sdk/           the SDK and launcher pages that hosted apps run on
-  test/          server tests (node:test)
-  app/           the CAD app, connected to this server instead of Puter
-  data/          created on first run: cad.db, everyone's drawings, history and deployed apps
+everything/
+  platform/      the server (this repo): two listeners, the /api/, live sessions, hub, tests, data
+    server.js    the server: two listeners, the /api/, live sessions and graceful shutdown
+    users.js     add, remove and manage accounts from the command line
+    apps.js      deploy, list, roll back and remove hosted apps from the command line
+    lib/         the server modules (database, drive, sharing, live, ai, mail, apps, workers…)
+    panel/       the admin panel and account page (static, no build step)
+    sdk/         the SDK and launcher pages that hosted apps run on
+    test/        server tests (node:test)
+    data/        created on first run: cad.db, everyone's drawings, history and deployed apps
+  cad/app/       the CAD app, connected to this server instead of Puter (own build; dist is served)
+  upstream/      the pristine HeyPuter/everything clone the hub builds every hosted app from
 ```
+
+The CAD client moved out of the server folder (2026-10-22 platform-split round):
+the server is platform/, the CAD app lives in ../cad/app next to it.
 
 ## 1. Set up the server PC (once)
 
 1. Install **Node.js 22.13 or newer** from https://nodejs.org (Windows, macOS or Linux). The server needs 22.13 for the built-in SQLite module and the permission model that sandboxes serverless functions.
-2. Copy the `cad-home` folder to the server PC.
-3. Open a terminal in the `cad-home` folder and run the setup. This needs internet once, to download the build tools and build the CAD app:
+2. Copy the `platform` folder (and, if you use the CAD app, the sibling `cad` folder) to the server PC.
+3. Open a terminal in the `platform` folder and run the setup. This needs internet once, to download the build tools and build the CAD app:
 
    ```sh
    npm run setup
@@ -46,12 +51,12 @@ cad-home/
 5. **(Windows, required before enabling public member-deployed workers)** give
    workers their own node binary and an OS block on outbound connections, so
    even a genuine in-process bypass dies at the socket. In a terminal as
-   Administrator, in the `cad-home` folder:
+   Administrator, in the `platform` folder:
 
    ```sh
    mkdir data\bin 2>nul & copy "%ProgramFiles%\nodejs\node.exe" data\bin\node-worker.exe /y
    netsh advfirewall firewall delete rule name="cad-worker-net-block" >nul 2>&1
-   netsh advfirewall firewall add rule name="cad-worker-net-block" dir=out program="<full path to cad-home>\data\bin\node-worker.exe" action=block enable=yes profile=any
+   netsh advfirewall firewall add rule name="cad-worker-net-block" dir=out program="<full path to platform>\data\bin\node-worker.exe" action=block enable=yes profile=any
    ```
 
    Check that it works (this must print **RULE OK** — it first proves the PC
@@ -237,7 +242,7 @@ People with the **can host apps** flag (Admin → People, or `npm run user -- ho
 
 ## 11. The hub — the 50 apps from HeyPuter/everything
 
-The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (49 apps + CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to cad-home, change with the Everything dir setting in Admin → Hub) and stays **pristine**: apps are never edited, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
+The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (49 apps + CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to the platform folder, change with the Everything dir setting in Admin → Hub) and stays **pristine**: apps are never edited, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
 
 **Layout on this server:** `/hub/` is the home page (each person's app grid), apps live at `/h/<name>/` (the `/apps/` prefix belongs to the older hosted-apps feature), and the shim is at `/hub/puter.js`.
 
@@ -609,16 +614,16 @@ Server settings edited in Admin → Server and Admin → AI (private/public URLs
 
 ## Keep it running
 
-- **Windows:** create a Task Scheduler task that runs `npm start` in the `cad-home` folder **At startup**.
-- **Linux:** add a systemd service, for example `/etc/systemd/system/cad-home.service`:
+- **Windows:** create a Task Scheduler task that runs `npm start` in the `platform` folder **At startup**.
+- **Linux:** add a systemd service, for example `/etc/systemd/system/cad-platform.service`:
 
   ```ini
   [Unit]
-  Description=CAD Home
+  Description=CAD platform (self-hosted server)
   After=network.target
 
   [Service]
-  WorkingDirectory=/home/you/cad-home
+  WorkingDirectory=/home/you/platform
   ExecStart=/usr/bin/node server.js
   Restart=always
   User=you
@@ -627,13 +632,13 @@ Server settings edited in Admin → Server and Admin → AI (private/public URLs
   WantedBy=multi-user.target
   ```
 
-  Then run `sudo systemctl enable --now cad-home`.
+  Then run `sudo systemctl enable --now cad-platform`.
 
 Shutting down gracefully (Ctrl+C, or stopping the service) flushes every open drawing to disk first. On Windows, closing the terminal sends no signal — give it a moment or check Admin → Overview that no rooms are open before killing it.
 
 ## Changing the app
 
-Run `npm start` in `cad-home`, then `npm run dev` in `cad-home/app`. The dev server forwards `/api/` (including WebSockets) to port 8080. Run `npm run build` in `cad-home` (or in `cad-home/app`) to publish your changes.
+Run `npm start` in `platform`, then `npm run dev` in `cad/app`. The dev server forwards `/api/` (including WebSockets) to port 8080. Run `npm run build` in `platform` (or in `cad/app`) to publish your changes.
 
 All changes from the original app are app-side and additive:
 
