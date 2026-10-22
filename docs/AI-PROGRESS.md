@@ -45,6 +45,13 @@ protocol below.
   worker-config urls in the OLD §23 pubBase form while §26 gives apps only the
   canonical alias — the driver's guest `page.goto` cannot map an alias host
   (details in `AGENTS.md` §5, "Decision 2" block). No test was changed for it.
+- Folder layout (verified 2026-10-22, evidence-based): `D:\Stream\everything\` holds
+  `upstream\` (the HeyPuter/everything clone; ALL app sources the builder uses are
+  `upstream\src\<app>` — `lib\hub-build.js:45`, `run-upstream-suite.mjs:22`),
+  `cad-home\` (the product: server, tests, docs, git history, user db `data\cad.db`),
+  and 51 LOOSE per-app folders (3d…wiki) that NOTHING references (no `.git`, not in
+  any build/test path) — owner plans to archive them out of the tree; if the root
+  suite stays 377/377 after removal, they were pure dead weight.
 - Next work queue: 4.3 easy-tier functional-gate wave (only accounting measured);
   runtime-coverage harness wave (0/172 etc. → real numbers); guest-link decision;
   then the §5 "Not started" list (peer relay LAST, after §29 approval).
