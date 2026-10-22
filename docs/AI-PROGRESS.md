@@ -59,30 +59,6 @@ protocol below.
   runtime-coverage harness wave (0/172 etc. → real numbers); guest-link decision;
   then the §5 "Not started" list (peer relay LAST, after §29 approval).
 
-## Session 2 - 2026-10-22 - ARCHITECTURE CORRECTION + proposal only (awaiting approval)
-
-### Owner correction (verbatim intent, restated)
-- The product is a self-hosted replacement for Puter's cloud hosting ALL of
-  `upstream\src\<app>`; apps never call Puter's cloud/external APIs, server-side may.
-- `cad-home` is NOT special — it is ONE app (the AutoCAD clone), a first test.
-  **Nothing should depend on its folder.** Platform code must move out of it.
-- Signed order: (a) short proposal (no code, no moves) → owner approval →
-  (b) move code in small steps, one commit each, root+app suites green + real counts
-  reported each step; keep `data\cad.db`, the data folder and git history intact,
-  back up with `tools\db-backup.mjs` first; upstream stays clean at `0fc4d361`;
-  archive the 51 loose app folders (move, not delete); no peer-relay code; no
-  test-expectation edits.
-
-### Actions (running log)
-- ~14:xx Protocol rule updated in this file: apps no-external-calls wording (above).
-- Survey: `cad-home` = platform code (server.js, lib\, sdk\, panel\, test\, tools\,
-  build-hub.mjs and friends, data\, docs\) + the CAD client in `app\` (its own
-  package.json; the 482-test suite) + junk (`prototype-data-browsercheck`,
-  `browser-smoke-results*.json`, 27 earlier-phase `_*.mjs` probes).
-- 14:xx wrote `docs\PROPOSAL-platform-split.md` (layout, move list, 6 commit steps,
-  5 risks, 3 owner questions). NO CODE MOVED — awaiting owner approval, per order.
-- 4.3 else: nothing touched this turn except docs.
-
 ## Session log
 
 ### Session 0 - 2026-10-22 (prior context, reconstructed) - baseline + decision 1
@@ -153,3 +129,37 @@ protocol below.
   2. Runtime-coverage wave: run signatures/invoicing/calendar case sets against
      cad-home runtime (0/172 → real numbers; honest wiring already in place).
   3. Owner answers needed: §29 acceptance questions + guest-link shape pull.
+
+## Session 2 - 2026-10-22 - ARCHITECTURE CORRECTION + proposal only (awaiting approval)
+
+### Owner correction (verbatim intent, restated)
+- The product is a self-hosted replacement for Puter's cloud hosting ALL of
+  `upstream\src\<app>`; apps never call Puter's cloud/external APIs, server-side may.
+- `cad-home` is NOT special — it is ONE app (the AutoCAD clone), a first test.
+  **Nothing should depend on its folder.** Platform code must move out of it.
+- Signed order: (a) short proposal (no code, no moves) → owner approval →
+  (b) move code in small steps, one commit each, root+app suites green + real counts
+  reported each step; keep `data\cad.db`, the data folder and git history intact,
+  back up with `tools\db-backup.mjs` first; upstream stays clean at `0fc4d361`;
+  archive the 51 loose app folders (move, not delete); no peer-relay code; no
+  test-expectation edits.
+
+### Actions (running log)
+- ~14:xx Protocol rule updated in this file: apps no-external-calls wording (above).
+- Survey: `cad-home` = platform code (server.js, lib\, sdk\, panel\, test\, tools\,
+  build-hub.mjs and friends, data\, docs\) + the CAD client in `app\` (its own
+  package.json; the 482-test suite) + junk (`prototype-data-browsercheck`,
+  `browser-smoke-results*.json`, 27 earlier-phase `_*.mjs` probes).
+- 14:xx wrote `docs\PROPOSAL-platform-split.md` (layout, move list, 6 commit steps,
+  5 risks, 3 owner questions). NO CODE MOVED — awaiting owner approval, per order.
+- 4.3 else: nothing touched this turn except docs.
+- OWNER APPROVED (same day): platform folder = `platform` (agent picked it; the
+  semantic name beats `hub` and leaves room for the admin panel under the same
+  roof). S5 rename YES (`cad-home` -> `cad`). Git-root lift APPROVED (S2).
+
+#### S1 — db backup + archive the 51 loose folders
+- `node tools\db-backup.mjs` → `data\backups\cad-20261022150412.db` (270 336 bytes).
+- 50 loose top-level app folders moved to `D:\Stream\_app-folder-archive\`
+  (outside the future repo root; move not delete). Only `cad-home` + `upstream`
+  remain in `D:\Stream\everything`.
+- Suites re-run after the move: root **377/377**, app **482/482 PASS**.
