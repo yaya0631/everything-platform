@@ -42,10 +42,28 @@ export function upstreamRoot() {
 }
 
 export function appSourceDir(name) {
+  // Own-source override (owner decision 2026-10-22: our CAD app is THE cad;
+  // the copy inside the pristine upstream clone is inert reference — never a
+  // build source). The override dir is our editable, tested cad client.
+  const override = SOURCE_OVERRIDES[name];
+  if (override) {
+    const dir = path.resolve(ROOT_DIR, override);
+    if (!fs.existsSync(path.join(dir, 'package.json')))
+      throw new BuildError(`No "${name}" app at the override source ${dir} (no package.json).`);
+    return dir;
+  }
   const dir = path.join(upstreamRoot(), 'src', name);
   if (!fs.existsSync(path.join(dir, 'package.json'))) throw new BuildError(`No app "${name}" in ${dir} (no package.json).`);
   return dir;
 }
+
+/** Where an app's buildable source lives: 'own' (this repo) or 'upstream' (the pristine clone). */
+export function sourceKind(name) {
+  return SOURCE_OVERRIDES[name] ? 'own' : 'upstream';
+}
+
+/** name -> resolve(ROOT_DIR, value): apps whose buildable source is NOT upstream\src\<name>. */
+const SOURCE_OVERRIDES = { cad: '../cad/app' };
 
 function run(cmd, args, { cwd, quiet } = {}) {
   const res = spawnSync(cmd, args, {

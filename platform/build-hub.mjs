@@ -17,7 +17,7 @@ import path from 'node:path';
 import { stripBom } from './lib/jsonread.js';
 import * as hub from './lib/hub.js';
 import * as hubWorkersApi from './lib/hub-workers.js';
-import { buildApp, upstreamRoot, cloneDirty, appSourceDir, BuildError, ROOT_DIR } from './lib/hub-build.js';
+import { buildApp, upstreamRoot, cloneDirty, appSourceDir, sourceKind, BuildError, ROOT_DIR } from './lib/hub-build.js';
 import { zeroMatchVerdict, REWRITE_RULES } from './lib/hub-rewrite.js';
 import * as configm from './lib/config.js';
 
@@ -122,7 +122,10 @@ function writeState(state) {
 async function buildOne(name, opts, state) {
   const t0 = Date.now();
   console.log(`\n=== ${name} ===`);
-  if (cloneDirty()) throw new BuildError('the upstream clone is dirty — commit or clean it before building');
+  // Own-source apps (SOURCE_OVERRIDES in lib\hub-build.js) build from this
+  // repo, so the pristine-clone guards below do not apply to them.
+  const own = sourceKind(name) === 'own';
+  if (!own && cloneDirty()) throw new BuildError('the upstream clone is dirty — commit or clean it before building');
   let built;
   try {
     built = buildApp(name, { prune: opts.prune });
@@ -131,7 +134,7 @@ async function buildOne(name, opts, state) {
     writeState(state);
     throw err;
   }
-  if (cloneDirty()) throw new BuildError('the upstream clone went dirty during the build — aborting install');
+  if (!own && cloneDirty()) throw new BuildError('the upstream clone went dirty during the build — aborting install');
   const info = hub.installFromDist(name, built.distDir, {
     sha: built.sha || 'imported', base: built.base, source: 'build', title: built.title, description: built.description,
   });
@@ -331,6 +334,7 @@ function statusCommand({ json = false } = {}) {
     const smokeClean = !!s && !!s.loads && s.external === 0 && s.bad === 0 && s.failed === 0 && s.errors === 0 && s.csp === 0;
     const e2ePass = needsE2e ? !!e2e?.pass : true;
     const gates = {
+      source: sourceKind(name),
       built: !!b?.ok,
       installed: !!inst?.enabled,
       smoke: { pass: smokeClean, external: s?.external ?? null, http_bad: s?.bad ?? null, failed: s?.failed ?? null, other_errors: s?.errors ?? null, csp: s?.csp ?? null },
@@ -363,15 +367,15 @@ function statusCommand({ json = false } = {}) {
   }
 
   const pad = (v, n) => String(v ?? '').padEnd(n).slice(0, n);
-  console.log(`${pad('app', 18)} ${pad('status', 10)} ${pad('smoke', 7)} ${pad('server tests', 14)} ${pad('upstream only', 18)} ${pad('E2E', 10)} ${pad('services', 10)} ${pad('built', 7)} ${pad('installed', 9)}`);
-  console.log('-'.repeat(127));
+  console.log(`${pad('app', 18)} ${pad('status', 10)} ${pad('src', 5)} ${pad('smoke', 7)} ${pad('server tests', 14)} ${pad('upstream only', 18)} ${pad('E2E', 10)} ${pad('services', 10)} ${pad('built', 7)} ${pad('installed', 9)}`);
+  console.log('-'.repeat(133));
   const t = { built: 0, ok: 0, smoke: 0, loads: 0, works: 0 };
   for (const r of rows) {
     if (r.built) { t.built += 1; t.ok += r.built.ok ? 1 : 0; }
     if (r.smoke) { t.smoke += 1; t.loads += r.smoke.loads ? 1 : 0; }
     if (r.status === 'works') t.works += 1;
     console.log(
-      `${pad(r.name, 18)} ${pad(r.status, 10)} ${pad(r.gates.smoke.pass ? 'PASS' : 'PENDING', 7)} `
+      `${pad(r.name, 18)} ${pad(r.status, 10)} ${pad(r.gates.source === 'own' ? 'own' : 'up', 5)} ${pad(r.gates.smoke.pass ? 'PASS' : 'PENDING', 7)} `
       + `${pad(r.upstream_test_coverage ? `${r.upstream_test_coverage.covered}/${r.upstream_test_coverage.total}` : (r.functional_gate ? 'functional' : r.source_scan === 'easy' ? 'func-pending' : '-'), 14)} `
       + `${pad(r.upstream_only_suite ? `${r.upstream_only_suite.covered}/${r.upstream_only_suite.total}` : '-', 18)} `
       + `${pad(r.gates.e2e.required === false ? 'n/a' : r.gates.e2e.pass ? `${r.gates.e2e.covered}/${r.gates.e2e.total}` : '-', 10)} `
