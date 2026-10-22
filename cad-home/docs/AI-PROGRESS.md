@@ -163,3 +163,16 @@ protocol below.
   (outside the future repo root; move not delete). Only `cad-home` + `upstream`
   remain in `D:\Stream\everything`.
 - Suites re-run after the move: root **377/377**, app **482/482 PASS**.
+
+#### S2 — git-root lift cad-home → D:\Stream\everything (commit `5ef8350` + fix)
+- Moved `.git` up one level; root `.gitignore` written (data/, node_modules/,
+  _*.mjs, *.log, upstream/, _app-folder-archive/).
+- Index reshaped: git detected **518 pure renames into `cad-home/`** — history
+  intact, no add/rm churn.
+- BUG caught in the lift: the unanchored `upstream/` ignore pattern ALSO ignored
+  `cad-home\test\fixtures\upstream\` (rsvp-worker.js) — patterns anchored to root
+  (`/upstream/`), fixture restored to tracking, fix committed.
+- Suites after the lift: root **377/377**, app **482/482 PASS** (run before the
+  ignore-pattern fix; the fix touches tracking only).
+
+#### S3 — platform move (running log below)
