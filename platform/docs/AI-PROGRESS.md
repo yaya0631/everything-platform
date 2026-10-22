@@ -230,6 +230,10 @@ sw marker, `cad-session` etc.
   `sign-e2e-results.json` (aborted-run record) kept as evidence files.
 - Docs: this file (layout block, protocol suite commands, snapshot), AGENTS.md
   §3/§5 layout + split report.
+- Wrote `docs\VERIFY-REPORT-2026-10-22.md` at the owner's request: full
+  direction + action timeline with commits + re-verification commands + honest
+  app-readiness state + parked decisions, for an independent LLM audit.
+  Committed; root suite re-run after: **377/377 PASS**.
 
 - Result (Session 2 + split execution, 2026-10-22): proposal APPROVED and executed
   in full, S1–S6, one commit each; suites at every step: root **377/377 PASS**,
