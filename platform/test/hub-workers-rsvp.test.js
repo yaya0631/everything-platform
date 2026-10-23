@@ -109,7 +109,12 @@ test('admin guard: Bearer-secret only; a wrong secret and no secret both 401', a
   const none = await exec('/admin/ping');
   assert.equal(none.status, 401);
   assert.equal(none.body.error, 'unauthorized');
-  const bad = await bearer('/admin/ping', { method: 'GET', as: `${ADMIN_SECRET.slice(0, -1)}0` });
+  // A secret GUARANTEED to differ (the naive "drop last char, append 0" mutation
+  // equals the real secret whenever the random secret happens to end in 0 —
+  // a 1-in-16 flake the suite hit twice on 2026-10-22). Flip the first char
+  // instead: deterministic, always different, same shape.
+  const wrongSecret = ADMIN_SECRET[0] === '0' ? `1${ADMIN_SECRET.slice(1)}` : `0${ADMIN_SECRET.slice(1)}`;
+  const bad = await bearer('/admin/ping', { method: 'GET', as: wrongSecret });
   assert.equal(bad.status, 401);
   const good = await bearer('/admin/ping', { method: 'GET' });
   assert.equal(good.status, 200, JSON.stringify(good.body));

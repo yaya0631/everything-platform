@@ -300,3 +300,49 @@ sw marker, `cad-session` etc.
   future pulls rebase cad only; the other 50 apps pull untouched.
 - WATCH: `test\hub-workers-rsvp.test.js:113` admin-guard flake (2 full-suite
   occurrences, 200-vs-401 — root-cause next session, not touched yet).
+
+
+## Session 3 - 2026-10-23 - CAD unification follow-through + flake root-caused
+
+### Actions (running log)
+- (2026-10-22, continued) Cad onboarding 1/2 + 2/2 committed (hub source mapping;
+  hub-built + hub-served; smoke clean; status row own/PASS/yes/yes).
+- (owner DROVE the next step) Owner challenged the two-folder cad layout, then MOVED
+  the cad client into the upstream clone by hand (left nested at
+  `upstream\src\cad\app` beside the original files). Agent made it version-controlled:
+  - flattened the layout properly; CLONED-TREE RECOVERY from this repo's git after
+    an agent `Move-Item`/`Remove-Item` mistake corrupted the merge (nested dirs
+    collided then got deleted) — restored exactly from the tracked pre-move tree
+    (`git checkout HEAD -- cad/app`), copied the three dirs over whole, deleted the
+    cad\ shell in our repo;
+  - verified file-for-file: **145 tracked files = 145, 0 diffs**;
+  - clone commit `1d2588e8` on `main` (base `0fc4d361` recoverable; clone clean);
+  - platform repointed: `paths.js` CAD_APP_ROOT → `..\upstream\src\cad`,
+    `test\live.test.js` imports, package.json setup/build scripts, README,
+    AGENTS §3 layout, root .gitignore (dropped obsolete `cad/app/dist/`);
+  - `SOURCE_OVERRIDES` in `lib\hub-build.js` EMPTIED (cad builds like every other
+    app); `test\hub-build-source.test.js` rewritten to pin the unified layout;
+  - hub copy REBUILT from the unified source (`build-one --only cad`, 17.9s) and
+    re-smoked CLEAN (777 elements, ext=0, bad=0, fail=0, err=0, csp=0, sw guarded);
+  - suites: root **380/380**, cad client **482/482** from `..\upstream\src\cad`.
+- FLAKE ROOT-CAUSED + FIXED (test input bug, NOT product): the rsvp admin-guard
+  test built its "wrong" secret as `SECRET.slice(0,-1) + '0'` — identical to the
+  real secret whenever the random one ends in `0` (1-in-16 odds = the two recorded
+  200-vs-401 failures). Reproduced the collision mechanically (200k sample).
+  Fix: deterministic guaranteed-different mutation (flip first char). Expectation
+  UNCHANGED (401). RSVP suite green 3x in a row; full suite green 2x in a row.
+- Upstream semantics (owner-approved): the clone is OUR LOCAL FORK — the other 50
+  apps still pull upstream updates untouched; cad updates need a rebase/merge.
+
+### Result (2026-10-23)
+- Layout: `everything\.git`, `platform\`, `upstream\src\<52 apps incl. cad>`,
+  archive outside the repo. ONE cad, ONE source home. No special casing left.
+- Root suite **380/380 PASS** (twice) + cad client **482/482 PASS**;
+  `build-hub.mjs status` runs; upstream clone clean at local-fork `1d2588e8`.
+- Committed: agent side `cad onboarding 1/2`, `2/2`, `cad unification`, plus this
+  flake fix; clone side `1d2588e8`. Disclosures: the declared test change is the
+  admin-guard INPUT fix above (expectation untouched); the recovery mistake and
+  its verification are logged above for the audit trail.
+- Next queue: 4.3 easy-tier functional-gate wave; runtime-coverage wave
+  (0/172, 0/96, 0/45 → real); cad functional gate + hub runtime gate; guest-link
+  adjudication; §29 review.
