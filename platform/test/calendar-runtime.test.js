@@ -19,6 +19,8 @@ import fs from 'node:fs';
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { cleanup } from './helpers.js'; // sets a per-process fresh CAD_DATA_DIR
+
 process.env.CAD_RUNTIME_HELPERS = '1';
 register(pathToFileURL(path.resolve('test', 'vitest-shim', 'hooks.mjs')).href);
 const shim = await import(pathToFileURL(path.resolve('test', 'vitest-shim', 'index.mjs')).href);
@@ -79,4 +81,6 @@ after(() => {
     execution: 'cad-home runtime seam: worker-contract.js framing + hub-kv.js transport via test/runtime/worker-harness.mjs (in-process; the /wr HTTP wrapper, child sandbox and permission model stay root-suite coverage, incl. test/hub-workers-rsvp.test.js)',
     at: new Date().toISOString(), files: MAPPED_SET.length,
   }, null, 2));
+  db.close();
+  return cleanup(null);
 });

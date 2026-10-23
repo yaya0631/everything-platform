@@ -311,7 +311,9 @@ const POKE = {
   chess: 'Online',
   checkers: 'Online',
   backgammon: 'Online',
-  '3d': null, // 3d runs its own main loop; loader is on demand
+  // 3d: the assistant panel is open by default; submitting a message raises
+  // its on-demand Puter loader (assistant/puter.ts loadPuter via ready()).
+  '3d': { fillSelector: '.as-input', text: 'make a cube', submit: 'Enter' },
 };
 
 /** Apps whose navigation never reaches `networkidle2`. Reasons are MEASURED
@@ -336,21 +338,34 @@ if (mode === 'load') {
       const want = POKE[a.name];
       if (want) {
         try {
-          const clicked = await page.evaluate((label) => {
-            const els = [...document.querySelectorAll('button,[role="button"],a,[role="tab"],li,div')]
-              .filter((e) => e.offsetParent !== null && (e.innerText || '').trim().toLowerCase() === label.toLowerCase());
-            if (!els.length) return false;
-            els[0].click();
-            return true;
-          }, want);
+          let clicked, pokedDesc;
+          if (typeof want === 'string') {
+            clicked = await page.evaluate((label) => {
+              const els = [...document.querySelectorAll('button,[role="button"],a,[role="tab"],li,div')]
+                .filter((e) => e.offsetParent !== null && (e.innerText || '').trim().toLowerCase() === label.toLowerCase());
+              if (!els.length) return false;
+              els[0].click();
+              return true;
+            }, want);
+            pokedDesc = clicked ? `clicked "${want}"` : `no "${want}" control visible`;
+          } else if (want.fillSelector) {
+            // Real input path: type into the LIVE field and press its submit.
+            const el = await page.$(want.fillSelector).catch(() => null);
+            if (el) {
+              await el.type(want.text, { delay: 10 }).catch(() => {});
+              await page.keyboard.press(want.submit || 'Enter').catch(() => {});
+              clicked = true;
+            }
+            pokedDesc = clicked ? `typed into "${want.fillSelector}"` : `no "${want.fillSelector}" field visible`;
+          }
           if (clicked) {
             await new Promise((res) => setTimeout(res, 4000));
             const after = await page.evaluate(domProbe);
             dom.puterAfterPoke = after.puter;
             dom.puterAppAfter = after.puterApp;
-            poked = `clicked "${want}"`;
+            poked = pokedDesc;
           } else {
-            poked = `no "${want}" control visible`;
+            poked = pokedDesc;
           }
         } catch (e) {
           poked = 'poke failed: ' + String(e).slice(0, 80);

@@ -56,9 +56,35 @@ const POKE = {
   chess: 'Online',
   checkers: 'Online',
   backgammon: 'Online',
-  // 3d runs its own main loop; no documented control raises its loader.
+  // 3d: the assistant panel is open by default (upstream e2e helper asserts
+  // this); submitting a message is the real user path that raises its
+  // on-demand Puter loader (assistant/puter.ts loadPuter via ready()).
+  '3d': { fillSelector: '.as-input', text: 'make a cube', submit: 'Enter' },
 };
 const firstRunMiss = (c) => c.method === 'puter.fs.read' && c.code === 'not_found';
+
+/** Raise an app's on-demand Puter loader through a real user path, so the
+ * shim-wait below judges the result. `label` = click the visible control with
+ * that text; `{fillSelector, text, submit}` = type into the LIVE field and
+ * press its submit (the loading happens through the app's own listeners). */
+async function runPoke(page, poke) {
+  if (!poke) return;
+  if (typeof poke === 'string') {
+    await page.evaluate((label) => {
+      const els = [...document.querySelectorAll('button,[role="button"],a,[role="tab"],li,div')]
+        .filter((e) => e.offsetParent !== null && (e.innerText || '').trim().toLowerCase() === label.toLowerCase());
+      if (els.length) els[0].click();
+      return els.length > 0;
+    }, poke).catch(() => false);
+  } else if (poke.fillSelector) {
+    const el = await page.$(poke.fillSelector).catch(() => null);
+    if (el) {
+      await el.type(poke.text, { delay: 10 }).catch(() => {});
+      await page.keyboard.press(poke.submit || 'Enter').catch(() => {});
+    }
+  }
+  await new Promise((resolve) => setTimeout(resolve, 4000));
+}
 const failingCalls = (calls) => calls.filter((c) => c.status !== 'resolved' && !firstRunMiss(c));
 try {
   for (const app of targets) {
@@ -83,16 +109,7 @@ try {
       // Apps with an on-demand loader need a control click before window.puter
       // exists (measured in browser-smoke.mjs POKE). Click it, if present,
       // then let the shim wait below judge the result.
-      const poke = POKE[app.name];
-      if (poke) {
-        await page.evaluate((label) => {
-          const els = [...document.querySelectorAll('button,[role="button"],a,[role="tab"],li,div')]
-            .filter((e) => e.offsetParent !== null && (e.innerText || '').trim().toLowerCase() === label.toLowerCase());
-          if (els.length) els[0].click();
-          return els.length > 0;
-        }, poke).catch(() => false);
-        await new Promise((resolve) => setTimeout(resolve, 4000));
-      }
+      await runPoke(page, POKE[app.name]);
       // Some apps load the shim on demand (their own script decides when);
       for (let i = 0; i < 20 && !(await page.evaluate(() => typeof window.puter === 'object')); i++) {
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -145,6 +162,7 @@ try {
       } catch (navErr) {
         if (!await page.evaluate(() => document.readyState === 'complete' || document.readyState === 'interactive').catch(() => false)) throw navErr;
       }
+      await runPoke(page, POKE[record.app]);
       const kvRestart = await page.evaluate(async (key, marker) => ({ pass: (await puter.kv.get(key)) === marker }), record.probe.key, record.probe.marker);
       const calls = await page.evaluate(() => window.__CAD_PUTER_CALLS__ || []);
       record.kvRestart = kvRestart;
