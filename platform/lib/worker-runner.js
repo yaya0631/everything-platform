@@ -86,6 +86,9 @@ for (const sym of Object.getOwnPropertySymbols(globalThis)) {
 import { format } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { AsyncLocalStorage } from 'node:async_hooks';
+// The pure contract pieces live in worker-contract.js so the runtime test seam
+// can frame calls exactly like this child does.
+import { Router as ContractRouter, matchRoute as matchRouteContract, serializeWorkerResponse } from './worker-contract.js';
 
 const post = process.send?.bind(process) ?? (() => {});
 const emit = (msg) => {
@@ -264,17 +267,7 @@ function ownerSdk({ kind, app, user, name, publicGuest, callerUser }) {
 }
 
 /** The route collector — same shape as calendar/tests/helpers/worker-harness.js. */
-class Router {
-  constructor() { this.routes = []; }
-  add(method, pattern, handler) {
-    this.routes.push({ method: String(method).toUpperCase(), pattern: String(pattern), handler });
-  }
-  get(p, h) { this.add('GET', p, h); }
-  post(p, h) { this.add('POST', p, h); }
-  put(p, h) { this.add('PUT', p, h); }
-  delete(p, h) { this.add('DELETE', p, h); }
-  options(p, h) { this.add('OPTIONS', p, h); }
-}
+const Router = ContractRouter;
 
 const router = new Router();
 globalThis.router = router;
@@ -324,7 +317,7 @@ async function run(msg) {
   const method = String(msg.request.method || 'GET').toUpperCase();
   let pathOnly = String(msg.request.path || '/').split('?')[0];
   if (pathOnly.length > 1 && pathOnly.endsWith('/')) pathOnly = pathOnly.slice(0, -1);
-  const hit = matchRoute(routes, method, pathOnly);
+  const hit = matchRouteContract(routes, method, pathOnly);
   if (!hit) {
     return { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: `No route for ${method} ${pathOnly}` };
   }
@@ -359,47 +352,12 @@ async function run(msg) {
   }
 
   const out = await hit.handler(ctx);
-  if (out && typeof out === 'object' &&
-    (out instanceof Response || (typeof out.status === 'number' && (out.headers !== undefined || out.body !== undefined)))) {
-    // Response-like: read the body ONCE (a Response's .body is a stream),
-    // then serialize status + headers + body text over IPC.
-    const headers = {};
-    let status = out.status ?? 200;
-    for (const [k, v] of (typeof out.headers?.entries === 'function' ? out.headers.entries() : Object.entries(out.headers ?? {}))) {
-      if (k.toLowerCase() === 'set-cookie') continue; // workers never hand out cookies — §16
-      headers[k] = String(v);
-    }
-    let body;
-    try {
-      body = typeof out.text === 'function' ? await out.text() : (out.body == null ? '' : out.body);
-    } catch {
-      body = '';
-    }
-    if (typeof body !== 'string') {
-      try { body = Buffer.from(body).toString('utf8'); } catch {
-        headers['Content-Type'] = headers['Content-Type'] || 'application/json; charset=utf-8';
-        body = JSON.stringify(body);
-      }
-    }
-    return { status, headers, body };
-  }
+  const serialized = await serializeWorkerResponse(out);
+  if (serialized) return serialized;
   // A plain object means JSON 200 — harness lines 167-170.
   return { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(out ?? null) };
 }
 
 function matchRoute(routes, method, path) {
-  for (const r of routes) {
-    if (r.method !== method) continue;
-    const segP = String(r.pattern).replace(/\/index$/, '').split('/');
-    const segA = path.split('/');
-    if (segP.length !== segA.length) continue;
-    let ok = true;
-    const params = {};
-    for (let i = 0; i < segP.length; i++) {
-      if (segP[i].startsWith(':')) params[segP[i].slice(1)] = decodeURIComponent(segA[i]);
-      else if (segP[i] !== segA[i]) { ok = false; break; }
-    }
-    if (ok) return { handler: r.handler, params };
-  }
-  return null;
+  return matchRouteContract(routes, method, path);
 }

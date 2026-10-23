@@ -159,6 +159,9 @@ function spawn(row) {
     permissionFlag(),
     `--allow-fs-read=${dir}`,
     `--allow-fs-read=${RUNNER}`,
+    // The runner's pure contract pieces (route collector / matching /
+    // Response serialization) needed by the same import.
+    `--allow-fs-read=${path.join(import.meta.dirname, 'worker-contract.js')}`,
     `--max-old-space-size=${cfg('workers.memory_mb') || 128}`,
   ];
   const child = fork(RUNNER, [], { cwd: dir, env: childEnv(), execPath: WORKER_NODE, execArgv, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
