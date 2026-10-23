@@ -407,3 +407,53 @@ stayed incomplete. This session executed the 4.3 wave end to end.
 - Next queue: runtime-coverage wave (signatures 0/172, invoicing 0/96, calendar
   0/45); cad gate via admin/hub surface; guest-link adjudication (owner);
   §29 peer-relay review (owner); 3d dedicated drive; VERIFY-REPORT addendum.
+
+
+## Session 5 - 2026-10-23 - runtime-coverage wave starts: signatures 0/172 to 30/172
+
+Owner GO continued (second auditor round confirmed the functional-gate wave).
+
+### Actions (running log)
+- RUNTIME SEAM EXTRACTED first (commit 835cd05): lib/worker-contract.js holds the
+  pure workers contract (Router, route matching, Response serialization);
+  worker-runner.js (the forked child) now uses it verbatim - zero behavior
+  change, root suite stayed green. Real bug caught by the worker tests: the
+  child's --allow-fs-read list lacked the new imported module, so every worker
+  child died on import (502 "runtime stopped mid-query"); the parent now
+  allows that exact file. Suites: root 380/380.
+- RUNTIME ADAPTER MACHINERY:
+  - test/runtime/worker-harness.mjs: runtime variant of upstream's worker
+    harness with the SAME import surface. Worker source is loaded like the
+    runner's child does (fresh contract Router as the `router` global, `me`
+    global set before import and per call); responses go through the runner's
+    serializeWorkerResponse; kv goes through lib/hub-kv.js and fs through
+    lib/hub-fsops.js - the same transports the parent's me-frame handler
+    uses. kv exposes a WRITE-THROUGH Map view (upstream tests peek and seed
+    kv.map; a view write becomes a real hub-kv set).
+  - test/runtime/fake-puter.mjs: makeFs routed through hub-fsops (Blob reads,
+    subject_does_not_exist on miss); makeFakePuter deliberately NOT ported
+    yet - it fails LOUDLY so a case cannot silently understate coverage.
+  - test/vitest-shim/hooks.mjs: CAD_RUNTIME_HELPERS=1 maps
+    signatures/tests/helpers/{worker-harness,fake-puter}.js to the runtime
+    seam, ONLY for the runtime adapter; the upstream-only adapters behave
+    exactly as before.
+  - test/signatures-runtime.test.js: the mapped runtime set for this step =
+    email-worker.test.js + sign-worker.test.js (30 cases); writes
+    data/hub/test-gates/signatures-runtime.json.
+- build-hub.mjs status: a <name>-runtime.json evidence file now overrides the
+  adapter's static runtimeCovered/Total (total stays the shared denominator);
+  source text on the row names the runtime seam execution.
+
+### Result (2026-10-23)
+- signatures runtime coverage measured for real: **30/172 runtime cases PASS**
+  (upstream worker code executing worker-contract framing + hub-kv + hub-fsops;
+  the /wr HTTP wrapper, child sandbox and permission model stay tested by the
+  root suite - declared in the evidence's execution field).
+- Status prints signatures 30/172 (was 0/172); invoicing 0/96 and calendar 0/45
+  still open (each needs its own seam port - next steps).
+- Suites: root **411/411 PASS** (380 + 31 new runtime adapter tests), cad client
+  **482/482 PASS**. Status exit 0.
+- Next queue: extend the mapped set to accesscode/consent/expiry/ownernotify
+  (needs the makeFakePuter runtime port: auth/workers/fetchTo over the real
+  hub), then store/templates signlinks/deleteflow/emailer app-libs cases,
+  then invoicing (0/96) and calendar (0/45).

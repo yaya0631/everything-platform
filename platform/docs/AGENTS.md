@@ -472,3 +472,22 @@ vector/video/photo collaboration and the games' online play (peer). `assets` has
    shim-level URL mapping to patching minified chunks wherever the app does not validate the URL
    itself, and say which apps need patching.
 8. Report DONE/PENDING with proof, then continue down the order in section 7.
+
+### Runtime-coverage wave STARTED (2026-10-23, Session 5)
+- `lib/worker-contract.js` extracted: the pure workers contract (Router, route
+  matching, Response serialization) shared by the forked child (`worker-runner.js`)
+  and the runtime test seam. The child spawn now allows that file in its
+  --allow-fs-read list (without it every worker child died on import - caught
+  by the worker tests, root suite stayed green through the refactor).
+- NEW `test/runtime/` seam: runtime variants of upstream's signatures helpers,
+  same import surface, transports wired to lib/hub-kv.js + lib/hub-fsops.js +
+  lib/worker-contract.js. `makeFakePuter` is NOT ported yet and fails loud.
+- `test/signatures-runtime.test.js` maps email-worker + sign-worker upstream
+  cases onto the seam (hook flag CAD_RUNTIME_HELPERS=1; upstream files stay
+  unmodified). Evidence: data/hub/test-gates/signatures-runtime.json.
+- `build-hub.mjs status` merges `<name>-runtime.json` into the coverage row.
+- Result: signatures 30/172 runtime cases PASS (was 0/172). Root suite
+  411/411 (+31 runtime adapter tests), cad client 482/482, status exit 0.
+- Open: rest of the signatures set (needs the makeFakePuter runtime port:
+  auth/workers/fetchTo over the real hub), invoicing seam (0/96),
+  calendar seam (0/45).

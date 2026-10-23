@@ -311,14 +311,22 @@ function statusCommand({ json = false } = {}) {
     const s = smoke.get(name);
     const suite = readEvidence(`${name}-suite.json`);
     const adapter = readEvidence(`${name}.json`);
+    // SEPARATE runtime evidence file (written by the runtime adapter, e.g.
+    // test/signatures-runtime.test.js) overrides the adapter's static
+    // runtimeCovered: its cases exercised this server's runtime seam. Total
+    // stays the shared denominator the adapter declared.
+    const runtimeEvidence = readEvidence(`${name}-runtime.json`);
+    const runtimeCovered = runtimeEvidence?.runtimeCovered ?? adapter?.runtimeCovered ?? 0;
+    const runtimeTotal = runtimeEvidence?.runtimeTotal ?? adapter?.runtimeTotal ?? null;
+    const runtimeSource = runtimeEvidence ? runtimeEvidence.execution : (adapter?.execution ?? 'upstream only');
     // Upstream suites and adapters run upstream code in upstream harnesses.
     // Only a case explicitly marked runtimeCovered after exercising this
     // server's runner/shim/hub API counts toward server coverage.
     const upstreamSuite = suite?.total != null
       ? { covered: suite.passed, total: suite.total, pass: suite.exit_code === 0 && suite.failed === 0, execution: 'upstream code and harness only' }
       : null;
-    const upstream = adapter?.total != null
-      ? { covered: adapter.runtimeCovered ?? 0, total: adapter.runtimeTotal ?? adapter.total, passed: (adapter.runtimeCovered ?? 0) === (adapter.runtimeTotal ?? adapter.total), upstreamPassed: adapter.covered === adapter.total, upstreamCovered: adapter.covered, source: adapter.execution ?? 'upstream adapter only', at: adapter.at }
+    const upstream = (adapter?.total != null || runtimeTotal != null)
+      ? { covered: runtimeCovered, total: runtimeTotal ?? adapter.total, passed: runtimeTotal != null && runtimeCovered === runtimeTotal, upstreamPassed: adapter ? (adapter.covered === adapter.total) : false, upstreamCovered: adapter?.covered ?? 0, source: runtimeSource, at: runtimeEvidence?.at ?? adapter?.at }
       : suite?.total != null
         ? { covered: suite.runtimeCovered ?? 0, total: suite.total, passed: (suite.runtimeCovered ?? 0) === suite.total, upstreamPassed: suite.exit_code === 0 && suite.failed === 0, upstreamCovered: suite.passed, source: 'upstream suite only', at: suite.at }
         : null;
