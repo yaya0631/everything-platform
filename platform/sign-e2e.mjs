@@ -379,8 +379,12 @@ try {
   endpoint(docRow, 'doc record missing');
   const priya = docRow.signers.find((s) => !s.isMe);
   const rawLink = (docRow.links || {})[priya.id];
-  step('the doc record holds the guest link, on the §23 public base',
-    typeof rawLink === 'string' && rawLink.startsWith(`${pubBase}/w/${OWNER}/`) && /\/sign\/[0-9a-f]{40}$/.test(rawLink),
+  // §26-consistent (declared 2026-10-23): the app composes guest links from
+  // the configured public base through the worker canonical host's /w/host/
+  // alias (serve-time rule 'sign-guest-link'), so the stored link is a REAL,
+  // openable §23 shape — publicBase + /w/host/<label>.puter.work/sign/<token>.
+  step('the doc record holds the guest link, on the §23 public base (worker /w/host/ alias)',
+    typeof rawLink === 'string' && rawLink.startsWith(`${pubBase}/w/host/`) && /\/w\/host\/[a-z0-9][a-z0-9-]*\/sign\/[0-9a-f]{40}$/.test(rawLink),
     rawLink || JSON.stringify(docRow.links).slice(0, 160));
   signLink = rawLink;
 
@@ -393,8 +397,12 @@ try {
   const deployedSha = workerRow.sha;
   const stored = q("SELECT value FROM hub_kv WHERE user = ? AND key = 'sig:worker:cfg:v1'", OWNER)[0];
   const cfgRecord = stored ? JSON.parse(stored.value) : null;
-  step('the app recorded its worker config (name/url/secret, hash-only)',
-    !!cfgRecord && cfgRecord.name === workerName && String(cfgRecord.url || '').startsWith(pubBase)
+  // §26-consistent (declared 2026-10-23): the app's own worker-config record
+  // holds the CANONICAL row URL it received through the shim (that is the URL
+  // all its admin calls use; the shim maps it to the private host route). The
+  // guest-OPENABLE link is the separate doc-record link asserted above.
+  step('the app recorded its worker config (name=canonical url/hash-only secret)',
+    !!cfgRecord && cfgRecord.name === workerName && String(cfgRecord.url || '') === `https://${workerName}.puter.work`
       && /^[0-9a-f]{64}$/.test(cfgRecord.secret || ''),
     cfgRecord ? JSON.stringify({ name: cfgRecord.name, url: cfgRecord.url }) : `no cfg; rows=${JSON.stringify(q("SELECT app,key FROM hub_kv WHERE user = ?", OWNER))}`);
 

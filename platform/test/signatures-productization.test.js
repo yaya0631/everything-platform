@@ -217,11 +217,11 @@ test('served signatures chunks carry the public base instead of a location-deriv
   }
 });
 
-/* 6 — the three serve-time rules + the §22 zero-match checker ----------------- */
+/* 6 — the four serve-time rules + the §22 zero-match checker ----------------- */
 
-test('the three signatures rewrite rules exist, are counted, and rewrite byte-exactly', () => {
+test('the four signatures rewrite rules exist, are counted, and rewrite byte-exactly', async () => {
   const names = APP_JS_RULES.signatures.map((r) => r.name);
-  assert.deepEqual(names, ['sign-page-url', 'sign-link-host', 'sign-worker-self']);
+  assert.deepEqual(names, ['sign-page-url', 'sign-link-host', 'sign-worker-self', 'sign-guest-link']);
   for (const name of names) assert.ok(REWRITE_RULES.some((r) => r.name === name), `${name} participates in the §22 walk`);
 
   const counts = countRuleHits(REPO_SIG_DIST);
@@ -240,16 +240,33 @@ test('the three signatures rewrite rules exist, are counted, and rewrite byte-ex
   assert.ok(guestHit, 'guest sign chunk found by rule text');
 
   const owner = applyAppJsRules(fs.readFileSync(path.join(SIG_ASSETS, ownerHit), 'utf8'), 'signatures');
-  assert.deepEqual(owner.applied.sort(), ['sign-page-url', 'sign-worker-self'], 'owner chunk gets page-url + self');
+  assert.deepEqual(owner.applied.sort(), ['sign-guest-link', 'sign-page-url', 'sign-worker-self'], 'owner chunk gets page-url + self + guest-link');
   assert.ok(owner.text.includes('pageUrl:s=`__CAD_GUEST_BASE__/h/signatures/sign.html`'), 'pageUrl default replaced');
   assert.ok(owner.text.includes('href.replace(/\\\\/sign\\\\/.*$'), 'the worker self-link carries the /sign/ strip');
+  // §26-consistent guest links: the stored link resolves the canonical worker
+  // hostname onto the public base's /w/host/ alias (openable by a guest); the
+  // canonical row URL stays the fallback when no public base is configured.
+  assert.ok(owner.text.includes('`__CAD_GUEST_BASE__/w/host/`+new URL'), 'the guest link composes the public /w/host/ alias of the worker hostname');
+  assert.ok(owner.text.includes('?`__CAD_GUEST_BASE__/w/host/`'), 'the marker is the no-base degrade arm');
+  // With a configured base the served owner chunk carries the OPENABLE shape.
+  const servedChunk = fs.readdirSync(SIG_ASSETS).filter((f) => f.endsWith('.js'))
+    .find((f) => fs.readFileSync(path.join(SIG_ASSETS, f), 'utf8').includes(APP_JS_RULES.signatures[3].old));
+  assert.ok(servedChunk, 'the guest-link rule target exists in the built assets');
+  config.set('workers.public_base_url', pubBase);
+  try {
+    const servedOwner = await hostC.get(`/h/signatures/assets/${servedChunk}`, { raw: true }).then((r) => r.text());
+    assert.ok(servedOwner.includes(`\`${pubBase}/w/host/\`+new URL`), 'the served chunk composes guest links on the public base');
+    assert.ok(!servedOwner.includes('__CAD_GUEST_BASE__'), 'no marker leaks into served bytes');
+  } finally {
+    config.set('workers.public_base_url', '');
+  }
 
   const guest = applyAppJsRules(fs.readFileSync(path.join(SIG_ASSETS, guestHit), 'utf8'), 'signatures');
   assert.deepEqual(guest.applied, ['sign-link-host'], 'guest chunk gets the http-loc arm');
   assert.ok(guest.text.includes(',e.protocol===`http:`&&(r=e.href)'), 'the added arm takes the FULL worker URL as base');
 
   const missed = applyAppJsRules('nothing here', 'signatures');
-  assert.deepEqual(missed.missed, ['sign-page-url', 'sign-link-host', 'sign-worker-self'], 'unmatched rules are reported, never silent');
+  assert.deepEqual(missed.missed, ['sign-page-url', 'sign-link-host', 'sign-worker-self', 'sign-guest-link'], 'unmatched rules are reported, never silent');
 });
 
 /* 7 — the deploy consent overlay (source contract; behavior in the §24 E2E) --- */

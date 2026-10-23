@@ -395,6 +395,20 @@ export const APP_JS_RULES = {
       old: 'w: new URL(ctx.request.url).origin,',
       replacement: 'w: new URL(ctx.request.url).href.replace(/\\\\/sign\\\\/.*$/, ""),',
     },
+    {
+      name: 'sign-guest-link',
+      // Byte-exact slice of the owner chunk: the guest sign-link composition
+      // (syncDoc's `links[signerId] = `${cfg.url}/sign/${token}``). The app
+      // only sees canonical rows (§26), but a link the OWNER actually shares
+      // must be OPENABLE by a guest: §23 resolves it on the configured public
+      // base through the /w/host/<label> public alias of the worker's
+      // canonical hostname (both listeners host that route). With no public
+      // base configured the marker is not an http string and the composition
+      // keeps the honest canonical row URL (documented degrade; guests cannot
+      // be made reachable without a public base).
+      old: 'o[e]=`${r.url}/sign/${t}`;',
+      replacement: 'o[e]=`${(`__CAD_GUEST_BASE__`.startsWith(`http`)?`__CAD_GUEST_BASE__/w/host/`+new URL(r.url).host.replace(/\\.puter\\.work$/,``):r.url)}/sign/${t}`;',
+    },
   ],
 };
 
@@ -468,6 +482,10 @@ export const REWRITE_RULES = [
   {
     name: 'sign-worker-self',
     hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES.signatures[2].old),
+  },
+  {
+    name: 'sign-guest-link',
+    hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES.signatures[3].old),
   },
   {
     name: 'sign-worker-public-pdf',

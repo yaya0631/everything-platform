@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-23T07:53:46.617Z",
-  "pass": false,
+  "at": "2026-10-23T13:50:22.820Z",
+  "pass": true,
   "pubBase": "http://127.0.0.1:18142",
-  "workerName": "doc-sign-b872d21ce5",
-  "signLink": "https://doc-sign-b872d21ce5.puter.work/sign/ee992ee1f1efab251cc19c45392a911a3010f498",
-  "docId": "mvkoazes4dbbc8c0",
+  "workerName": "doc-sign-d3cc9ece3f",
+  "signLink": "http://127.0.0.1:18142/w/host/doc-sign-d3cc9ece3f/sign/26a6cc4d3b25cc969eb181ea82e8ae3bcec1deec",
+  "docId": "mvl11d8b561a8603",
   "steps": [
     {
       "step": "owner app opens on the private listener",
@@ -14,12 +14,12 @@
     {
       "step": "real document built from the uploaded PDF",
       "pass": true,
-      "detail": "#/doc/mvkoazes4dbbc8c0/edit canvases=2"
+      "detail": "#/doc/mvl11d8b561a8603/edit canvases=2"
     },
     {
       "step": "signature field seeded in the saved document record",
       "pass": true,
-      "detail": "{\"id\":\"e2emvkob2iv00000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mvkob0rg62eaaf35\",\"required\":true}"
+      "detail": "{\"id\":\"e2emvl11g8w00000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mvl11ekje6617654\",\"required\":true}"
     },
     {
       "step": "editor loads the seeded field and is ready to send",
@@ -34,7 +34,7 @@
     {
       "step": "deploy consent overlay mounts on workers.create",
       "pass": true,
-      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-b872d21ce5\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
+      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-d3cc9ece3f\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
     },
     {
       "step": "overlay internals unreachable from page script (closed shadow root)",
@@ -67,9 +67,9 @@
       "detail": "E2E support contract 2 pages · Updated just now Out for signature 1 / 2 Signature 2 / 2 ACTIONS Download original Duplicate as draft Save as template SIGNERS · "
     },
     {
-      "step": "the doc record holds the guest link, on the §23 public base",
-      "pass": false,
-      "detail": "https://doc-sign-b872d21ce5.puter.work/sign/ee992ee1f1efab251cc19c45392a911a3010f498"
+      "step": "the doc record holds the guest link, on the §23 public base (worker /w/host/ alias)",
+      "pass": true,
+      "detail": "http://127.0.0.1:18142/w/host/doc-sign-d3cc9ece3f/sign/26a6cc4d3b25cc969eb181ea82e8ae3bcec1deec"
     },
     {
       "step": "doc left draft for sent by the send flow",
@@ -82,29 +82,29 @@
       "detail": "1 token row(s)"
     },
     {
-      "step": "the app recorded its worker config (name/url/secret, hash-only)",
-      "pass": false,
-      "detail": "{\"name\":\"doc-sign-b872d21ce5\",\"url\":\"https://doc-sign-b872d21ce5.puter.work\"}"
+      "step": "the app recorded its worker config (name=canonical url/hash-only secret)",
+      "pass": true,
+      "detail": "{\"name\":\"doc-sign-d3cc9ece3f\",\"url\":\"https://doc-sign-d3cc9ece3f.puter.work\"}"
     },
     {
       "step": "guest link lands on the signatures sign page (public listener)",
-      "pass": false,
-      "detail": "Subdomain not found"
+      "pass": true,
+      "detail": "Signing electronically Carla Signer asked you to sign \"E2E support contract\". You agree to sign this document electronically. Your electronic signature is intended to have the same legal effect as signing on paper. You c"
     },
     {
       "step": "the 303 redirects to the app sign page on the guest origin",
-      "pass": false,
-      "detail": "https://doc-sign-b872d21ce5.puter.work/sign/ee992ee1f1efab251cc19c45392a911a3010f498"
+      "pass": true,
+      "detail": "http://127.0.0.1:18142/h/signatures/sign.html#w=https%3A%2F%2Fdoc-sign-d3cc9ece3f.puter.work&t=26a6cc4d3b25cc969eb181ea82e8ae3bcec1deec"
     },
     {
       "step": "the guest answer came from the member worker with §16 headers",
-      "pass": false,
-      "detail": "no /w/ response seen"
+      "pass": true,
+      "detail": "{\"status\":303,\"csp\":\"sandbox allow-scripts allow-forms\"}"
     },
     {
       "step": "the sign page itself is served to the anonymous guest (strict CSP, no session)",
-      "pass": false,
-      "detail": "no page response seen; responses=[]"
+      "pass": true,
+      "detail": "status 200; responses=[{\"u\":\"worker\",\"status\":303},{\"u\":\"page\",\"status\":200},{\"u\":\"other\",\"status\":200},{\"u\":\"other\",\"status\":200},{\"u\":\"other\",\"status\":200},{\"u\":\"other\",\"status\":200},{\"u\":\"other\",\"status\":200},{\"u\":\"worker\",\"status\":200},{\"u\":\"other\",\"status\":200}]"
     },
     {
       "step": "no session cookie exists in the guest context",
@@ -112,9 +112,34 @@
       "detail": "[]"
     },
     {
-      "step": "E2E driver ran to completion",
-      "pass": false,
-      "detail": "No element found for selector: .consent-check input"
+      "step": "the guest completes the signature in one pass without an account",
+      "pass": true,
+      "detail": "Signed and submitted Everyone has signed. You can download the completed copy for your records. Download signed copy"
+    },
+    {
+      "step": "the guest reply is in the owner-side worker KV (status signed + values)",
+      "pass": true,
+      "detail": "2 sigw row(s): {\"status\":\"signed\",\"viewedAt\":1792763408930,\"view\":{\"at\":1792763408930,\"ip\":\"\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/53"
+    },
+    {
+      "step": "raw tokens are still absent from every row",
+      "pass": true,
+      "detail": "token-scan"
+    },
+    {
+      "step": "the legal-consent evidence was captured",
+      "pass": true,
+      "detail": "consent fields"
+    },
+    {
+      "step": "the owner sees the completed signature (pull merged)",
+      "pass": true,
+      "detail": "{\"status\":\"completed\",\"signer\":{\"name\":\"Priya Sixer\",\"status\":\"signed\"}}"
+    },
+    {
+      "step": "the app shows the completion in the UI",
+      "pass": true,
+      "detail": "E2E support contract 2 pages · Updated just now Completed 1 / 2 2 / 2 ACTIONS Download signed copy Download original Duplicate as draft Save as template SIGNERS · 1 OF 1 SIGNED PS Priya Sixer priya.sixer@example.com Sign"
     }
   ]
 }

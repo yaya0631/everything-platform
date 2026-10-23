@@ -511,7 +511,11 @@ kept as designed and listed rather than normalized away.
   is the rule: links name this listener's own address and are reachable only
   from networks that reach it — a loopback-only hub is LAN-only. Surfaces
   read it from `GET hub/workers/guest-base` (returns `base`, `origin`, and
-  the note in either state).
+  the note in either state). Signatures' stored guest sign links compose the
+  public base with the worker's canonical hostname mapped through the
+  `/w/host/<host-label>` public alias (serve-time rule `sign-guest-link`);
+  with no public base configured the link keeps the honest canonical worker
+  URL and a real out-of-system guest cannot open it (documented degrade).
 - **Packaged system workers**: an app build/install copies the dist's
   `workers/<name>.js` files into server-owned rows (Admin → Hub shows them
   for approval), served at `/wr/app/<app>/<name>/`. A member's personal

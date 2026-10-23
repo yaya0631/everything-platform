@@ -273,7 +273,11 @@ const cacheRule = (p) => (p.startsWith('/assets/') ? 'public, max-age=31536000, 
 
 function injectMapperTag(html) {
   if (html.includes('/hub/worker-url-map.js')) return html;
-  const tag = '<script src="/hub/worker-url-map.js" defer></script>';
+  // Classic sync script (NOT defer): it must install its fetch/WebSocket/
+  // EventSource overrides during parsing, BEFORE the app's deferred module
+  // scripts can fire their first fetches (the sign-e2e guest flow broke when
+  // the deferred tag lost the race with the app chunk's /api call).
+  const tag = '<script src="/hub/worker-url-map.js"></script>';
   return /<\/head\s*>/i.test(html) ? html.replace(/<\/head\s*>/i, `${tag}</head>`) : `${tag}${html}`;
 }
 
