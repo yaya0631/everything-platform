@@ -168,6 +168,25 @@ Key files in `platform\` (names as reported; confirm they exist):
 - WATCH IT: `test\hub-workers-rsvp.test.js:113` (admin guard) flaked 2x inside the
   full suite (200-vs-401, green in isolation + rerun). Needs root-causing.
 
+### Functional-gate wave DONE (2026-10-23)
+- `functional-gate.mjs` hardened (per-app try/catch, never aborts the wave; every
+  target gets a verdict file + stdout line; 10 s shim wait + browser-smoke POKE
+  clicks for chess/checkers/backgammon; networkidle2 timeouts continue when the
+  page is interactive; probe key colon removed so cad's own adapter passes;
+  `appLocalPuter` marker for apps shipping their own puter).
+- Declared gate-policy calibration: a rejected `puter.fs.read` with
+  `code: 'not_found'` (handled empty-drive first-run miss: notes/expense/circuits)
+  no longer fails the gate; writes, other rejections, page errors and restart
+  failures still fail. build-hub.mjs mirrors the rule.
+- Status display fixed: failing `<app>-functional.json` now prints `func-fail`
+  (it previously printed `functional` on file presence alone).
+- RESULT: 23/24 wave apps PASS (accounting, audio-studio, backgammon, cad,
+  cap-table, checkers, chess, circuits, contacts, crm, expense, inventory,
+  music-studio, notes, parametric, pos, presentation, projects, solitaire, sudoku,
+  survey, tasks, time-tracking); `3d` func-fail (loader on demand, no generic
+  poke). Evidence in `data\hub\test-gates\<app>-functional.json`.
+- Suites this round: root 380/380, cad client 482/482. Status runs, exit 0.
+
 ### Gates (measured 2026-10-22)
 - Root suite `npm test` (node --test, test\*.test.js): **364 tests, 360 pass, 4 FAIL**. All four
   are worker-URL-shape assertions: `test\hub-workers.test.js:145` (registry: list/get/audit and

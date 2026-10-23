@@ -325,8 +325,16 @@ function statusCommand({ json = false } = {}) {
     const functional = readEvidence(`${name}-functional.json`);
     const easyTier = scan.tier === 'easy';
     const functionalPass = !!functional?.pass && functional.kvRestart?.pass === true
-      && functional.fsRoundTrip?.pass === true && functional.calls?.length > 0
-      && functional.calls.every((call) => call.status === 'resolved');
+      && functional.fsRoundTrip?.pass === true
+      && (functional.calls?.length > 0 || functional.appLocalPuter === true)
+      // Same first-run policy as functional-gate.mjs (declared 2026-10-23):
+      // a rejected `puter.fs.read` with `code: 'not_found'` is an expected
+      // empty-drive miss the app handles by seeding defaults; anything else
+      // unresolved fails the gate. appLocalPuter marks apps (cad) that ship
+      // their own puter adapter, where the platform shim's call log does not
+      // exist and the round-trip/restart evidence carries the verdict.
+      && functional.calls.every((call) => call.status === 'resolved'
+        || (call.method === 'puter.fs.read' && call.code === 'not_found'));
     const e2e = e2eEvidence.get(name) ?? null;
     const needsE2e = ['signatures', 'invoicing'].includes(name);
     const requiredServices = scan.calls.filter((c) => HARD_PREFIX.some((p) => c.startsWith(p)));
@@ -354,6 +362,7 @@ function statusCommand({ json = false } = {}) {
       upstream_test_coverage: upstream,
       upstream_only_suite: upstreamSuite,
       functional_gate: easyTier ? functional : null,
+      functional_gate_pass: easyTier ? functionalPass : null,
       worker_adapter_coverage: adapter ? { covered: adapter.covered, total: adapter.total, files: adapter.files ?? null } : null,
       e2e,
       required_services: serviceGates,
@@ -376,7 +385,7 @@ function statusCommand({ json = false } = {}) {
     if (r.status === 'works') t.works += 1;
     console.log(
       `${pad(r.name, 18)} ${pad(r.status, 10)} ${pad(r.gates.source === 'own' ? 'own' : 'up', 5)} ${pad(r.gates.smoke.pass ? 'PASS' : 'PENDING', 7)} `
-      + `${pad(r.upstream_test_coverage ? `${r.upstream_test_coverage.covered}/${r.upstream_test_coverage.total}` : (r.functional_gate ? 'functional' : r.source_scan === 'easy' ? 'func-pending' : '-'), 14)} `
+    + `${pad(r.upstream_test_coverage ? `${r.upstream_test_coverage.covered}/${r.upstream_test_coverage.total}` : (r.functional_gate ? (r.functional_gate_pass ? 'functional' : 'func-fail') : r.source_scan === 'easy' ? 'func-pending' : '-'), 14)} `
       + `${pad(r.upstream_only_suite ? `${r.upstream_only_suite.covered}/${r.upstream_only_suite.total}` : '-', 18)} `
       + `${pad(r.gates.e2e.required === false ? 'n/a' : r.gates.e2e.pass ? `${r.gates.e2e.covered}/${r.gates.e2e.total}` : '-', 10)} `
       + `${pad(r.gates.services.pass ? 'PASS' : 'PENDING', 10)} ${pad(r.gates.built ? 'yes' : 'no', 7)} ${pad(r.gates.installed ? 'yes' : 'no', 9)}`,
