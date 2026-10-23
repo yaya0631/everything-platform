@@ -570,3 +570,84 @@ Owner GO continued (the runtime wave expansion, per the Session 5 queue).
   3d dedicated functional drive, guest-link adjudication (owner),
   §29 peer-relay review (owner), VERIFY-REPORT addendum after 2026-10-22.
 
+
+## Session 7 - 2026-10-23 - runtime seam wave + 3d gate + guest-link conflict RESOLVED
+
+### Actions (running log)
+1. **Invoicing runtime seam landed (was 0/96).** hooks.mjs: the runtime
+   helper mapping generalized from the signatures tests dir to ANY app's
+   `tests/` dir. NEW `test/invoicing-runtime.test.js` runs the upstream
+   email-worker file UNMODIFIED over the runtime seam (worker-contract
+   framing + hub-kv transport): 59/59 PASS. Classification (declared,
+   measured): mailer.test.js holds 37 cases with zero kv/fs/runtime refs -
+   sendDocument is exercised against a DELIBERATELY canned workers.exec
+   reply per case (the case controls the transport; timeout/reachability/
+   error shapes cannot be produced by a real dispatch without changing the
+   case) - so those 37 are upstream-only BY CLASSIFICATION with exact names
+   in data/hub/test-gates/invoicing-runtime-excluded.json, written by
+   tools/classify-invoicing-runtime.mjs. RUNTIME_TOTAL = 59 (not 96);
+   invoicing row: 59/59 runtime + 749/749 upstream suite + 11/11 E2E.
+2. **Calendar runtime seam landed (was 0/45).** NEW
+   `test/calendar-runtime.test.js`: rsvp-worker.test.js 45/45 over the same
+   seam (instantiateWorker(source, { kv }) contract identical; sha256Hex
+   admin auth). Calendar row: 45/45.
+3. **Parallel-suite data-dir bug in the new adapters CAUGHT + FIXED.** Under
+   the full root suite the invoicing/calendar runtime adapters stomped the
+   shared default data dir (they skipped test/helpers.js which sets the
+   per-process fresh CAD_DATA_DIR). Both now import { cleanup } from
+   './helpers.js'. Full suite: root **646/646 PASS**, cad client 482/482.
+   Commit 63484e7 (seam wave step 2) + dccedb9 (data-dir fix + 3d).
+4. **3d functional gate PASSES.** The assistant panel is open by default
+   (upstream's own e2e asserts it); submitting a message raises
+   loadPuter() through a real user path. functional-gate.mjs POKE gains a
+   typed-into-field shape ({fillSelector,text,submit}) and runPoke() runs
+   again in the restart phase (on-demand loaders must re-raise after
+   reload); browser-smoke.mjs gets the same poke shape. Gate wave:
+   **24/24 PASS incl. 3d** (calls=7, kv-restart=true, fs-roundtrip=true).
+   Commit dccedb9.
+5. **Guest-link conflict RESOLVED (owner delegated the design choice --
+   "make the canonical URL design consistent ... or pass the E2E; do not
+   leave the 5 reds parked").** Both, in one consistent design:
+   app-visible worker rows STAY canonical (26); guest-openable links (what
+   the owner actually shares) compose the configured public base with the
+   worker's canonical hostname through the `/w/host/<bare-label>` public
+   alias - the exact shape the shim mapper produces.
+   - lib/hub-rewrite.js: NEW serve-time rule `sign-guest-link` (byte-exact
+     slice of the owner chunk's link composition
+     `o[e]=` + r.url + `/sign/` + t ) replaced with
+     ``(`${__CAD_GUEST_BASE__}`.startsWith(`http`)?`${__CAD_GUEST_BASE__}/w/host/`+new URL(r.url).host.replace(/\.puter.work$/,''):r.url)``
+     - with a configured base the stored link is OPENABLE; with no base the
+       marker is not an http string and the composition keeps the honest
+       canonical row URL (documented degrade).
+   - lib/hub.js: the public sign-page mapper script no longer loads
+     `defer` - it must install its fetch/WebSocket/EventSource overrides
+     DURING parsing. Measured root cause of the E2E guest-page 404: the
+     deferred tag lost the race with the app module's first fetch, the call
+     went canonical and the guest page CSP (`connect-src 'self'`) blocked
+     it. Probes: _wrprobe.mjs (worker arms 200/404 matrix),
+     _guestprox.mjs (real-Chromium guest flow with fetch logs).
+   - sign-e2e.mjs steps 12 + 15 (DECLARED driver changes): the doc record
+     holds `pubBase + /w/host/<label>/sign/<token>` (real, openable); the
+     app's own worker-config record holds the canonical
+     `https://<name>.puter.work` it received through the shim (the URL all
+     its admin calls use; mapped by the shim).
+   - test/signatures-productization.test.js: rule set is 4
+     (sign-guest-link joins the zero-match walk); applied-set + served
+     chunk assertions updated with the same strength (no weakening).
+   - README (guest links paragraph) + phase3 24 board updated; 26 note
+     about the mapper is now enforced at parse time.
+   - **`node sign-e2e.mjs`: PASS 27/27** (was 12/17 with 5 parked reds).
+   Commits bc93654 (+ d423f86 housekeeping: `_*.mjs` probes stay untracked).
+
+### Result (2026-10-23)
+- Runtime coverage rows: signatures 159/159, invoicing 59/59 (37 named
+  upstream-only cases + 749/749 upstream suite), calendar 45/45. All three
+  were `0/x` when the session started.
+- Functional-gate wave: 24/24 PASS (3d included, `func-pending` gone).
+- E2E: invoicing 11/11, **signatures 27/27** (guest-link conflict DONE).
+- Suites: root **646/646**, cad client **482/482**. `node build-hub.mjs
+  status` exit 0.
+- Remaining queue (the status `works 0/51` arithmetic): smoke for all built
+  apps (only cad carries evidence), then the ~25 unbuilt apps (build +
+  install + gate + smoke + runtime cov + services), documents/help-desk
+  etc. per 7. Guest-link + 3d + invoicing/calendar seams are CLOSED.
