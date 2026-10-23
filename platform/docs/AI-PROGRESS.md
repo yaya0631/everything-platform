@@ -457,3 +457,116 @@ Owner GO continued (second auditor round confirmed the functional-gate wave).
   (needs the makeFakePuter runtime port: auth/workers/fetchTo over the real
   hub), then store/templates signlinks/deleteflow/emailer app-libs cases,
   then invoicing (0/96) and calendar (0/45).
+
+
+## Session 6 - 2026-10-23 - makeFakePuter runtime port: signatures 30/172 to 159/159
+
+Owner GO continued (the runtime wave expansion, per the Session 5 queue).
+
+### Actions (running log)
+
+1. **Quick wins first (+34): `accesscode` (19) + `ownernotify` (15)** - both
+   only import the already-runtime-ported helpers, so they joined MAPPED_SET
+   immediately; a 1-file fix (the adapter still imported entries [0] and [1]
+   instead of the whole set) and the set-import became a loop. One upstream
+   matcher gap surfaced (`toHaveBeenCalledWith`) and was PROPERLY implemented
+   in the shim's expect (deep-equal per argument, trailing-undefined
+   optional-args rule) rather than special-cased. 64/172.
+
+2. **makeFakePuter runtime port** (test/runtime/fake-puter.mjs, replacing the
+   loud-throws stub). What the app-side slice is now, all over the real
+   cad-home runtime:
+   - `kv`/`fs` already runtime-backed (hub-kv / hub-fsops).
+   - `workers.create(name, filePath)`: a REAL hub worker row via
+     lib/hub-workers.js `create({user: fs.user, app: 'signatures', ...})` -
+     the same row shape the HTTP shim boundary produces (canonical
+     `https://<host_label>.puter.work` alias per §26); `workers.get/delete`
+     operate on those rows (deployDelete).
+   - Introspection surface kept upstream-shaped (`p.workersByUrl/<name>` with
+     `record.instance` built by the RUNTIME worker harness). The instance's
+     kv is created on purpose in the row's OWN worker kv namespace
+     (`user = row.user`, `app = worker:<name>`, exactly lib/hub-workers-run.js
+     `handleMe` addressing), so introspection (instance.kv/call) sees the
+     same data a dispatch through the row sees. Overwriting a deployed
+     worker's source file rebuilds the instance (Puter redeploy semantics);
+     the row re-reads its file per dispatch by itself.
+   - `workers.exec` stays a plain spy: cases that use it inject canned exec
+     results on purpose (they test the app's handling, not the canal).
+   - `auth.getUser` returns the test user (apps read owner identity).
+   - `fetchTo` (the app-side fetch the signlinks lib uses for verify/ping/
+     pull) resolves the canonical host label to the deployed record and runs
+     the SAME worker source through the runtime harness instance's
+     `call()` - upstream's fake routes fetches the same way, and the
+     introspected `seen`-path tests depend on that indirection. The full
+     /wr HTTP wrapper + forked-child sandbox dispatch stays root-suite
+     coverage (declared).
+3. **Shim's vitest surface grew to what the remaining files really use**
+   (all declared, none special-cased):
+   - `vi.fn`: `mockResolvedValueOnce/mockRejectedValueOnce/mockReturnValue
+     (Once)/mockResolvedValue/mockRejectedValue` (a once-queue + promise
+     shorthands).
+   - `vi.mock` module mocking via the LOADER: hooks.mjs extracts
+     `vi.mock('<spec>', factory)` statements from upstream test files at
+     LOAD time (a module's deps resolve after its source is read, so this
+     registration is genuinely hoisted), registers the factory against the
+     absolute target module, and resolves every later import of that module
+     (within the adapter process) to a SELF-CONTAINED virtual module that
+     serves the factory result MELDED OVER the real module's namespace
+     (static export names read from the real source at registration so every
+     named import keeps resolving). Factory code runs at module evaluation
+     on the main thread (loader-thread globals are not main-thread globals -
+     learned the hard way). Real module reachable behind a mock with a
+     `?__cad_real=1` query. Limitation declared: the factory must return a
+     flat object literal (currently true: modal/services/toast mocks in
+     deleteflow).
+   - `vi.stubGlobal`/`vi.unstubAllGlobals` (restore semantics), `vi.
+     clearAllMocks`/`resetAllMocks` (a spy registry sweep).
+   - `afterEach` implemented per vitest nesting (suite-first-then-file); a
+     FILE-level `beforeEach/afterEach` scope system (shim `openFileScope()`)
+     attributes top-level hooks to the right file across the multi-file
+     adapter (deleteflow has top-level hooks; they must not leak into other
+     files' suites). The adapter opens one scope per imported file.
+   - matchers: `toBeInstanceOf`, `expect.stringMatching/stringContaining/
+     anything` statics + asymmetric matching inside deepEq.
+   - `describe` runs its body inside a try/finally with no pop (flat list
+     preserved); do NOT "fix" nesting - casesOf() snapshots the list.
+4. **Three real fs gaps found and fixed in the runtime harness while porting
+   (behavior, not tests)**:
+   - `files` mirror now records EVERY write (blobs/Uint8Array too) - upstream
+     introspects fs.files for binary artifacts (store delete-doc case).
+   - `fs.delete` forwards `options.recursive` to hub-fsops (deleteTemplate
+     deletes a DIRECTORY; without it the real files survived and reads kept
+     succeeding).
+   - RuntimeFetchResponse accepts BOTH transport shapes ({status,headers,
+     body} from hub-workers-run.invoke and the harness ResponseView).
+5. **The 172-case denominator RECONCILED by measurement** (declared doc/
+   harness count calibration, task item from the audit): the 13 worker-
+   focused files sum to **173** cases under real vitest (email-worker 15,
+   sign-worker 15, accesscode 19, consent 18, expiry 27, ownernotify 15,
+   store 12, templates 13, emailer 11, signlinks 11, deleteflow 3,
+   advanceturn 9, pagerail 5) - the doc's 172-estimate (signlinks at 9) was
+   wrong. The 11 upstream-fake-using files total exactly 159 and are
+   precisely what our runtime adapter maps and measures: **159/159**.
+   `advanceturn.test.js` (9) mocks the store module itself -> no cad-home
+   transport exists to exercise; `pagerail.test.js` (5) is DOM/jsdom-bound.
+   Both are upstream-covered (9/9 and 5/5 under real vitest today). The
+   adapter's RUNTIME_TOTAL is now 159 with the measurement comment; §25 of
+   phase3-workers-design.md corrected.
+
+### Result (2026-10-23, commit to follow)
+- `node --test test/signatures-runtime.test.js`: **160/160 PASS** (159 mapped
+  runtime cases + the registration test). Evidence:
+  data/hub/test-gates/signatures-runtime.json (covered = measured = 159,
+  runtimeTotal = 159).
+- Status: signatures **159/159** runtime cases (was 30/172, originally
+  0/172); invoicing 0/96 and calendar 0/45 still open (next steps).
+- Suites: root **540/540 PASS** (411 + 129 new runtime adapter tests), cad
+  client **482/482 PASS**. `node build-hub.mjs status` exit 0.
+- Known fakes: `signlinks` sign-worker test names `p.kv.map` set/get flows,
+  hub-kv list is PREFIX-strip (trailing `*`), unlike the upstream
+  harness's glob middles - none of the mapped cases rely on glob middles,
+  so nothing needed fixing here (declared in the harness comment).
+- Next queue: invoicing runtime seam (0/96), calendar runtime seam (0/45),
+  3d dedicated functional drive, guest-link adjudication (owner),
+  §29 peer-relay review (owner), VERIFY-REPORT addendum after 2026-10-22.
+

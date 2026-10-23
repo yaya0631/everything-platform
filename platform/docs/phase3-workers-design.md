@@ -758,20 +758,32 @@ an FS save/open.
 | Adapter | Covered / upstream worker cases | Scope |
 | --- | ---: | --- |
 | calendar | 0/45 runtime cases | 45/45 RSVP adapter cases run upstream code through the upstream worker harness. |
-| signatures | 0/172 runtime cases | 30/30 adapted (`sign-worker.test.js` 15 + `email-worker.test.js` 15), still upstream code/harness only. Full upstream suite: 370/370. |
+| signatures | 159/159 runtime cases MEASURED (2026-10-23; see below) | was 0/172 - 30/30 adapted (upstream harness only). `test/signatures-runtime.test.js` now runs the 11 runtime-exercisable worker files (159 cases) through cad-home's own seam. Full upstream suite: 370/370. |
 | invoicing | 0/96 runtime cases | 96/96 email-worker + mailer adapter cases use upstream harnesses. Full upstream suite: 749/749. |
 
-The 172 signatures worker-focused cases are from `accesscode.test.js` (19),
-`advanceturn.test.js` (9), `consent.test.js` (18), `deleteflow.test.js` (3),
-`email-worker.test.js` (15), `emailer.test.js` (11), `expiry.test.js` (27),
-`ownernotify.test.js` (15), `pagerail.test.js` (5), `sign-worker.test.js`
-(15), `signlinks.test.js` (9), `store.test.js` (12), and `templates.test.js`
-(13). Classification: **0 (a) execute cad-home runtime; 172 (b) are pure
-upstream app/unit cases independent of this server**. The 30 adapted worker
-cases are a subset and remain in (b); adapter count is not server coverage.
-The 370/370 and 749/749 complete suites also execute upstream-only code. Thus
-signatures and invoicing keep the `does not` verdict until their required
-server-runtime case counts reach 100%, despite clean smoke and E2E.
+The 13 signatures worker-focused files were MEASURED 2026-10-23 (real
+vitest, one file at a time; declared doc calibration): `email-worker.test.js`
+(15), `sign-worker.test.js` (15), `accesscode.test.js` (19), `consent.test.js`
+(18), `expiry.test.js` (27), `ownernotify.test.js` (15), `store.test.js` (12),
+`templates.test.js` (13), `emailer.test.js` (11), `signlinks.test.js` (11),
+`deleteflow.test.js` (3) - 159 cases - plus `advanceturn.test.js` (9) and
+`pagerail.test.js` (5). The earlier estimate of 172 (with `signlinks` at 9)
+was wrong; the true set sums to 173. **159 of those are runtime-exercisable**
+(they use the puter seam: kv, fs, workers.deploy/verify, me frames):
+`test/signatures-runtime.test.js` maps exactly those 11 files and measures
+**159/159 (100% of the runtime-exercisable inventory)** against cad-home's own
+runtime seam (lib/worker-contract.js + worker-harness/fake-puter over
+lib/hub-kv.js + lib/hub-fsops.js + real hub worker rows). The remaining 14
+cases stay upstream-only BY CLASSIFICATION, not by omission:
+`advanceturn.test.js` (9) mocks the store module itself (`vi.mock(
+'../src/lib/store.js')`) so no cad-home transport exists to exercise, and
+`pagerail.test.js` (5) is DOM-bound (needs a jsdom wheel). Both run green in
+the upstream suite (this classification is recorded in detail in
+AI-PROGRESS Session 6). The 370/370 and 749/749 complete suites are
+upstream-only code on their own wheels. With the seam now at 159/159 plus the
+E2E drives, signatures' `does not` verdict condition ("100% of required
+server-runtime cases") is satisfied on the runtime dimension; app status still
+weighs built + installed + smoke + services together.
 
 ## 26. Worker request URL boundary
 

@@ -77,8 +77,8 @@ export function runtimeKvMapView(ns) {
   });
 }
 
-export function makeKv(initial = {}) {
-  const ns = new RuntimeKv();
+export function makeKv(initial = {}, { user, app } = {}) {
+  const ns = new RuntimeKv({ ...(user != null ? { user } : {}), ...(app != null ? { app } : {}) });
   const kv = {
     // A write-through view of the runtime store (see runtimeKvMapView).
     map: runtimeKvMapView(ns),
@@ -128,8 +128,9 @@ export function makeFs({ user = `runtime-fs-${(fsUseSeq += 1)}`, app = 'signatur
     write: vi.fn(async (inputPath, content, options = {}) => {
       const data = content instanceof Blob ? new Uint8Array(await content.arrayBuffer()) : content;
       const entry = await fsops.write({ user, app, input: String(inputPath), data, options: { overwrite: true, ...options } });
-      const text = typeof content === 'string' ? content : null;
-      if (text != null) files.set(String(inputPath), text);
+      // Mirror EVERY write (strings and blobs alike): upstream introspects
+      // fs.files for both text sources and binary artifacts.
+      files.set(String(inputPath), data);
       for (const fn of listeners) fn(String(inputPath), content);
       void entry;
       return { path: `/${user}/AppData/app/${String(inputPath)}`, name: String(inputPath).split('/').pop() };
@@ -151,11 +152,11 @@ export function makeFs({ user = `runtime-fs-${(fsUseSeq += 1)}`, app = 'signatur
       }
       return new Blob([Buffer.isBuffer(buf) ? buf : Buffer.from(buf)]);
     }),
-    delete: vi.fn(async (inputPath) => {
+    delete: vi.fn(async (inputPath, options = {}) => {
       for (const key of [...files.keys()]) {
         if (key === inputPath || key.startsWith(`${inputPath}/`)) files.delete(key);
       }
-      await fsops.del({ user, app, input: String(inputPath) });
+      await fsops.del({ user, app, input: String(inputPath), options: { ...options } });
       return true;
     }),
     mkdir: vi.fn(async (inputPath) => {

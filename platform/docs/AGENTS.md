@@ -491,3 +491,32 @@ vector/video/photo collaboration and the games' online play (peer). `assets` has
 - Open: rest of the signatures set (needs the makeFakePuter runtime port:
   auth/workers/fetchTo over the real hub), invoicing seam (0/96),
   calendar seam (0/45).
+
+### Runtime seam ported to makeFakePuter - signatures 159/159 (2026-10-23, Session 6)
+- makeFakePuter runtime port done in `test/runtime/fake-puter.mjs`: auth over
+  the test user, `workers.create/get/delete` = REAL hub worker rows
+  (lib/hub-workers.js; canonical host-label alias per 26), introspection
+  instances built by the runtime harness ON the row's own worker kv namespace
+  (`worker:<name>` under `row.user`), `fetchTo` routed through the instance's
+  `call()` (same indirection upstream's fake exposes), `workers.exec`
+  deliberately a spy (cases inject canned results).
+- Mapped set now 11 files / 159 cases: email-worker, sign-worker, accesscode,
+  ownernotify, consent, expiry, store, templates, emailer, signlinks,
+  deleteflow. `node --test test/signatures-runtime.test.js` = 160/160 PASS.
+- Denominator RECONCILED by measurement (declared): 13 worker-focused files
+  really total 173 cases; 159 are runtime-exercisable (vi.mock'd-store
+  advanceturn 9 + DOM-bound pagerail 5 stay upstream-only, both green under
+  real vitest). Adapter RUNTIME_TOTAL = 159; phase3 25 corrected.
+- Shim grew declared vitest surface: `vi.mock` via a loader transform
+  (hoisted module registration in hooks.mjs, virtual module melded over the
+  real module), `vi.stubGlobal(+unstub)`, `vi.clearAllMocks(+reset)`,
+  `afterEach` + FILE-level hook scopes (`openFileScope()`), spy once-queue
+  methods, `toBeInstanceOf`, `expect.stringMatching/stringContaining/
+  anything` + asymmetric deepEq. All exercised by the 159 mapped cases; no
+  test expectation edited to pass.
+- fs harness fixes (behavior): files mirror records blobs too; `fs.delete`
+  forwards `options.recursive` to hub-fsops.
+- Suites: root **540/540 PASS**, cad client **482/482 PASS**, status exit 0
+  (signatures row now `159/159`).
+- Remaining queue: invoicing seam (0/96), calendar seam (0/45), 3d drive,
+  guest-link adjudication (owner), 29 review (owner), VERIFY-REPORT addendum.

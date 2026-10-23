@@ -12,6 +12,20 @@
  */
 const state = { suites: [], loose: [] };
 
+/* File-level hook scopes. Upstream files may register beforeEach/afterEach at
+ * top level (applies to every case of THAT file). The adapter opens one scope
+ * per imported file with openFileScope(); describes and file hooks inside it
+ * get attributed to it. Files that never open a scope share the default
+ * scope, which keeps the shape older adapters see unchanged. */
+const defaultScope = { beforeEach: [], afterEach: [], suites: [] };
+const scopes = [defaultScope];
+let currentScope = defaultScope;
+export function openFileScope() {
+  currentScope = { beforeEach: [], afterEach: [], suites: [] };
+  scopes.push(currentScope);
+  return currentScope;
+}
+
 const pushIt = (name, fn) => {
   const holder = state.suites.at(-1);
   const entry = { name, fn };
@@ -20,10 +34,21 @@ const pushIt = (name, fn) => {
 };
 
 export function describe(name, fn) {
-  const suite = { name, beforeEach: [], its: [] };
+  const suite = { name, beforeEach: [], afterEach: [], its: [] };
   state.suites.push(suite);
-  fn();
+  currentScope.suites.push(suite);
+  // NB: suites are never popped from state.suites — casesOf() snapshots the
+  // whole accumulated list after the module imports finish. describeDepth
+  // tracks which hooks actually belong to a suite body: hooks registered at
+  // top level of the FILE go to the file scope (vitest's semantics).
+  describeDepth += 1;
+  try {
+    fn();
+  } finally {
+    describeDepth -= 1;
+  }
 }
+let describeDepth = 0;
 
 export const it = (name, fn) => pushIt(name, fn);
 it.each = (rows) => (name, fn) => {
@@ -36,33 +61,87 @@ it.each = (rows) => (name, fn) => {
 };
 export const test = it;
 export const beforeEach = (fn) => {
-  const holder = state.suites.at(-1);
-  if (!holder) throw new Error('beforeEach outside describe is not supported by the shim');
-  holder.beforeEach.push(fn);
+  const holder = describeDepth > 0 ? state.suites.at(-1) : null;
+  if (holder) holder.beforeEach.push(fn);
+  else currentScope.beforeEach.push(fn);
 };
 
-export const afterEach = it; // never used by the file; loud wrong usage fails as a no-op runner bug
+export const afterEach = (fn) => {
+  const holder = describeDepth > 0 ? state.suites.at(-1) : null;
+  if (holder) holder.afterEach.push(fn);
+  else currentScope.afterEach.push(fn);
+};
 export const afterAll = it;
 export const beforeAll = it;
 export const inject = it; // vitest-only APIs: the file must not use these
 
 export function viFn(impl) {
   const mock = { calls: [] };
-  const measure = { current: impl };
+  const measure = { current: impl, once: [] };
   const fn = (...args) => {
     mock.calls.push(args);
+    if (measure.once.length) {
+      const next = measure.once.shift();
+      // A once-queue entry either resolves/rejects with a canned value or
+      // falls through to a one-shot implementation.
+      if (next && next.reject) return Promise.reject(next.error);
+      if (next && next.resolve !== undefined) return Promise.resolve(next.resolve);
+      return next(...args);
+    }
     return measure.current?.(...args);
   };
   fn.mock = mock;
   fn.getSimpleName = () => 'vi.fn()';
   fn.mockClear = () => { mock.calls.length = 0; return fn; };
-  fn.mockReset = () => { mock.calls.length = 0; measure.current = impl; return fn; };
+  fn.mockReset = () => { mock.calls.length = 0; measure.current = impl; measure.once.length = 0; return fn; };
   fn.mockImplementation = (next) => { measure.current = next; return fn; };
   fn.getMockImplementation = () => measure.current;
+  fn.mockReturnValueOnce = (value) => { measure.once.push(() => value); return fn; };
+  fn.mockRejectedValueOnce = (error) => { measure.once.push({ reject: true, error }); return fn; };
+  fn.mockResolvedValueOnce = (value) => { measure.once.push({ resolve: value }); return fn; };
+  fn.mockReturnValue = (value) => { measure.current = () => value; return fn; };
+  fn.mockResolvedValue = (value) => { measure.current = () => Promise.resolve(value); return fn; };
+  fn.mockRejectedValue = (error) => { measure.current = () => Promise.reject(error); return fn; };
+  spyRegistry.add(fn);
   return fn;
 }
 
-export const vi = { fn: viFn };
+/** Every spy the shim made (vi.mock's factories included) — clearAllMocks
+ * sweeps these, mirroring vitest's global mock clearing. */
+const spyRegistry = new Set();
+
+/** Global-stub bookkeeping for vi.stubGlobal / vi.unstubAllGlobals. */
+const globalStubs = new Map();
+
+export const vi = {
+  fn: viFn,
+  // Module mocking happens in the loader: hooks.mjs rewrites test files that
+  // call vi.mock at load time and serves the factory result as a virtual
+  // module, which is the hoisted semantics a plain runtime cannot get by
+  // running the call. This hook therefore stays a loud no-op.
+  mock() {
+    throw new Error('[upstream adapter] vi.mock only works through the load-time transform (hooks.mjs); '
+      + 'a call reaching here means the file was loaded outside that path.');
+  },
+  clearAllMocks: () => { for (const fn of spyRegistry) { fn.mock.calls.length = 0; } },
+  resetAllMocks: () => { for (const fn of spyRegistry) fn.mockReset(); },
+  stubGlobal: (name, value) => {
+    globalStubs.set(name, Object.prototype.hasOwnProperty.call(globalThis, name)
+      ? { had: true, value: globalThis[name] }
+      : { had: false });
+    globalThis[name] = value;
+  },
+  unstubAllGlobals: () => {
+    for (const [name, prev] of globalStubs) {
+      if (prev.had) globalThis[name] = prev.value;
+      else delete globalThis[name];
+    }
+    globalStubs.clear();
+  },
+};
+
+globalThis.__CAD_VI__ = vi;
+globalThis.__CAD_MOCK_NAMESPACES__ = globalThis.__CAD_MOCK_NAMESPACES__ ?? new Map();
 
 /* -- expect --------------------------------------------------------------- */
 
@@ -74,6 +153,8 @@ const fmt = (v) => {
 function deepEq(a, b) {
   // vitest `toEqual` shape: object graphs compared structurally, arrays and
   // primitives by value; `undefined` properties are ignorable on both sides.
+  const asy = asym(b);
+  if (asy) return asy(a);
   if (a === b) return true;
   if (a == null || b == null) return a === b || (a == null && b === undefined) || (b == null && a === undefined);
   if (typeof a !== typeof b) return false;
@@ -89,6 +170,17 @@ function deepEq(a, b) {
   }
   return false;
 }
+
+/** Asymmetric matchers (expect.stringMatching/stringContaining/anything):
+ * tagged so deepEq and the spy-arg matcher recognize them as predicates over
+ * the ACTUAL value instead of structural shapes. */
+const asym = (e) => {
+  if (!e || typeof e !== 'object' || !e.__cadAsym) return null;
+  if (e.__cadAsym === 'stringMatching') return (a) => e.re.test(String(a));
+  if (e.__cadAsym === 'stringContaining') return (a) => String(a).includes(e.s);
+  if (e.__cadAsym === 'anything') return (a) => a !== null && a !== undefined;
+  return null;
+};
 
 function subset(actual, sub) {
   for (const [k, want] of Object.entries(sub)) {
@@ -129,6 +221,7 @@ const make = (actual, msg, negate) => {
   }) });
   Object.assign(api, {
     toBe: (expected) => check(Object.is(actual, expected), `expected ${fmt(actual)} to be ${fmt(expected)}`),
+    toBeInstanceOf: (cls) => check(actual instanceof cls, `expected ${fmt(actual)} to be instanceof ${cls?.name ?? String(cls)}`),
     toEqual: (expected) => check(deepEq(actual, expected), `expected ${fmt(actual)} to equal ${fmt(expected)}`),
     toBeNull: () => check(actual === null, `expected ${fmt(actual)} to be null (undefined is not null)`),
     toBeUndefined: () => check(actual === undefined, `expected ${fmt(actual)} to be undefined`),
@@ -163,6 +256,17 @@ const make = (actual, msg, negate) => {
     toMatchObject: (sub) => check(subset(actual ?? {}, sub), `expected ${fmt(actual)} to match object ${fmt(sub)}`),
     toHaveBeenCalled: () => check((actual?.mock?.calls?.length ?? 0) > 0, 'expected the spy to have been called'),
     toHaveBeenCalledTimes: (n) => check((actual?.mock?.calls?.length ?? 0) === n, `expected spy call count ${n}, got ${actual?.mock?.calls?.length ?? 0}`),
+    // vitest's spy-argument matcher: a call matches when every argument
+    // deep-equals the expected value in order; trailing expected arguments
+    // that are `undefined` may be absent on the actual call (optional args).
+    toHaveBeenCalledWith: (...expected) => {
+      const calls = actual?.mock?.calls ?? [];
+      const matchesCall = (args) => args.length <= expected.length
+        && args.every((v, i) => deepEq(v, expected[i]))
+        && expected.slice(args.length).every((e) => e === undefined);
+      return check(calls.some(matchesCall),
+        `expected the spy to have been called with ${fmt(expected)}, calls: ${fmt(calls)}`);
+    },
   });
   return api;
 };
@@ -170,11 +274,23 @@ const make = (actual, msg, negate) => {
 export function expect(actual, msg) {
   return make(actual, typeof msg === 'string' ? msg : '', false);
 }
+// vitest statics: asymmetric matchers hang off expect itself.
+expect.stringMatching = (re) => ({ __cadAsym: 'stringMatching', re });
+expect.stringContaining = (s) => ({ __cadAsym: 'stringContaining', s });
+expect.anything = () => ({ __cadAsym: 'anything' });
 
 /* -- driver surface ------------------------------------------------------- */
 
 export const casesOf = () => ({
-  suites: state.suites.map((s) => ({ name: s.name, beforeEach: [...s.beforeEach], its: [...s.its] })),
+  // Each suite gets its file scope's hooks grafted on: beforeEach file-first
+  // (vitest's nesting order), afterEach suite-first (inner-out teardown).
+  suites: scopes.flatMap((sc, i) => sc.suites.map((s) => ({
+    name: s.name,
+    fileIndex: i,
+    beforeEach: [...sc.beforeEach, ...s.beforeEach],
+    afterEach: [...s.afterEach, ...sc.afterEach],
+    its: [...s.its],
+  }))),
   loose: [...state.loose],
 });
 
