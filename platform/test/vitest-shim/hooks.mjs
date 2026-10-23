@@ -53,8 +53,7 @@ export async function resolve(specifier, context, nextResolve) {
     return { url: new URL('./index.mjs', import.meta.url).href, shortCircuit: true };
   }
   if (process.env.CAD_RUNTIME_HELPERS === '1'
-    && typeof context.parentURL === 'string'
-    && context.parentURL.includes('/upstream/src/signatures/tests/')) {
+    && typeof context.parentURL === 'string' && context.parentURL.includes('/tests/')) {
     const base = new URL('../runtime/', import.meta.url);
     if (specifier === './helpers/worker-harness.js') {
       return { url: new URL('worker-harness.mjs', base).href, shortCircuit: true };
