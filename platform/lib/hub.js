@@ -479,6 +479,19 @@ function statFile(root, rel) {
 
 // Home page -----------------------------------------------------------------------------------
 
+/** The not-signed-in page for the hub home page and hosted-app paths. The
+ * sign-in UI itself lives in the CAD app (its account menu), so point people
+ * there instead of leaving them at a dead end with no button. */
+function signInPage() {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — CAD Home</title>
+<style>:root{color-scheme:light dark;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}body{margin:0;min-height:100vh;display:grid;place-items:center;background:Canvas;color:CanvasText}main{max-width:30rem;padding:24px}h1{font-size:18px;margin:0 0 8px}p{margin:.4rem 0;opacity:.85}a{color:inherit}</style></head>
+<body><main><h1>Sign in</h1>
+<p><a href="/h/cad/">Open CAD and choose Sign in at the top right</a> — your account lives on this server.</p>
+<p>Then come back to <a href="/">the app launcher</a> to see all your apps.</p></main></body></html>`;
+}
+
 function homeHtml(me, apps) {
   const cards = apps
     .map((a) => {
@@ -551,7 +564,7 @@ function createMount(s) {
       const token = sessionToken(req);
       const user = token ? store.sessionUser(token) : null;
       if (!user) {
-        return sendHtml(res, 401, messagePage('Sign in', 'Sign in to CAD Home first, then open the hub home page again.'));
+        return sendHtml(res, 401, signInPage());
       }
       const account = store.getAccount(user);
       const apps = appsForUser(user, account);
@@ -633,7 +646,7 @@ function createMount(s) {
       const rest = p.slice(3);
       const name = rest.split('/')[0];
       const rel = rest.slice(name.length);
-      if (!user) return sendHtml(res, 401, messagePage('Sign in first', 'Open your apps from the hub home page after signing in.'));
+      if (!user) return sendHtml(res, 401, signInPage());
       const me = { user, displayName: store.displayName(user), account: store.getAccount(user) };
       return serveAppFile(req, res, name, rel || '/', me);
     }

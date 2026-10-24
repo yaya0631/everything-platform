@@ -148,6 +148,15 @@ test('the root page is the hub launcher, not CAD; CAD opens like any app', async
   const root = await p.get('/');
   assert.equal(root.status, 302);
   assert.equal(root.headers.get('location'), '/hub/');
+  // Signed-out visitors get a real sign-in page pointing at the CAD app,
+  // where the account UI lives - not a dead end with no button.
+  const anon = client(running.base);
+  anon.cookie = '';
+  const gate = await anon.get('/hub/');
+  assert.equal(gate.status, 401);
+  const gateHtml = String(gate.body);
+  assert.match(gateHtml, /href="\/h\/cad\/"/);
+  assert.match(gateHtml, /href="\/"/);
   // cad is installed in the same catalog as every other app (from its own
   // dist, same installFromDist), and the launcher lists it like any app.
   hub.installFromDist('cad', path.resolve(import.meta.dirname, '../../upstream/src/cad/dist'), { sha: SHA40('c'), source: 'import', title: 'CAD' });
