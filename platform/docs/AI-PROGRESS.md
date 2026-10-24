@@ -761,6 +761,31 @@ this session's commit rather than re-authored.
   no test junk in the grid). Status: **works 51/51**, 51 folders.
   Root suite fresh **649/649 PASS**.
 
+### REAL-DIR POLLUTION caught + fixed (owner hit it live in the documents app, 2026-10-24)
+- The AI-parity gate set `hubAiDefaultModel = test:test-model` with
+  `config.set` and never restored it. The gate's data dir IS the real one
+  (`platform/data`), so the live config table kept the TEST provider as
+  every hub app's default model. In production (no CAD_TEST) the test
+  provider does not exist, so the documents app's assistant answered
+  "That model is not set up on this server." - my pollution, not a product
+  gap. FIXED twice:
+  1. live db: `hubAiDefaultModel` deleted (honest "no default model" errors
+     return until the owner sets their own provider).
+  2. functional-gate.mjs: the wave captures `PREV_HUB_AI_DEFAULT` and the
+     `finally` restores it (the AGENTS rule "config.set persists: restore
+     knobs after control runs", applied to the gate), so a gate run can
+     never poison production again. Verified: `chess` PASS with ai=true
+     and the real config still undefined afterwards.
+- What the OWNER does to make AI real for every app (this is config, not
+  code): Admin -> AI = provider + key (or local Ollama, no key) + enabled
+  models; Admin -> Hub = "Hub AI (puter.ai.chat)" Default model
+  (`provider:model`, e.g. ollama:llama3.2) - apps that ask for unknown
+  cloud names get exactly that model. Aliases JSON covers per-name
+  mappings if wanted.
+- Suites after the fix: root **649/649 PASS**, cad client 482/482
+  (unchanged code); gate restore-fix verified in real Chromium class runs
+  (`chess` PASS ai=true, real db value still undefined after).
+
 ### Open / next
 - Peer relay (29) still awaits owner review; no peer code written.
 - alpha + fixture rows: legacy catalog entries (alpha = the old launcher app,

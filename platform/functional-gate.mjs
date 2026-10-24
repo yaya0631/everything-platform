@@ -46,8 +46,12 @@ if (!token) throw new Error('Functional gate login failed.');
 // same server-side AI the cad assistant uses. CAD_TEST exposes the built-in
 // test provider (canned replies, no network); point hub apps' default model
 // at it so `puter.ai.chat` answers through the platform shim in every page,
-// and cad's own adapter resolves the same provider id directly. Persisted in
-// the config table, so the restart phase keeps parity too.
+// and cad's own adapter resolves the same provider id directly. CONFIG SETS
+// PERSIST TO THE REAL DB (the gate's data dir is the live one unless the
+// caller overrides CAD_DATA_DIR) — the finally block restores the previous
+// value, so the wave never leaves a test provider behind in production
+// (apps would answer "That model is not set up on this server." forever).
+const PREV_HUB_AI_DEFAULT = config.get('hubAiDefaultModel');
 config.set('hubAiDefaultModel', 'test:test-model');
 const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ['--no-first-run', '--mute-audio'] });
 const context = await browser.createBrowserContext();
@@ -223,4 +227,6 @@ try {
   await context.close();
   await browser.close();
   await running?.close();
+  // Leave the owner's hub AI default exactly as it was (see comment above).
+  config.set('hubAiDefaultModel', PREV_HUB_AI_DEFAULT);
 }
