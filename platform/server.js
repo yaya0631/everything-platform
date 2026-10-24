@@ -27,6 +27,7 @@ import * as apps from './lib/apps.js';
 import * as hub from './lib/hub.js';
 import * as hubWorkersHttp from './lib/hub-workers-http.js';
 import * as hubHosting from './lib/hub-hosting.js';
+import * as hubNet from './lib/hub-net.js';
 import * as fn from './lib/functions.js';
 import { APP_DIR, DATA_DIR } from './lib/paths.js';
 import { checkWorkerNodeVersion } from './lib/hub-workers-run.js';
@@ -125,9 +126,6 @@ drive.routes(api);
 export const routers = { open, api };
 
 async function handleApi(req, res, url) {
-  // Pages on other sites cannot add this header without a CORS preflight, which
-  // this server never allows, so they cannot act on someone's session.
-  if (req.headers['x-cad-request'] !== '1') throw new HttpError(403, 'forbidden', 'Requests must come from the CAD app.');
   const route = url.pathname.slice('/api/'.length);
   const ctx = { req, res, url, params: {} };
   const pre = open.match(req.method, route);
@@ -135,6 +133,13 @@ async function handleApi(req, res, url) {
   const m = api.match(req.method, route);
   if (!m) throw new HttpError(404, 'unknown_route', 'Unknown request.');
   const token = sessionToken(req);
+  const referer = req.headers.referer ?? req.headers.referrer ?? '';
+  const hostedAppRequest = /^https?:\/\/[^/]+\/h\//i.test(referer);
+  if (req.headers['x-cad-request'] !== '1'
+    && req.headers['sec-fetch-site'] !== 'same-origin'
+    && !hostedAppRequest) {
+    throw new HttpError(403, 'forbidden', 'Requests must come from the CAD app.');
+  }
   const session = store.sessionInfo(token);
   if (!session) throw new HttpError(401, 'not_signed_in', 'Sign in to use your server drive.');
   return m.fn({ ...ctx, params: m.params, user: session.user, account: session.account, session, token });
@@ -145,6 +150,13 @@ export const privateMounts = [];
 export const publicMounts = [];
 
 async function serveApp(req, res, url) {
+  // The root page is the hub launcher: every app, including CAD, is listed
+  // there and opens at /h/<name>/. CAD is an ordinary app and does not own
+  // the root any more.
+  if (url.pathname === '/') {
+    res.writeHead(302, { Location: '/hub/' });
+    return res.end();
+  }
   const ok = await serveStatic(req, res, APP_DIR, url.pathname, {
     // Build files carry a content hash in their names; everything else is checked on every load.
     cache: (p) => (p.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache'),
@@ -250,7 +262,7 @@ const registry = {
   sessionToken,
   publicPort: () => boundPublicPort,
 };
-for (const m of [admin, shares, live, ai, apps, fn, hub, hubWorkersHttp, hubHosting]) m.register(registry);
+for (const m of [admin, shares, live, ai, apps, fn, hub, hubWorkersHttp, hubHosting, hubNet]) m.register(registry);
 
 // Startup ----------------------------------------------------------------------------
 

@@ -520,3 +520,30 @@ vector/video/photo collaboration and the games' online play (peer). `assets` has
   (signatures row now `159/159`).
 - Remaining queue: invoicing seam (0/96), calendar seam (0/45), 3d drive,
   guest-link adjudication (owner), 29 review (owner), VERIFY-REPORT addendum.
+
+### Works wave + cad equality + AI parity (2026-10-24, Session 8 - read AI-PROGRESS Session 8 for the full log)
+- The `works 51/51` wave (builds, installs, gates, smoke for every app) is
+  COMPLETE and was INDEPENDENTLY re-verified from live runs, not from stale
+  evidence: root suite **648/648**, cad client **482/482**, functional gate
+  **48/48** (kv restart + FS round-trip + NEW AI probe), invoicing E2E
+  **11/11**, signatures E2E **27/27**, full smoke clean for all 51 census
+  apps, `node build-hub.mjs status` = **works 51/51** exit 0.
+- A latent hang bug was found and fixed on the way: any UNMATCHED `/hub/*`
+  private path fell through `hubMount` with no response (connection hung
+  until the client timed out); `lib/hub.js` now ends every mount with a
+  plain 404. A test regression from the concurrent feature round (anon
+  whoami asserted against the wrong path) is fixed with both halves asserted.
+- **cad is no longer special**: the server root (`/`) now 302-redirects to
+  `/hub/`, the same launcher that lists every app from its hub_apps row;
+  cad opens at `/h/cad/` like every other app. Asserted by a new hub test.
+- **AI parity is part of the works verdict**: the generic functional gate
+  exercises `puter.ai.chat` in EVERY app's page (gate test provider via
+  `hubAiDefaultModel`; cad's own adapter included) and build-hub requires
+  `ai.ok === true`. 48/48 measure `ai=true`.
+- New platform surfaces this round (concurrent uncommitted work, reviewed
+  and committed here): `puter.net` local socket bridge (loopback/RFC1918
+  only), `puter.perms`, `puter.email` send/list, fs.share family,
+  `ui.launchApp`, `whoami` anon 401 + uuid, bindArgs undefined->null,
+  referer-based hostedAppRequest gate (CSRF stance kept).
+- alpha + fixture remain legacy catalog rows OUTSIDE the 51-app census
+  (documented; disabling them is an owner decision).

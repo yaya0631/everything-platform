@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-23T13:50:22.820Z",
+  "at": "2026-10-24T20:55:24.301Z",
   "pass": true,
   "pubBase": "http://127.0.0.1:18142",
-  "workerName": "doc-sign-d3cc9ece3f",
-  "signLink": "http://127.0.0.1:18142/w/host/doc-sign-d3cc9ece3f/sign/26a6cc4d3b25cc969eb181ea82e8ae3bcec1deec",
-  "docId": "mvl11d8b561a8603",
+  "workerName": "doc-sign-445a4f783a",
+  "signLink": "http://127.0.0.1:18142/w/host/doc-sign-445a4f783a/sign/7a00b6fcb51def6bf0ef49373a7ca848c1ecb48e",
+  "docId": "mvmvnsj887067b73",
   "steps": [
     {
       "step": "owner app opens on the private listener",
@@ -14,12 +14,12 @@
     {
       "step": "real document built from the uploaded PDF",
       "pass": true,
-      "detail": "#/doc/mvl11d8b561a8603/edit canvases=2"
+      "detail": "#/doc/mvmvnsj887067b73/edit canvases=2"
     },
     {
       "step": "signature field seeded in the saved document record",
       "pass": true,
-      "detail": "{\"id\":\"e2emvl11g8w00000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mvl11ekje6617654\",\"required\":true}"
+      "detail": "{\"id\":\"e2emvmvnvjm00000000\",\"type\":\"signature\",\"page\":0,\"x\":0.18,\"y\":0.3,\"w\":0.32,\"h\":0.06,\"signerId\":\"mvmvntvnbe73b484\",\"required\":true}"
     },
     {
       "step": "editor loads the seeded field and is ready to send",
@@ -34,7 +34,7 @@
     {
       "step": "deploy consent overlay mounts on workers.create",
       "pass": true,
-      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-d3cc9ece3f\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
+      "detail": "{\"asked\":{\"state\":\"pending\",\"app\":\"signatures\",\"worker\":\"doc-sign-445a4f783a\",\"aim\":true},\"body\":\"Draft · 2 pages Send SIGNERS Add signer I sign too FIELDS Priya Sixer Signature Initials Date signed Text Checkbox Pick a field type, then tap the document to place it. Shift-click to select several, ⌘/Ctrl+D to duplicate. SEND Ready to send. Review and send Save as template 2 PAGES Add pages 1 2 1 / "
     },
     {
       "step": "overlay internals unreachable from page script (closed shadow root)",
@@ -69,7 +69,7 @@
     {
       "step": "the doc record holds the guest link, on the §23 public base (worker /w/host/ alias)",
       "pass": true,
-      "detail": "http://127.0.0.1:18142/w/host/doc-sign-d3cc9ece3f/sign/26a6cc4d3b25cc969eb181ea82e8ae3bcec1deec"
+      "detail": "http://127.0.0.1:18142/w/host/doc-sign-445a4f783a/sign/7a00b6fcb51def6bf0ef49373a7ca848c1ecb48e"
     },
     {
       "step": "doc left draft for sent by the send flow",
@@ -84,7 +84,7 @@
     {
       "step": "the app recorded its worker config (name=canonical url/hash-only secret)",
       "pass": true,
-      "detail": "{\"name\":\"doc-sign-d3cc9ece3f\",\"url\":\"https://doc-sign-d3cc9ece3f.puter.work\"}"
+      "detail": "{\"name\":\"doc-sign-445a4f783a\",\"url\":\"https://doc-sign-445a4f783a.puter.work\"}"
     },
     {
       "step": "guest link lands on the signatures sign page (public listener)",
@@ -94,7 +94,7 @@
     {
       "step": "the 303 redirects to the app sign page on the guest origin",
       "pass": true,
-      "detail": "http://127.0.0.1:18142/h/signatures/sign.html#w=https%3A%2F%2Fdoc-sign-d3cc9ece3f.puter.work&t=26a6cc4d3b25cc969eb181ea82e8ae3bcec1deec"
+      "detail": "http://127.0.0.1:18142/h/signatures/sign.html#w=https%3A%2F%2Fdoc-sign-445a4f783a.puter.work&t=7a00b6fcb51def6bf0ef49373a7ca848c1ecb48e"
     },
     {
       "step": "the guest answer came from the member worker with §16 headers",
@@ -119,7 +119,7 @@
     {
       "step": "the guest reply is in the owner-side worker KV (status signed + values)",
       "pass": true,
-      "detail": "2 sigw row(s): {\"status\":\"signed\",\"viewedAt\":1792763408930,\"view\":{\"at\":1792763408930,\"ip\":\"\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/53"
+      "detail": "2 sigw row(s): {\"status\":\"signed\",\"viewedAt\":1792875310113,\"view\":{\"at\":1792875310113,\"ip\":\"\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/53"
     },
     {
       "step": "raw tokens are still absent from every row",

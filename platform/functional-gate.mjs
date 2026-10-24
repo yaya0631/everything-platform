@@ -10,6 +10,7 @@ import * as store from './lib/store.js';
 import * as db from './lib/db.js';
 import { DATA_DIR } from './lib/paths.js';
 import { appSourceDir } from './lib/hub-build.js';
+import * as config from './lib/config.js';
 
 process.env.CAD_TEST = '1';
 const selected = process.argv[2] ? process.argv[2].split(',') : null;
@@ -41,6 +42,13 @@ const base = `http://127.0.0.1:${running.privatePort}`;
 const auth = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CAD-Request': '1' }, body: JSON.stringify({ username: user, password }) });
 const token = (auth.headers.get('set-cookie') || '').split(';')[0].split('=')[1];
 if (!token) throw new Error('Functional gate login failed.');
+// AI parity (owner directive 2026-10-24): every app must be able to use the
+// same server-side AI the cad assistant uses. CAD_TEST exposes the built-in
+// test provider (canned replies, no network); point hub apps' default model
+// at it so `puter.ai.chat` answers through the platform shim in every page,
+// and cad's own adapter resolves the same provider id directly. Persisted in
+// the config table, so the restart phase keeps parity too.
+config.set('hubAiDefaultModel', 'test:test-model');
 const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ['--no-first-run', '--mute-audio'] });
 const context = await browser.createBrowserContext();
 const results = new Map();
@@ -61,7 +69,7 @@ const POKE = {
   // on-demand Puter loader (assistant/puter.ts loadPuter via ready()).
   '3d': { fillSelector: '.as-input', text: 'make a cube', submit: 'Enter' },
 };
-const firstRunMiss = (c) => c.method === 'puter.fs.read' && c.code === 'not_found';
+const firstRunMiss = (c) => (c.method === 'puter.fs.read' || c.method === 'puter.fs.stat') && c.code === 'not_found';
 
 /** Raise an app's on-demand Puter loader through a real user path, so the
  * shim-wait below judges the result. `label` = click the visible control with
@@ -89,7 +97,7 @@ const failingCalls = (calls) => calls.filter((c) => c.status !== 'resolved' && !
 try {
   for (const app of targets) {
     const page = await context.newPage();
-    await page.setCookie({ name: 'cad_session', value: token, url: base });
+    await context.setCookie({ name: 'cad_session', value: token, url: base });
     await page.evaluateOnNewDocument(() => { window.__CAD_FUNCTIONAL_GATE__ = true; });
     const errors = [];
     page.on('pageerror', (error) => errors.push(String(error.message || error)));
@@ -139,8 +147,32 @@ try {
         const text = await blob.text();
         return { key, marker, file, kvSet: found === marker, fsRoundTrip: text === marker };
       }, app.name);
+      // AI parity: the human-facing surface the cad assistant made mainstream
+      // (`puter.ai.chat`) must answer in every app, through each page's real
+      // adapter — the platform shim resolves server-side via hubAiDefaultModel;
+      // cad's own adapter streams the core route's NDJSON inside a Response.
+      const ai = await page.evaluate(async (localAdapter) => {
+        try {
+          let text = '';
+          if (localAdapter) {
+            const r = await puter.ai.chat({ model: 'test:test-model', messages: [{ role: 'user', content: 'gate-ping' }] });
+            const raw = typeof r === 'string' ? r : await r.text();
+            // The core route streams NDJSON: join the text deltas the way the
+            // app's assistant does, instead of matching the raw wire format.
+            const deltas = [...raw.matchAll(/"delta":"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1].replace(/\\(.)/g, '$1')).join('');
+            text = deltas || raw;
+          } else {
+            const r = await puter.ai.chat([{ role: 'user', content: 'gate-ping' }], { model: 'test:test-model' });
+            const c = r && r.message && r.message.content;
+            text = typeof c === 'string' ? c : (typeof r === 'string' ? r : JSON.stringify(c ?? r ?? ''));
+          }
+          return { ok: /test-reply/.test(text), text: String(text).slice(0, 160) };
+        } catch (e) {
+          return { ok: false, error: String((e && e.message) || e).slice(0, 200) };
+        }
+      }, appLocalPuter);
       const calls = await page.evaluate(() => window.__CAD_PUTER_CALLS__ || []);
-      results.set(app.name, { app: app.name, pass: !errors.length && probe.kvSet && probe.fsRoundTrip, initialCalls: calls, errors, probe, page, appLocalPuter });
+      results.set(app.name, { app: app.name, pass: !errors.length && probe.kvSet && probe.fsRoundTrip && ai.ok, initialCalls: calls, errors, probe, ai, page, appLocalPuter });
     } catch (err) {
       results.set(app.name, { app: app.name, pass: false, initialCalls: [], errors: [...errors, `gate probe failed: ${String(err.message || err).slice(0, 200)}`], probe: { kvSet: false, fsRoundTrip: false, key: '', marker: '', file: '' } });
       try { await page.close(); } catch {}
@@ -157,7 +189,7 @@ try {
     if (!page) continue; // already failed in pass A (shim missing / probe threw) — verdict is written as-is
     try {
       try {
-        await page.setCookie({ name: 'cad_session', value: token, url: base2 });
+        await context.setCookie({ name: 'cad_session', value: token, url: base2 });
         await page.goto(`${base2}/h/${record.app}/`, { waitUntil: 'networkidle2', timeout: 45000 });
       } catch (navErr) {
         if (!await page.evaluate(() => document.readyState === 'complete' || document.readyState === 'interactive').catch(() => false)) throw navErr;
@@ -183,7 +215,8 @@ try {
     fs.writeFileSync(path.join(gatesDir, `${record.app}-functional.json`), JSON.stringify(out, null, 2));
     const badN = out.failingCalls ? out.failingCalls.length : 0;
     const kvr = out.kvRestart ? out.kvRestart.pass : false;
-    console.log(`${record.app}: ${out.pass ? 'PASS' : 'FAIL'} calls=${(out.calls || []).length} kv-restart=${kvr} fs-roundtrip=${out.probe.fsRoundTrip}${record.shimMissing ? ' shim-missing' : ''}${!out.pass && badN ? ` failing-calls=${badN}` : ''}`);
+    const air = out.ai ? out.ai.ok : false;
+    console.log(`${record.app}: ${out.pass ? 'PASS' : 'FAIL'} calls=${(out.calls || []).length} kv-restart=${kvr} fs-roundtrip=${out.probe.fsRoundTrip} ai=${air}${record.shimMissing ? ' shim-missing' : ''}${!out.pass && badN ? ` failing-calls=${badN}` : ''}${out.ai && !out.ai.ok ? ` ai-fail=${JSON.stringify(out.ai.text || out.ai.error || '').slice(0, 120)}` : ''}`);
   }
   if ([...results.values()].some((x) => !x.pass)) process.exitCode = 1;
 } finally {

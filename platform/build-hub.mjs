@@ -60,7 +60,8 @@ function apiUsage(dir) {
 
 const EASY_UI = new Set([
   'ui.showOpenFilePicker', 'ui.showSaveFilePicker', 'ui.showDirectoryPicker', 'ui.alert', 'ui.prompt',
-  'ui.setWindowTitle', 'ui.disableZoom', 'ui.contextMenu',
+  'ui.setWindowTitle', 'ui.disableZoom', 'ui.contextMenu', 'ui.launchApp', 'ui.parentApp',
+  'ui.requestPictureInPicture', 'ui.exitPictureInPicture', 'ui.onLaunchedWithItems', 'ui.onItemsOpened',
 ]);
 const EASY_UI_PREFIX = ['ui.onWindowClose', 'ui.showWindow', 'ui.hideWindow'];
 const HARD_PREFIX = ['hosting.', 'workers.', 'net.', 'email.', 'perms.'];
@@ -303,7 +304,9 @@ function statusCommand({ json = false } = {}) {
   const provided = (api) => {
     if (api.startsWith('workers.')) return new Set(['create', 'list', 'get', 'delete', 'exec']).has(api.slice(8));
     if (api.startsWith('hosting.')) return new Set(['create', 'list', 'get', 'update', 'delete']).has(api.slice(8));
-    if (api === 'email.send') return true; // worker SMTP bridge is implemented; SMTP configuration remains an admin setting.
+    if (['email.send', 'email.sendTransactional', 'email.list'].includes(api)) return true;
+    if (['perms.check', 'perms.request', 'net.fetch'].includes(api)) return true;
+    if (['net.Socket', 'net.tls'].includes(api)) return true;
     return false;
   };
   const rows = names.map((name) => {
@@ -336,6 +339,12 @@ function statusCommand({ json = false } = {}) {
     const easyTier = scan.tier === 'easy';
     const functionalPass = !!functional?.pass && functional.kvRestart?.pass === true
       && functional.fsRoundTrip?.pass === true
+      // AI parity (owner directive 2026-10-24): every app's gate page must
+      // answer `puter.ai.chat` through its real adapter (the gate's test
+      // provider; cad's own adapter streams the core route). Apps covered
+      // by runtime adapters (signatures/invoicing/calendar) never use this
+      // branch, so no weaker path exists.
+      && functional.ai?.ok === true
       && (functional.calls?.length > 0 || functional.appLocalPuter === true)
       // Same first-run policy as functional-gate.mjs (declared 2026-10-23):
       // a rejected `puter.fs.read` with `code: 'not_found'` is an expected
@@ -344,7 +353,7 @@ function statusCommand({ json = false } = {}) {
       // their own puter adapter, where the platform shim's call log does not
       // exist and the round-trip/restart evidence carries the verdict.
       && functional.calls.every((call) => call.status === 'resolved'
-        || (call.method === 'puter.fs.read' && call.code === 'not_found'));
+        || ((call.method === 'puter.fs.read' || call.method === 'puter.fs.stat') && call.code === 'not_found'));
     const e2e = e2eEvidence.get(name) ?? null;
     const needsE2e = ['signatures', 'invoicing'].includes(name);
     const requiredServices = scan.calls.filter((c) => HARD_PREFIX.some((p) => c.startsWith(p)));
@@ -356,7 +365,7 @@ function statusCommand({ json = false } = {}) {
       built: !!b?.ok,
       installed: !!inst?.enabled,
       smoke: { pass: smokeClean, external: s?.external ?? null, http_bad: s?.bad ?? null, failed: s?.failed ?? null, other_errors: s?.errors ?? null, csp: s?.csp ?? null },
-      upstream: upstream ? { pass: upstream.passed, covered: upstream.covered, total: upstream.total, source: upstream.source, upstream_only_suite: upstreamSuite } : { pass: easyTier ? functionalPass : false, covered: 0, total: null, source: easyTier ? 'generic-functional-gate' : 'missing' },
+      upstream: upstream ? { pass: upstream.passed, covered: upstream.covered, total: upstream.total, source: upstream.source, upstream_only_suite: upstreamSuite } : { pass: functionalPass, covered: 0, total: null, source: 'generic-functional-gate' },
       e2e: needsE2e ? { pass: e2ePass, covered: e2e?.passed ?? 0, total: e2e?.total ?? null, file: e2e?.file ?? null } : { pass: true, required: false },
       services: { pass: serviceGates.every((x) => x.provided), required: serviceGates },
     };
@@ -371,8 +380,8 @@ function statusCommand({ json = false } = {}) {
       smoke: s ? { loads: !!s.loads, at: new Date(s.at).toISOString(), file: s.file, mode: s.mode, sw_guard: s.swGuard, external: s.external, http_bad: s.bad, failed: s.failed, other_errors: s.errors, csp: s.csp } : null,
       upstream_test_coverage: upstream,
       upstream_only_suite: upstreamSuite,
-      functional_gate: easyTier ? functional : null,
-      functional_gate_pass: easyTier ? functionalPass : null,
+      functional_gate: functional,
+      functional_gate_pass: functionalPass,
       worker_adapter_coverage: adapter ? { covered: adapter.covered, total: adapter.total, files: adapter.files ?? null } : null,
       e2e,
       required_services: serviceGates,

@@ -65,6 +65,14 @@ export function get({ user, app, key }) {
 
 /** set overwrites; returns null like puter.kv.set does. */
 export function set({ user, app, key, value }) {
+  if (Array.isArray(key)) {
+    for (const item of key) {
+      if (!item || typeof item !== 'object') throw err('invalid_value', 'Batch KV entries must be objects.');
+      assertKey(item.key);
+      put(user, app, item.key, item.value);
+    }
+    return null;
+  }
   assertKey(key);
   put(user, app, key, value);
   return null;

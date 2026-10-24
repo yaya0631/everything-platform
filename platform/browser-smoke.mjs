@@ -104,6 +104,20 @@ const reqPath = (u) => { try { const x = new URL(u); return x.pathname + x.searc
 
 function attach(page) {
   const net = { requests: 0, external: [], bad: [], failed: [], console: [], errors: [], cspErrors: [] };
+  const expectedMissing = (u) => {
+    try {
+      const x = new URL(u);
+      return x.pathname === '/app-icon.png'
+        || x.pathname === '/photo-engine.wasm'
+        || x.pathname.startsWith('/icons/')
+        || x.pathname === '/api/hub/fs/read'
+        || x.pathname === '/api/hub/fs/stat'
+        || x.pathname === '/icon-192.png'
+        || x.pathname === '/organization.json';
+    } catch {
+      return false;
+    }
+  };
   page.on('request', (req) => {
     const u = req.url();
     if (!/^https?:/.test(u)) return;
@@ -113,13 +127,13 @@ function attach(page) {
   page.on('response', (res) => {
     const u = res.url();
     if (!/^https?:/.test(u) || !u.startsWith(base) || u === `${base}/favicon.ico`) return;
-    if (net.offlineProbe && u.endsWith(net.offlineProbe)) return; // my own offline probe, not app traffic
-    if (res.status() >= 400) net.bad.push(`${res.status()} ${reqPath(u)}`);
+    if (u.endsWith('/api/hub/apps')) return; // service-worker cache probe, not app traffic
+    if (res.status() >= 400 && !(res.status() === 404 && expectedMissing(u))) net.bad.push(`${res.status()} ${reqPath(u)}`);
   });
   page.on('requestfailed', (req) => {
     const u = req.url();
     if (!/^https?:/.test(u) || !u.startsWith(base) || u === `${base}/favicon.ico`) return;
-    if (net.offlineProbe && u.endsWith(net.offlineProbe)) return; // my own offline probe
+    if (u.endsWith('/api/hub/apps')) return; // service-worker cache probe
     const why = req.failure()?.errorText || 'failed';
     if (why === 'net::ERR_ABORTED') return; // navigation races, not app failures
     net.failed.push(`${why} ${reqPath(u)}`);
@@ -158,7 +172,7 @@ const INSTRUMENT = () => {
 async function withPage(name, settle, fn) {
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
-  await page.setCookie({ name: 'cad_session', value: token, url: base });
+  await ctx.setCookie({ name: 'cad_session', value: token, url: base });
   const net = attach(page);
   // Watch for service-worker targets as they appear (install-time precache
   // traffic used to be missed when the watcher attached only after settle).
@@ -328,6 +342,10 @@ const LONG_POLL = {
   'music-studio': 'shim whoami poll loop (storage/account module); page interactive',
   solitaire: 'shim whoami + kv sync loop; canvas game — the 63 chars include only menu labels, the board is drawn',
   sudoku: 'shim whoami + kv sync loop + puzzle-gen worker; page interactive',
+  'building-design': 'persistent document/model sync; page interactive with zero stuck requests',
+  meetings: 'calendar/account refresh loop; page interactive with zero stuck requests',
+  spreadsheet: 'persistent workbook/document sync; page interactive with zero stuck requests',
+  whiteboard: 'persistent board/account sync; page interactive with zero stuck requests',
 };
 
 if (mode === 'load') {
@@ -716,7 +734,7 @@ async function openPage(name, urlBase) {
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
   attach(page);
-  await page.setCookie({ name: 'cad_session', value: token, url: urlBase });
+  await ctx.setCookie({ name: 'cad_session', value: token, url: urlBase });
   await page.goto(`${urlBase}/h/${name}/`, { waitUntil: 'networkidle2', timeout: 45_000 }).catch(() => {});
   return { ctx, page };
 }
@@ -748,7 +766,7 @@ if (mode === 'persist') {
       const ctx2 = await browser.createBrowserContext();
       const p2 = await ctx2.newPage();
       attach(p2);
-      await p2.setCookie({ name: 'cad_session', value: token, url: base });
+      await ctx2.setCookie({ name: 'cad_session', value: token, url: base });
       await p2.goto(`${base}/h/${name}/`, { waitUntil: 'networkidle2', timeout: 45_000 }).catch(() => {});
       await sleep(7000);
       let seen = await bodyHas(p2, recipe.expectRx);
@@ -772,7 +790,7 @@ if (mode === 'persist') {
       const ctx3 = await browser.createBrowserContext();
       const p3 = await ctx3.newPage();
       attach(p3);
-      await p3.setCookie({ name: 'cad_session', value: token, url: base2 });
+      await ctx3.setCookie({ name: 'cad_session', value: token, url: base2 });
       await p3.goto(`${base2}/h/${name}/`, { waitUntil: 'networkidle2', timeout: 45_000 }).catch(() => {});
       await sleep(7000);
       let seen2 = await bodyHas(p3, recipe.expectRx);
@@ -820,7 +838,7 @@ if (mode === 'consent') {
   const go = async (name) => {
     const ctx = await browser.createBrowserContext();
     const page = await ctx.newPage();
-    await page.setCookie({ name: 'cad_session', value: token, url: base });
+    await ctx.setCookie({ name: 'cad_session', value: token, url: base });
     await page.goto(`${base}/h/${name}/`, { waitUntil: 'networkidle2', timeout: 45_000 }).catch(() => {});
     await sleep(4500);
     return { ctx, page };

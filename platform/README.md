@@ -246,7 +246,7 @@ People with the **can host apps** flag (Admin → People, or `npm run user -- ho
 
 The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (49 apps + CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to the platform folder, change with the Everything dir setting in Admin → Hub) and stays **pristine**: apps are never edited, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
 
-**Layout on this server:** `/hub/` is the home page (each person's app grid), apps live at `/h/<name>/` (the `/apps/` prefix belongs to the older hosted-apps feature), and the shim is at `/hub/puter.js`.
+**Layout on this server:** `/` opens the hub (a redirect to `/hub/`, each person's app grid — CAD is listed there like any other app and does not own the root any more), apps live at `/h/<name>/` (the `/apps/` prefix belongs to the older hosted-apps feature), and the shim is at `/hub/puter.js`.
 
 ```sh
 npm run hub -- status            # clone state + installed apps + checks
@@ -274,7 +274,7 @@ Install rules: setup-time only, always `npm ci --ignore-scripts` (or `npm instal
 
 - **`puter.fs`** — read, write, mkdir, readdir, stat, delete, rename, move, copy, space, getReadURL, upload. Relative paths resolve into the app's **own data folder**; rooted paths (`/`, `~`, `/<your own username>/…`) are aliases of your Drive — for details see *Where app data lives* below.
 - **`puter.kv`** — get, set, del, list, add, incr, decr, update, expire, expireAt, flush, with the same key (1024 B) and value size (399 KiB) limits the SDK documents, including `MAX_KEY_SIZE`/`MAX_VALUE_SIZE`.
-- **`puter.ai.chat`** — all call shapes (prompt string, string + media, messages array, options with `stream`/`model`/`temperature`/`max_tokens`, image blocks with data URIs), streamed chunk shapes included. It answers from this server's own AI providers (Admin → AI); cloud model names are aliases configured there.
+- **`puter.ai.chat`** — all call shapes (prompt string, string + media, messages array, options with `stream`/`model`/`temperature`/`max_tokens`, image blocks with data URIs), streamed chunk shapes included. It answers from this server's own AI providers (Admin → AI); cloud model names are aliases configured there. **Every hosted app gets the same AI surface the CAD assistant uses** — measured per app in the generic functional gate (`ai=true`; the gate points `hubAiDefaultModel` at its test provider, CAD's own adapter resolves the same provider ids directly), so "AI works" is no longer a CAD-only property.
 - **`puter.ui`** — open/save file pickers (an inline overlay on the app page, no popups, no external assets, cancel resolves undefined exactly like the SDK), the alert/prompt dialogs, window-title handling and the `onLaunchedWithItems` no-ops carried in the gap ledger below.
 - **Drive consent** — a mutating `puter.fs` call on a Drive path this app has no grant for opens the in-page consent overlay (Allow/Deny, the wording names the app and the folder); Allow stores a revocable grant and retries once. See *Where app data lives*.
 - Everything else (`hosting`, `workers`, `net`, `email`, `perms`, `peer`, sharing/login flows) fails with an explicit, named error rather than pretending — every one of those is an entry in the gap ledger or a documented local equivalent.

@@ -44,6 +44,7 @@ const iconFile = (name) => path.join(ICONS_DIR, `${name}.png`);
 /** The signatures client posts to its configured guest listener while it
  * prepares a signing link. Keep every other hub app strictly same-origin. */
 function cspConnectExtras(name) {
+  if (name === 'video-studio') return ['data:'];
   if (name !== 'signatures') return [];
   try {
     const url = new URL(String(config.get('workers.public_base_url', '') || ''));
@@ -393,9 +394,12 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { code: 'method_not_allowed' });
 
   if (!isHtml && !isJs && !isManifest) {
+    const staticScriptExtras = rewrite.CSP_SCRIPT_EXTRAS[name] || [];
     const ok = await serveStatic(req, res, appDir(name), wanted, {
       cache: cacheRule,
-      headers: { 'Content-Security-Policy': "default-src 'self'; object-src 'none'; report-uri /hub/csp-report" },
+      headers: {
+        'Content-Security-Policy': `default-src 'self'; script-src 'self' ${staticScriptExtras.join(' ')}; object-src 'none'; report-uri /hub/csp-report`,
+      },
     });
     return ok || sendHtml(res, 404, messagePage('Not found', 'That file is not part of this app.'));
   }
@@ -448,7 +452,7 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
       : 'text/javascript; charset=utf-8';
   res.writeHead(200, {
     'Content-Type': contentType,
-    'Content-Length': entry.body.length,
+    'Content-Length': Buffer.byteLength(entry.body),
     'Cache-Control': 'no-cache',
     'Content-Security-Policy': entry.html
       ? rewrite.cspHeader({
@@ -456,7 +460,7 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
         extras: rewrite.CSP_SCRIPT_EXTRAS[name],
         connectExtras: cspConnectExtras(name),
       })
-      : "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+      : `default-src 'self'; script-src 'self' ${(rewrite.CSP_SCRIPT_EXTRAS[name] || []).join(' ')}; connect-src 'self'; object-src 'none'`,
     'X-Content-Type-Options': 'nosniff',
   });
   res.end(req.method === 'HEAD' || req.method !== 'GET' ? undefined : entry.body);
@@ -633,6 +637,10 @@ function createMount(s) {
       const me = { user, displayName: store.displayName(user), account: store.getAccount(user) };
       return serveAppFile(req, res, name, rel || '/', me);
     }
+
+    // Every known /hub path is handled above; anything else must still get a
+    // response, or the connection hangs until the client times out.
+    return send(res, 404, 'not found', { 'Content-Type': 'text/plain; charset=utf-8' });
   };
 }
 
@@ -686,7 +694,7 @@ export function register(s) {
   // the session is gone). Unauthenticated calls answer 401; the shim reads
   // that as "not signed in" instead of guessing.
   api.add('GET', 'hub/auth/whoami', ({ res, user, account }) =>
-    send(res, 200, user ? store.publicUser(account) : { username: null }),
+    user ? send(res, 200, { ...store.publicUser(account), uuid: account.stamp }) : send(res, 401, { code: 'unauthorized' }),
   );
   api.add('POST', 'hub/auth/logout', ({ req, res }) => {
     store.endSession(s.sessionToken(req));

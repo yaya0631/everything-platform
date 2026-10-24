@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-23T07:53:20.886Z",
+  "at": "2026-10-24T20:54:44.863Z",
   "pass": true,
   "steps": [
     {
@@ -30,12 +30,12 @@
     {
       "step": "share creates a hosting site and maps the .puter.site link to /site",
       "pass": true,
-      "detail": "{\"shareHref\":\"http://127.0.0.1:18152/site/inv-vvw6xv40eh/30cxmn03xeeeia88lsjx.html\",\"hrefs\":[\"http://127.0.0.1:18152/site/inv-vvw6xv40eh/30cxmn03xeeeia88lsjx.html\"]}"
+      "detail": "{\"shareHref\":\"http://127.0.0.1:18152/site/inv-0dial4jf80/euae8i4egzk0ybih7epq.html\",\"hrefs\":[\"http://127.0.0.1:18152/site/inv-0dial4jf80/euae8i4egzk0ybih7epq.html\"]}"
     },
     {
       "step": "anonymous public listener renders the shared invoice",
       "pass": true,
-      "detail": "Invoice INV-0007\nDownload PDF\nPrint\nAurora Studio\n412 Fremont Ave\nPortland, OR 97227\nhello@aurorastudio.example\n(503) 555-0199\nINVOICE\nINV-0007\nBILLED TO\nTom Aldana\ntom.aldana@example.com\nISSUED\n21 oct. 2026\nDUE\n4 nov. 2026\nDESCRIPTION\tQTY\tRATE\tAMOUNT\nConsulting session\t2\t240,00 $US\t480,00 $US\nPAYME"
+      "detail": "Invoice INV-0007\nDownload PDF\nPrint\nAurora Studio\n412 Fremont Ave\nPortland, OR 97227\nhello@aurorastudio.example\n(503) 555-0199\nINVOICE\nINV-0007\nBILLED TO\nTom Aldana\ntom.aldana@example.com\nISSUED\n22 oct. 2026\nDUE\n5 nov. 2026\nDESCRIPTION\tQTY\tRATE\tAMOUNT\nConsulting session\t2\t240,00 $US\t480,00 $US\nPAYME"
     },
     {
       "step": "public page has strict CSP and nosniff with no cookie",

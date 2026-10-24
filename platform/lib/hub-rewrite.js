@@ -110,6 +110,9 @@ export function rewriteJs(text, { name } = {}) {
   });
   if (name) {
     const prefix = `/h/${name}/`;
+    if (name === 'photo-studio') {
+      out = out.replaceAll('fetch("/photo-engine.wasm")', `fetch("${prefix}photo-engine.wasm")`);
+    }
     out = out.replace(
       /\b(src|poster)\s*=\s*"(\/(favicon[^"]*|apple-touch[^"]*|icon[^"]*|logo[^"]*|manifest\.(?:json|webmanifest)))"/gi,
       (m, attr, url) => (/^\/+(hub|api|h)(\/|$)/.test(url) ? m : `${attr}="${prefix}${url.slice(1)}"`),
@@ -139,6 +142,8 @@ export function rewriteJs(text, { name } = {}) {
 export const CSP_SCRIPT_EXTRAS = {
   '3d': ["'unsafe-eval'"],
   'audio-studio': ["'wasm-unsafe-eval'"],
+  'photo-studio': ["'wasm-unsafe-eval'"],
+  'video-studio': ["'wasm-unsafe-eval'"],
 };
 
 /**
@@ -545,4 +550,3 @@ export function zeroMatchVerdict(root, { leave = [], print = false } = {}) {
  *   manifest     — webmanifest / manifest*.json rewrite targets
  *   html-strip   — html files with external resources rewriteHtml strips
  */
-

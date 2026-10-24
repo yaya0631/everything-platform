@@ -1,9 +1,555 @@
 {
- "at": "2026-10-22T16:40:39.450Z",
+ "at": "2026-10-24T21:05:47.383Z",
  "base": "http://127.0.0.1:18100",
  "user": "appsmoke",
  "mode": "load",
  "results": [
+  {
+   "name": "3d",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "3D · Scene editor",
+    "textLen": 1434,
+    "textSample": "File Edit Render Window Help Layout Modeling Sculpting UV Editing Texture Paint Shading Animation Rendering Compositing Geometry Nodes Scripting Assistant Object Mode Global Select Box Options User Pe",
+    "els": 1336,
+    "canvases": 2,
+    "svgs": 182,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "3d"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "typed into \".as-input\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 18,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "accounting",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Accounting",
+    "textLen": 1347,
+    "textSample": "Skip to content Create Home Banking Sales Purchases Reports Menu Settings My Company / Saved A Good evening, appsmoke Privacy Create actions Create invoice Record payment Record expense Enter bill Pay",
+    "els": 545,
+    "canvases": 1,
+    "svgs": 41,
+    "puter": true,
+    "puterApp": "accounting",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "bookkeeping-v10gsc1z"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 24,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 3980
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 3980
+   }
+  },
+  {
+   "name": "alpha",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "fixture",
+    "textLen": 17,
+    "textSample": "fixture-rewritten",
+    "els": 12,
+    "canvases": 0,
+    "svgs": 0,
+    "puter": true,
+    "puterApp": "alpha",
+    "sw": [
+     {
+      "url": "/h/alpha/sw.js",
+      "error": "Failed to register a ServiceWorker for scope ('http://127.0.0.1:18100/h/alpha/') with script ('http://127.0.0.1:18100/h/alpha/sw.js'): A bad HTTP response code (404) was received when fetching the script."
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "/h/alpha/sw.js"
+    ],
+    "probe": {
+     "caches": [],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 7,
+    "external": [],
+    "externalCount": 0,
+    "bad": [
+     "404 /manifest.webmanifest",
+     "404 /h/alpha/favicon.svg"
+    ],
+    "badCount": 2,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [
+     "TypeError: Failed to register a ServiceWorker for scope ('http://127.0.0.1:18100/h/alpha/') with script ('http://127.0.0.1:18100/h/alpha/sw.js'): A bad HTTP response code (404) was received when fetching the script."
+    ],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "api-client",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "API Client",
+    "textLen": 448,
+    "textSample": "Skip to editor API Client ALPHA Import All changes saved to Puter A No environment Start with a request Build, send and test HTTP requests. Organize them in collections and switch between environments",
+    "els": 308,
+    "canvases": 0,
+    "svgs": 42,
+    "puter": true,
+    "puterApp": "api-client",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "assets",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "AssetDesk - Asset & Equipment Manager",
+    "textLen": 224,
+    "textSample": "HOME SERVER AssetDesk Assets, equipment, and assignments in your private hub. Add asset Export JSON Import JSON 0 Total assets 0 Active 0 Assigned Inventory 0 shown No assets yet. Add your first item ",
+    "els": 66,
+    "canvases": 0,
+    "svgs": 0,
+    "puter": true,
+    "puterApp": "assets",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 6,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 1927
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 1927
+   }
+  },
+  {
+   "name": "audio-studio",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Audio Studio",
+    "textLen": 653,
+    "textSample": "Audio Studio File Edit Multitrack Clip Effects Favorites View Window Help Waveform Multitrack Editor Mixer No file open Open audio from your Puter files or this device, record something new, or start ",
+    "els": 425,
+    "canvases": 2,
+    "svgs": 58,
+    "puter": true,
+    "puterApp": "audio-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "shim whoami poll loop (account watcher); page interactive, zero stuck requests",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 1609
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 1609
+   }
+  },
+  {
+   "name": "backgammon",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Backgammon Online — vs the Computer or a Friend",
+    "textLen": 473,
+    "textSample": "Backgammon — play the computer or a friend, free in your browser Player vs. Computer Highest die opens. Roll to start Computer Pass & Play Online Computer Medium 167 pips MOVES You Playing White 167 p",
+    "els": 465,
+    "canvases": 0,
+    "svgs": 30,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "backgammon"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "clicked \"Online\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "building-design",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Building Design",
+    "textLen": 1149,
+    "textSample": "File Building Design Search commands Ctrl K A Architecture Structure Insert Annotate View Manage Collaborate Modify Modify Select Wall Door Window Component Column Roof Ceiling Floor Curtain Wall Buil",
+    "els": 443,
+    "canvases": 2,
+    "svgs": 53,
+    "puter": true,
+    "puterApp": "building-design",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "building-design-shell-v1"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 2,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "persistent document/model sync; page interactive with zero stuck requests",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4563
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4563
+   }
+  },
   {
    "name": "cad",
    "navError": null,
@@ -24,60 +570,7 @@
      }
     ]
    },
-   "ui": {
-    "buttons": [
-     "Application menu",
-     "New drawing",
-     "Open",
-     "Save",
-     "Undo",
-     "Redo",
-     "Plot",
-     "Search commands",
-     "Theme",
-     "Help",
-     "A",
-     "Home",
-     "Insert",
-     "Annotate",
-     "View",
-     "Manage",
-     "Output",
-     "Minimize the ribbon",
-     "Line",
-     "Polyline",
-     "Circle",
-     "Circle options",
-     "Arc",
-     "Arc options",
-     "Rectangle",
-     "Rectangle options",
-     "Ellipse",
-     "Ellipse options",
-     "Hatch",
-     "Spline",
-     "Construction line",
-     "Point",
-     "Draw",
-     "Move",
-     "Copy",
-     "Stretch",
-     "Rotate",
-     "Mirror",
-     "Scale",
-     "Trim",
-     "Trim options",
-     "Fillet",
-     "Fillet options",
-     "Array",
-     "Array options",
-     "Erase",
-     "Explode",
-     "Offset"
-    ],
-    "links": [],
-    "inputs": 1
-   },
+   "ui": null,
    "interact": null,
    "sw": {
     "registered": true,
@@ -105,6 +598,1169 @@
     "badCount": 0,
     "failed": [],
     "failedCount": 0,
+    "swContextRequests": 3,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4780
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4780
+   }
+  },
+  {
+   "name": "calendar",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Calendar — a fast, private calendar for the web",
+    "textLen": 332,
+    "textSample": "Today October 2026 Year Month Week 4 Day Day List A Create Oct 2026 S M T W T F S 27 28 29 30 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 BOOKING LINKS New book",
+    "els": 324,
+    "canvases": 0,
+    "svgs": 15,
+    "puter": true,
+    "puterApp": "calendar",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 25,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 11090
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 11090
+   }
+  },
+  {
+   "name": "cap-table",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Free Cap Table Software for Startups | Cap Table by Puter",
+    "textLen": 120,
+    "textSample": "Couldn’t load your data Something went wrong talking to your Puter cloud. Check your connection and try again. Try again",
+    "els": 56,
+    "canvases": 0,
+    "svgs": 1,
+    "puter": true,
+    "puterApp": "cap-table",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 32,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "checkers",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Checkers Online — vs the Computer or a Friend",
+    "textLen": 363,
+    "textSample": "Checkers — play the computer or a friend, free in your browser Player vs. Computer Computer Pass & Play Online Computer Medium MOVES You Playing Black DIFFICULTY Easy Medium Hard CLOCK No limit 1 + 0 ",
+    "els": 442,
+    "canvases": 0,
+    "svgs": 28,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "checkers"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "clicked \"Online\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "chess",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Chess Online — vs the Computer or a Friend",
+    "textLen": 389,
+    "textSample": "Chess — play the computer or a friend, free in your browser Player vs. Computer Computer Pass & Play Online Computer Medium MOVES No moves yet — White begins. You Playing White DIFFICULTY Easy Medium ",
+    "els": 488,
+    "canvases": 0,
+    "svgs": 27,
+    "puter": false,
+    "puterApp": null,
+    "sw": [],
+    "puterAfterPoke": true,
+    "puterAppAfter": "chess"
+   },
+   "ui": null,
+   "interact": {
+    "poke": "clicked \"Online\""
+   },
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 23,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "childcare",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Good evening · Childcare",
+    "textLen": 1111,
+    "textSample": "Skip to content Search children, families, staff... / Saved AP Good evening samedi 24 octobre · Your school Kiosk Check in Log activity Children here 0 of 0 enrolled Absent today 0 Nobody reported Sta",
+    "els": 349,
+    "canvases": 0,
+    "svgs": 34,
+    "puter": true,
+    "puterApp": "childcare",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 31,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4137
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4137
+   }
+  },
+  {
+   "name": "circuits",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Circuits",
+    "textLen": 904,
+    "textSample": "Skip to the design canvas Circuits Start Alpha A File Edit View Project Reports Window Help Design circuit boards in your browser Draw schematics, lay out and route boards, pour copper, check design r",
+    "els": 279,
+    "canvases": 0,
+    "svgs": 31,
+    "puter": true,
+    "puterApp": "circuits",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 12,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "contacts",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Contacts",
+    "textLen": 128,
+    "textSample": "Contacts New All Favorites Your address book is empty Add your first contact or import an existing .vcf file. New contact Import",
+    "els": 129,
+    "canvases": 0,
+    "svgs": 12,
+    "puter": true,
+    "puterApp": "contacts",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 8,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4926
+    },
+    "icon.svg": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; object-src 'none'; report-uri /hub/csp-report",
+     "nosniff": "nosniff",
+     "guarded": false,
+     "bytes": 1569
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4926
+   }
+  },
+  {
+   "name": "contracts",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Contract Manager",
+    "textLen": 666,
+    "textSample": "Skip to content Overview Where your agreements stand today No contracts yet Add your first agreement to start tracking renewals and obligations. Add a contract Home Contracts Renewals Obligations Cont",
+    "els": 200,
+    "canvases": 0,
+    "svgs": 21,
+    "puter": true,
+    "puterApp": "contracts",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "crm",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Sales CRM",
+    "textLen": 491,
+    "textSample": "Good evening, appsmoke Let’s get you selling Add the people you’re talking to and the deals in play, and this page becomes your morning briefing: what’s due, what moved, and what the pipeline is worth",
+    "els": 187,
+    "canvases": 0,
+    "svgs": 20,
+    "puter": true,
+    "puterApp": "crm",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "crm-shell-v1"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 21,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 5,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 5080
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 5080
+   }
+  },
+  {
+   "name": "documents",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled document — Documents",
+    "textLen": 439,
+    "textSample": "A File Home Insert Draw Design Layout References Mailings Review View Paste Noto Sans Paragraph Styles Dictate Find Replace Select 2 1 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 2 1 1 2 3 4 5 6 7",
+    "els": 5358,
+    "canvases": 42,
+    "svgs": 488,
+    "puter": true,
+    "puterApp": "documents",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 50,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "email",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Puter Mail",
+    "textLen": 98,
+    "textSample": "Something went wrong Could not look up your account: puter.auth.whoami is not a function Try again",
+    "els": 30,
+    "canvases": 0,
+    "svgs": 1,
+    "puter": true,
+    "puterApp": "email",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 6,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "expense",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Expenses",
+    "textLen": 625,
+    "textSample": "Skip to content Good evening, appsmoke octobre 2026 Manual entry Capture receipt THIS MONTH 0,00 $US vs. nothing last month NOT IN A REPORT 0,00 $US 0 expenses AWAITING REIMBURSEMENT 0,00 $US 0 expens",
+    "els": 181,
+    "canvases": 0,
+    "svgs": 19,
+    "puter": true,
+    "puterApp": "expense",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 2744
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 2744
+   }
+  },
+  {
+   "name": "field-service",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Home · Field Service",
+    "textLen": 1301,
+    "textSample": "Skip to content Search clients, jobs, quotes... / Saved AP samedi 24 octobre Good evening, appsmoke Get set up 0 of 5 Dismiss Add your business details Add the services you offer Add your team Add you",
+    "els": 496,
+    "canvases": 0,
+    "svgs": 45,
+    "puter": true,
+    "puterApp": "field-service",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 27,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4768
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4768
+   }
+  },
+  {
+   "name": "fixture",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "fixture",
+    "textLen": 17,
+    "textSample": "fixture-rewritten",
+    "els": 12,
+    "canvases": 0,
+    "svgs": 0,
+    "puter": true,
+    "puterApp": "fixture",
+    "sw": [
+     {
+      "url": "/h/fixture/sw.js",
+      "error": "Failed to register a ServiceWorker for scope ('http://127.0.0.1:18100/h/fixture/') with script ('http://127.0.0.1:18100/h/fixture/sw.js'): A bad HTTP response code (404) was received when fetching the script."
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "/h/fixture/sw.js"
+    ],
+    "probe": {
+     "caches": [],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 7,
+    "external": [],
+    "externalCount": 0,
+    "bad": [
+     "404 /manifest.webmanifest",
+     "404 /h/fixture/favicon.svg"
+    ],
+    "badCount": 2,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [
+     "TypeError: Failed to register a ServiceWorker for scope ('http://127.0.0.1:18100/h/fixture/') with script ('http://127.0.0.1:18100/h/fixture/sw.js'): A bad HTTP response code (404) was received when fetching the script."
+    ],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "fleet",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Dashboard · Fleet",
+    "textLen": 1278,
+    "textSample": "Skip to content Search vehicles, issues, parts... / Saved Add AP Fleet overview Good evening, appsmoke. Here is where your fleet stands today, samedi 24 octobre. Start inspection Report issue Add fuel",
+    "els": 437,
+    "canvases": 0,
+    "svgs": 41,
+    "puter": true,
+    "puterApp": "fleet",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 19,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 7418
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 7418
+   }
+  },
+  {
+   "name": "help-desk",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Help Desk",
+    "textLen": 495,
+    "textSample": "Create your help desk It is ready right away. Invite teammates and open your help center whenever you like. Help desk name Usually your company or team name. Customers see it in the help center and em",
+    "els": 64,
+    "canvases": 0,
+    "svgs": 3,
+    "puter": true,
+    "puterApp": "help-desk",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 12,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "hiring",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Overview · Hiring",
+    "textLen": 802,
+    "textSample": "Search Overview Jobs Pipeline Interviews Offers Onboarding Reports A Overview Your hiring at a glance Open jobs 0 None yet Candidates in play 0 Active, not yet hired Interviews · 7 days 0 Nothing toda",
+    "els": 333,
+    "canvases": 0,
+    "svgs": 30,
+    "puter": true,
+    "puterApp": "hiring",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 20,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "inventory",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Inventory",
+    "textLen": 667,
+    "textSample": "Overview Good evening. samedi 24 octobre. Products 0 0 units on hand Stock value 0,00 $US At purchase cost Low stock 0 All above thresholds Out of stock 0 Nothing missing Get started Add your first pr",
+    "els": 302,
+    "canvases": 0,
+    "svgs": 34,
+    "puter": true,
+    "puterApp": "inventory",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "inv-shell-v5"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 31,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
     "swContextRequests": 2,
     "swContextExternal": [],
     "notAvailable": [],
@@ -117,10 +1773,10 @@
    "fileHeaders": {
     "sw.js": {
      "status": 200,
-     "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
      "nosniff": "nosniff",
      "guarded": true,
-     "bytes": 4780
+     "bytes": 7514
     },
     "icon.svg": {
      "status": 404,
@@ -129,10 +1785,1685 @@
    },
    "swHeaders": {
     "status": 200,
-    "csp": "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'",
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
     "nosniff": "nosniff",
     "guarded": true,
-    "bytes": 4780
+    "bytes": 7514
+   }
+  },
+  {
+   "name": "invoicing",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Invoicing & Estimates",
+    "textLen": 396,
+    "textSample": "Skip to content Home Your billing at a glance Nothing to bill yet Create your first invoice or estimate. It takes about a minute. New invoice New estimate Home Invoices Estimates Clients More Welcome ",
+    "els": 213,
+    "canvases": 0,
+    "svgs": 22,
+    "puter": true,
+    "puterApp": "invoicing",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "invoicing-vz0l6me"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4595
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4595
+   }
+  },
+  {
+   "name": "legal",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Dashboard · Legal",
+    "textLen": 1505,
+    "textSample": "Skip to content Search matters, contacts, bills... / 00:00:00 Create new AP Dashboard samedi 24 octobre 2026 New task Record time Personal Firm Add yourself as a firm user to track your hours and task",
+    "els": 448,
+    "canvases": 0,
+    "svgs": 46,
+    "puter": true,
+    "puterApp": "legal",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 36,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 3480
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 3480
+   }
+  },
+  {
+   "name": "meetings",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Puter Meetings",
+    "textLen": 437,
+    "textSample": "Puter Meetings 22:00 • sam. 24 oct. A Video meetings, right in your browser. Start a call in seconds, or create a link to share for later. It all runs in your browser. New meeting Join Nothing to inst",
+    "els": 125,
+    "canvases": 0,
+    "svgs": 13,
+    "puter": true,
+    "puterApp": "meetings",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 20,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "calendar/account refresh loop; page interactive with zero stuck requests",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "music-studio",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Demo Song - Music Studio",
+    "textLen": 2566,
+    "textSample": "Skip to workspace PAT SONG 124.000 1:01:00 Beat Playlist Line None 1/6 step 1/4 step 1/3 step 1/2 step Step 1/3 beat 1/2 beat Beat Bar PATTERNS Beat 8 Bassline 2 Chords 2 Lead 1 AUDIO CLIPS Drop audio",
+    "els": 2246,
+    "canvases": 13,
+    "svgs": 191,
+    "puter": true,
+    "puterApp": "music-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "shim whoami poll loop (storage/account module); page interactive",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "notes",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled Page - Notes",
+    "textLen": 234,
+    "textSample": "Notes Untitled Page - appsmoke's Notebook Share File Home Insert Draw View Help Cut Copy Format Styles Tags AP appsmoke's Notebook Quick Notes New Section 1 Add section Untitled Page Add page Untitled",
+    "els": 561,
+    "canvases": 0,
+    "svgs": 76,
+    "puter": true,
+    "puterApp": "notes",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 15,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "parametric",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Part1 - Parametric",
+    "textLen": 1758,
+    "textSample": "Skip to the graphics area ALPHA File Edit View Insert Tools Help Part1 A Extruded Boss Revolved Boss Swept Boss Lofted Boss Extruded Cut Revolved Cut Swept Cut Lofted Cut Hole Fillet Linear Pattern Ch",
+    "els": 547,
+    "canvases": 1,
+    "svgs": 69,
+    "puter": true,
+    "puterApp": "parametric",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [
+     "wasm streaming compile failed: CompileError: WebAssembly.instantiateStreaming(): Compiling or instantiating WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allo",
+     "failed to asynchronously prepare wasm: CompileError: WebAssembly.instantiate(): Compiling or instantiating WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allow",
+     "Aborted(CompileError: WebAssembly.instantiate(): Compiling or instantiating WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script in the foll"
+    ],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 13,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "pdf",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled.pdf · PDF Editor",
+    "textLen": 257,
+    "textSample": "Skip to content File Edit View Page Insert Untitled Tools Edit Comment Export Fill & Sign Save to Puter Click to select, drag to move, or double-click text to edit. Page 1 of 1 / 1 Fit width Fit page ",
+    "els": 713,
+    "canvases": 5,
+    "svgs": 74,
+    "puter": true,
+    "puterApp": "pdf",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 21,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "photo-studio",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Photo Studio",
+    "textLen": 1863,
+    "textSample": "File Edit Image Layer Type Select Filter View Window Help Save Export Move Tool Auto-Select Snap Free Transform Color theme Dark Medium Light System Untitled @ 20% (RGB/8) PHOTO STUDIO Start with an i",
+    "els": 818,
+    "canvases": 1,
+    "svgs": 85,
+    "puter": true,
+    "puterApp": "photo-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 33,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "pos",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Register · Point of Sale",
+    "textLen": 369,
+    "textSample": "Register All No products yet Add your catalog in the Products tab, or ring up a one-off item below. Add products Custom item Register Products Receipts Customers Reports Settings Welcome Your register",
+    "els": 216,
+    "canvases": 0,
+    "svgs": 23,
+    "puter": true,
+    "puterApp": "pos",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "pos-shell-v3"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 27,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 9460
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 9460
+   }
+  },
+  {
+   "name": "presentation",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled presentation",
+    "textLen": 352,
+    "textSample": "Skip to content File Edit View Insert Format Arrange Slide Tools Slide Show Help Untitled presentation Not saved yet Save Ask AI Present Home Insert Draw Design Transitions Animations Slide Show Recor",
+    "els": 4253,
+    "canvases": 0,
+    "svgs": 429,
+    "puter": true,
+    "puterApp": "presentation",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 11,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "projects",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Project Management",
+    "textLen": 338,
+    "textSample": "Projects New project No projects yet A project holds one board, its timeline, and its milestones. Create a project Welcome Plan it. Move it. Ship it. Kanban boards, timelines, and milestones for small",
+    "els": 150,
+    "canvases": 0,
+    "svgs": 15,
+    "puter": true,
+    "puterApp": "projects",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "pm-shell-v2"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 15,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 4555
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 4555
+   }
+  },
+  {
+   "name": "property-management",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Dashboard · Property Management",
+    "textLen": 1759,
+    "textSample": "Skip to content Search properties, tenants, leases... / Saved AP samedi 24 octobre 2026 Good evening, appsmoke Receive payment New work order New lease Collected in octobre 0,00 $US No charges posted ",
+    "els": 573,
+    "canvases": 0,
+    "svgs": 60,
+    "puter": true,
+    "puterApp": "property-management",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 37,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 3726
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 3726
+   }
+  },
+  {
+   "name": "records",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Records",
+    "textLen": 588,
+    "textSample": "Skip to content Records Home Trash Create base Open source on GitHub AP Home Start from scratch A blank base with one table. Start with a template Projects, content, sales, inventory and more. Import ",
+    "els": 128,
+    "canvases": 0,
+    "svgs": 13,
+    "puter": true,
+    "puterApp": "records",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 8,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "shifts",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Home · Shifts",
+    "textLen": 364,
+    "textSample": "A Welcome to Shifts Saturday, Oct 24, 2026 No team yet Add your first employee to start scheduling, or explore with sample data. Add employee Load sample data Welcome Your team, your cloud Plan schedu",
+    "els": 218,
+    "canvases": 0,
+    "svgs": 24,
+    "puter": true,
+    "puterApp": "shifts",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 14,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 3923
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 3923
+   }
+  },
+  {
+   "name": "signatures",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Signatures",
+    "textLen": 490,
+    "textSample": "Documents New document 0 Out for signature 0 Waiting for you 0 Completed All Drafts Out for signature Waiting for you Completed Closed No documents match No documents yet Upload a PDF to place signatu",
+    "els": 149,
+    "canvases": 0,
+    "svgs": 15,
+    "puter": true,
+    "puterApp": "signatures",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 14,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "solitaire",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Play Klondike Solitaire Online — Draw-One, Undo Any Move",
+    "textLen": 63,
+    "textSample": "Solitaire Moves0 Klondike · Draw 1 Undo New 24 Powered by Puter",
+    "els": 237,
+    "canvases": 0,
+    "svgs": 16,
+    "puter": true,
+    "puterApp": "solitaire",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "shim whoami + kv sync loop; canvas game — the 63 chars include only menu labels, the board is drawn",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 5609
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 5609
+   }
+  },
+  {
+   "name": "spreadsheet",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Untitled spreadsheet",
+    "textLen": 370,
+    "textSample": "File Edit View Insert Format Data Tools Help Untitled spreadsheet Saved Share A Home Insert Draw Page Layout Formulas Data Review View Automate Paste Calibri (Body) 11 General Conditional Formatting F",
+    "els": 4265,
+    "canvases": 0,
+    "svgs": 429,
+    "puter": true,
+    "puterApp": "spreadsheet",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 30,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "persistent workbook/document sync; page interactive with zero stuck requests",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "sudoku",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Sudoku: Play Free in Your Browser",
+    "textLen": 436,
+    "textSample": "Sudoku , play free in your browser Light theme Dark theme Match system theme appsmoke 2 8 9 4 9 3 9 6 4 1 5 2 7 5 4 8 9 4 2 7 4 8 2 1 3 9 6 8 9 7 Medium 30 clues 0:39 Undo Redo Erase Notes Hint 1 7 2 ",
+    "els": 1216,
+    "canvases": 0,
+    "svgs": 18,
+    "puter": true,
+    "puterApp": "sudoku",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 22,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "shim whoami + kv sync loop + puzzle-gen worker; page interactive",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "survey",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Surveys",
+    "textLen": 613,
+    "textSample": "Skip to content A Surveys Create survey Start from scratch A blank survey Use a template Ready-made, fully editable Import questions Paste a list or open a file Generate Your surveys All statuses Draf",
+    "els": 159,
+    "canvases": 0,
+    "svgs": 14,
+    "puter": true,
+    "puterApp": "survey",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 16,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "tasks",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Tasks",
+    "textLen": 379,
+    "textSample": "Skip to content Today sam. 24 oct. Add for today Nothing due today Add a task for today, or check Upcoming for what is ahead. Today Upcoming Lists Calendar More Welcome Your day, sorted Personal and s",
+    "els": 203,
+    "canvases": 0,
+    "svgs": 22,
+    "puter": true,
+    "puterApp": "tasks",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "tasks-04ff3ca755e4",
+      "tasks-sdk"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 14,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 3,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 6976
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 6976
+   }
+  },
+  {
+   "name": "teamchat",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Teamchat",
+    "textLen": 510,
+    "textSample": "Skip to messages No workspace yet Create one or join one with an invite. Create a workspace Start a space for your team Join with an invite Paste a code or link Powered by Puter Welcome to Teamchat Hi",
+    "els": 239,
+    "canvases": 0,
+    "svgs": 25,
+    "puter": true,
+    "puterApp": "teamchat",
+    "sw": [
+     {
+      "url": "./sw.js",
+      "ok": true
+     }
+    ]
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": true,
+    "script": [
+     "./sw.js"
+    ],
+    "probe": {
+     "caches": [
+      "teamchat-shell-a0ad78d7570d"
+     ],
+     "cachedIn": [],
+     "offlineFetch": "rejected: Failed to fetch"
+    }
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 12,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 9756
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 9756
+   }
+  },
+  {
+   "name": "time-tracking",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Hourly · Time Tracking",
+    "textLen": 429,
+    "textSample": "Skip to content Timer samedi 24 octobre Set up a client and a project, then start tracking. Add a client TODAY 0m THIS WEEK 0m AMOUNT 0,00 $US billable this week Today Nothing logged yet today. Timer ",
+    "els": 175,
+    "canvases": 0,
+    "svgs": 15,
+    "puter": true,
+    "puterApp": "time-tracking",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 18,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 200,
+     "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+     "nosniff": "nosniff",
+     "guarded": true,
+     "bytes": 3881
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 200,
+    "csp": "default-src 'self'; script-src 'self' ; connect-src 'self'; object-src 'none'",
+    "nosniff": "nosniff",
+    "guarded": true,
+    "bytes": 3881
+   }
+  },
+  {
+   "name": "vector-studio",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Vector Studio",
+    "textLen": 709,
+    "textSample": "Skip to canvas File Edit Object Type Select Effect View Window Help Vector Studio A New file Open Home Recent Your files Templates Welcome back, appsmoke Draw logos, icons, illustrations and layouts w",
+    "els": 1629,
+    "canvases": 2,
+    "svgs": 163,
+    "puter": true,
+    "puterApp": "vector-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 29,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "video-studio",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Video Studio",
+    "textLen": 915,
+    "textSample": "Skip to editor Video Studio Home Templates Trash Saved to your Puter cloud 0 projects A appsmoke Video Studio New project Start with an empty timeline. Its shape follows the first clip you add. Import",
+    "els": 292,
+    "canvases": 6,
+    "svgs": 23,
+    "puter": true,
+    "puterApp": "video-studio",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 29,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "whiteboard",
+   "navError": "Navigation timeout of 35000 ms exceeded",
+   "swGuard": "on",
+   "dom": {
+    "title": "Your boards · Whiteboard",
+    "textLen": 901,
+    "textSample": "whiteboard. Personal workspace All boards 0 Favorites 0 Trash Organization Join an organization Set up an organization Language English Français Appearance System Light Dark Powered by Puter Whiteboar",
+    "els": 333,
+    "canvases": 6,
+    "svgs": 38,
+    "puter": true,
+    "puterApp": "whiteboard",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 30,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": true,
+   "navTimeoutExcused": "persistent board/account sync; page interactive with zero stuck requests",
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
+   }
+  },
+  {
+   "name": "wiki",
+   "navError": null,
+   "swGuard": "on",
+   "dom": {
+    "title": "Getting started - Wiki",
+    "textLen": 1193,
+    "textSample": "Skip to page AP appsmoke’s wiki Search Ctrl+K Home New page Ctrl+Alt+N Private Getting started Tasks Notes Templates Import Trash Settings Powered by Puter Getting started Share Add cover Getting star",
+    "els": 419,
+    "canvases": 0,
+    "svgs": 54,
+    "puter": true,
+    "puterApp": "wiki",
+    "sw": []
+   },
+   "ui": null,
+   "interact": null,
+   "sw": {
+    "registered": false,
+    "script": [],
+    "probe": null
+   },
+   "csp": {
+    "console": [],
+    "reports": [],
+    "count": 0
+   },
+   "net": {
+    "requests": 37,
+    "external": [],
+    "externalCount": 0,
+    "bad": [],
+    "badCount": 0,
+    "failed": [],
+    "failedCount": 0,
+    "swContextRequests": 0,
+    "swContextExternal": [],
+    "notAvailable": [],
+    "otherErrors": [],
+    "consoleWarnSample": []
+   },
+   "navTimeout": false,
+   "navTimeoutExcused": null,
+   "loads": true,
+   "fileHeaders": {
+    "sw.js": {
+     "status": 404,
+     "shipped": false
+    },
+    "icon.svg": {
+     "status": 404,
+     "shipped": false
+    }
+   },
+   "swHeaders": {
+    "status": 404,
+    "shipped": false
    }
   }
  ],

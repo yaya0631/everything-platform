@@ -184,9 +184,10 @@ export function q(sql) {
   return s;
 }
 
-export const get = (sql, ...args) => q(sql).get(...args);
-export const all = (sql, ...args) => q(sql).all(...args);
-export const run = (sql, ...args) => q(sql).run(...args);
+const bindArgs = (args) => args.map((value) => value === undefined ? null : value);
+export const get = (sql, ...args) => q(sql).get(...bindArgs(args));
+export const all = (sql, ...args) => q(sql).all(...bindArgs(args));
+export const run = (sql, ...args) => q(sql).run(...bindArgs(args));
 
 let depth = 0;
 /** Run fn inside one transaction (nested calls join the outer one). */

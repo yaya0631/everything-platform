@@ -54,7 +54,7 @@
 
   function call(method, path, body) {
     var headers = { 'X-CAD-Request': '1' };
-    var init = { method: method, credentials: 'same-origin', headers: headers };
+    var init = { method: method, credentials: 'include', headers: headers };
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
       init.body = JSON.stringify(
@@ -69,7 +69,7 @@
   function rawCall(method, path, contentType, body) {
     var headers = { 'X-CAD-Request': '1' };
     if (contentType) headers['Content-Type'] = contentType;
-    return fetch(API + withApp(path), { method: method, credentials: 'same-origin', headers: headers, body: body });
+    return fetch(API + withApp(path), { method: method, credentials: 'include', headers: headers, body: body });
   }
 
   // Apps form https://<name>.puter.site URLs themselves. Translate those
@@ -652,6 +652,24 @@
 
   var shareNote = 'Drive sharing is managed in the CAD app itself. Sharing files directly from hub apps is on the Phase 2 gap ledger.';
   var shareError = notYet('fs.share', shareNote);
+  var sharePath = function (item) {
+    if (typeof item === 'string') return item;
+    return item && (item.path || item.fullPath || item.name);
+  };
+  var shareCall = function (method, path, body) {
+    var headers = { 'X-CAD-Request': '1' };
+    var init = { method: method, credentials: 'include', headers: headers };
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(body);
+    }
+    return fetch(API.replace('/api/hub', '/api') + path, init).then(function (r) {
+      return jsonData(r).then(function (d) { return r.ok ? d : apiFail(r, d); });
+    });
+  };
+  var shareGet = function (path) {
+    return shareCall('GET', '/share/list?path=' + encodeURIComponent(sharePath(path) || ''));
+  };
 
   puter.fs = {
     read: readFile,
@@ -670,12 +688,19 @@
       return request('POST', '/fs/readurl', { path: path, expiresIn: seconds }).then(function (d) { return d.url; });
     },
     sign: notYet('fs.sign', 'No easy-tier app uses file signing; tokenized read URLs are available via fs.getReadURL.'),
-    share: shareError,
-    unshare: shareError,
-    listShared: shareError,
-    listSharedByMe: shareError,
-    getShares: shareError,
-    getShareLink: shareError,
+    share: function (path, user, options) {
+      return shareCall('POST', '/share/people', { path: sharePath(path), user: user, mode: options && options.mode || 'view' });
+    },
+    unshare: function (path, user) {
+      return shareCall('DELETE', '/share/people', { path: sharePath(path), user: user });
+    },
+    listShared: function (path) {
+      if (!sharePath(path)) return shareCall('GET', '/share/incoming');
+      return shareGet(path).then(function (d) { return d.people || []; });
+    },
+    listSharedByMe: function () { return shareCall('GET', '/share/mine').then(function (d) { return d.people || []; }); },
+    getShares: shareGet,
+    getShareLink: function (path) { return shareGet(path).then(function (d) { return d.links && d.links[0] || null; }); },
     FSItem: FSItem,
   };
 
@@ -692,6 +717,10 @@
       });
     },
     set: function (key, value) {
+      if (key && typeof key === 'object' && !Array.isArray(key)) {
+        value = key.value;
+        key = key.key;
+      }
       return request('POST', '/kv/set', { key: key, value: value }).then(function () { return null; });
     },
     del: function (key) {
@@ -1373,17 +1402,41 @@ puter.ai = {
       console.info('[cad-hub] puter.ui.contextMenu: menu registrations are stored; native menus are up to the browser. (ledger)');
       return undefined;
     },
-    launchApp: notYet('ui.launchApp', 'Hub apps open each other by link in this server; app launching stays in the hub home page.'),
-    parentApp: notYet('ui.parentApp', 'Hub apps do not run inside another app.'),
+    launchApp: function (name, options) {
+      if (typeof name === 'object' && name) {
+        options = name;
+        name = name.name || name.app;
+      }
+      var app = name;
+      if (!app || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(String(app))) {
+        return Promise.reject(new Error('A valid hub app name is required.'));
+      }
+      if (options && options.background) {
+        console.info('[cad-hub] puter.ui.launchApp: background app connections are unavailable in tab mode.');
+        return Promise.resolve(null);
+      }
+      var url = '/h/' + encodeURIComponent(String(app)) + '/';
+      if (options && options.items) url += '?open=' + encodeURIComponent(JSON.stringify(options.items));
+      window.location.assign(url);
+      return Promise.resolve(null);
+    },
+    parentApp: function () { return null; },
+    requestPictureInPicture: function (video) {
+      var el = video && video.requestPictureInPicture ? video : document.querySelector('video');
+      return el && el.requestPictureInPicture ? el.requestPictureInPicture() : Promise.reject(new Error('Picture-in-picture is unavailable.'));
+    },
+    exitPictureInPicture: function () {
+      return document.exitPictureInPicture ? document.exitPictureInPicture() : Promise.resolve(null);
+    },
     onLaunchedWithItems: function (fn) {
-      // Nothing launches a hub app with files today; a real "open with"
-      // launcher is a later phase (ledger). The callback simply never fires.
-      console.info('[cad-hub] puter.ui.onLaunchedWithItems: no launcher yet; the callback stays idle. (ledger)');
+      if (typeof fn !== 'function') return undefined;
+      var raw = new URLSearchParams(window.location.search).get('open');
+      if (!raw) return undefined;
+      try { fn(JSON.parse(raw)); } catch { /* malformed launch payloads are ignored */ }
       return undefined;
     },
     onItemsOpened: function (fn) {
-      console.info('[cad-hub] puter.ui.onItemsOpened: no launcher yet; the callback stays idle. (ledger)');
-      return undefined;
+      return this.onLaunchedWithItems(fn);
     },
     alert: function (message, buttons, options) {
       ensureCss();
@@ -1442,7 +1495,79 @@ puter.ai = {
     },
     delete: function (subdomain) { return request('POST', '/hosting/delete', { subdomain: typeof subdomain === 'string' ? subdomain : subdomain.subdomain }); },
   };
-  ['net', 'email', 'perms'].forEach(function (area) {
+  puter.perms = {
+    check: function (permission, options) {
+      var o = options || {};
+      return request('POST', '/perms/check', { permission: permission, app: APPNAME, options: o }).then(function (result) {
+        return !!(result && result.granted);
+      });
+    },
+    request: function (permission, options) {
+      var o = options || {};
+      return request('POST', '/perms/request', { permission: permission, app: APPNAME, options: o }).then(function (result) {
+        return result && result.granted ? (result.path || true) : false;
+      });
+    },
+  };
+  function localSocket(host, port, tls) {
+    var scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var endpoint = scheme + '//' + location.host + API + '/net?app=' + encodeURIComponent(APPNAME)
+      + '&host=' + encodeURIComponent(host) + '&port=' + encodeURIComponent(port) + (tls ? '&tls=1' : '');
+    var ws = new WebSocket(endpoint);
+    var listeners = {};
+    var closed = false;
+    function emit(name, value) { (listeners[name] || []).slice().forEach(function (fn) { fn(value); }); }
+    function bytes(value) {
+      if (value instanceof Uint8Array) return value;
+      if (value instanceof ArrayBuffer) return new Uint8Array(value);
+      if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+      if (typeof value === 'string') return new TextEncoder().encode(value);
+      return new Uint8Array(0);
+    }
+    function b64(value) {
+      var b = bytes(value), text = '';
+      for (var i = 0; i < b.length; i += 0x8000) text += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+      return btoa(text);
+    }
+    ws.onopen = function () { emit('open'); };
+    ws.onmessage = function (event) {
+      var msg;
+      try { msg = JSON.parse(event.data); } catch (e) { emit('error', e); return; }
+      if (msg.type === 'data') {
+        var text = atob(msg.data || ''), out = new Uint8Array(text.length);
+        for (var i = 0; i < text.length; i++) out[i] = text.charCodeAt(i);
+        emit('data', out);
+      } else if (msg.type === 'close') emit('close', !!msg.hadError);
+      else if (msg.type === 'error') { var err = new Error(msg.message || 'Socket error'); err.code = msg.code; emit('error', err); }
+    };
+    ws.onerror = function () { var err = new Error('Local socket connection failed.'); err.code = 'socket_error'; emit('error', err); };
+    ws.onclose = function () { if (!closed) { closed = true; emit('close', false); } };
+    return {
+      on: function (event, fn) { (listeners[event] || (listeners[event] = [])).push(fn); return this; },
+      write: function (value) { if (!closed && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'write', data: b64(value) })); },
+      close: function () { if (!closed) { closed = true; try { ws.send(JSON.stringify({ type: 'close' })); } catch (e) {} ws.close(); } },
+    };
+  }
+  puter.net = {
+    fetch: function (url, options) {
+      assertLocal(url);
+      return window.fetch(url, options || {});
+    },
+    Socket: function (host, port) { return localSocket(host, port, false); },
+    tls: { TLSSocket: function (host, port) { return localSocket(host, port, true); } },
+  };
+  puter.email = {
+    send: function (message) {
+      return request('POST', '/email/send', { message: message, app: APPNAME });
+    },
+    sendTransactional: function (message) {
+      return request('POST', '/email/send-transactional', { message: message, app: APPNAME });
+    },
+    list: function (options) {
+      return request('POST', '/email/list', { options: options || {}, app: APPNAME });
+    },
+  };
+  ['maps'].forEach(function (area) {
     puter[area] = new Proxy({}, {
       get: function (target, prop) {
         if (prop === 'then') return undefined; // remain a non-thenable for await checks

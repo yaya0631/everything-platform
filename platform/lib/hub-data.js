@@ -22,6 +22,7 @@ import * as hubKv from './hub-kv.js';
 import * as hubAi from './hub-ai.js';
 import { exportUserHubData } from './hub-export.js';
 import * as hosting from './hub-hosting.js';
+import * as mail from './mail.js';
 
 const NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 
@@ -222,6 +223,49 @@ export function registerData(s) {
   kvRoute('expire', ({ user, app, body }) => hubKv.expire({ user, app, key: body.key, ttlSeconds: body.ttlSeconds ?? body.ttl_seconds }), { guard: true });
   kvRoute('expire-at', ({ user, app, body }) => hubKv.expireAt({ user, app, key: body.key, timestamp: body.timestamp }), { guard: true });
   kvRoute('flush', ({ user, app }) => hubKv.flush({ user, app }), { guard: true });
+
+  // Puter permissions are represented by the hub's account and app access
+  // controls. Apps use this lightweight local decision API before opening
+  // optional features; no cloud permission service is involved.
+  route('POST', 'perms/check', async ({ req, res, user, account, url }) => {
+    const body = await smallBody(req);
+    const app = hubApp({ url, user, account }, body.app);
+    const permission = typeof body.permission === 'string' ? body.permission : '';
+    const details = body.options || {};
+    const docs = `/${user}/Documents`;
+    const granted = permission === 'folder'
+      && fsops.grantsForUser(user).filter((g) => g.app === app)
+        .some((g) => g.perms === 'write' && (g.path === '/' || g.path === docs || g.path.startsWith(`${docs}/`)));
+    return send(res, 200, { granted, permission, app });
+  });
+  route('POST', 'perms/request', async ({ req, res, user, account, url }) => {
+    const body = await smallBody(req);
+    const app = hubApp({ url, user, account }, body.app);
+    const permission = typeof body.permission === 'string' ? body.permission : '';
+    if (permission !== 'folder') return send(res, 200, { granted: false, permission, app });
+    const docs = `/${user}/Documents`;
+    const grant = fsops.grant(user, app, docs, 'write', 'permission-request');
+    return send(res, 200, { granted: true, permission, app, path: docs, grant: grant.id });
+  }, { guard: true });
+
+  route('POST', 'email/send', async ({ req, res, user, account, url }) => {
+    const body = await smallBody(req);
+    const app = hubApp({ url, user, account }, body.app);
+    const message = body.message && typeof body.message === 'object' ? body.message : {};
+    return send(res, 200, await mail.send({ ...message, user, source: `app:${app}` }));
+  }, { guard: true });
+  route('POST', 'email/send-transactional', async ({ req, res, user, account, url }) => {
+    const body = await smallBody(req);
+    const app = hubApp({ url, user, account }, body.app);
+    const message = body.message && typeof body.message === 'object' ? body.message : {};
+    return send(res, 200, await mail.send({ ...message, user, source: `app:${app}:transactional` }));
+  }, { guard: true });
+  route('POST', 'email/list', async ({ req, res, user, account, url }) => {
+    const body = await smallBody(req);
+    const app = hubApp({ url, user, account }, body.app);
+    const options = body.options && typeof body.options === 'object' ? body.options : {};
+    return send(res, 200, { items: mail.recentLog(Math.min(Number(options.pageSize) || 50, 200)).filter((row) => row.user === user && row.source.startsWith(`app:${app}`)) });
+  });
 
   // -- ai --------------------------------------------------------------------
 

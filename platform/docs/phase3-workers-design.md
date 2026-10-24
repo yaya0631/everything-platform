@@ -752,14 +752,17 @@ runner/shim/hub code, required E2E, and required services. An upstream suite
 result is informational: it does not count as server coverage when only
 upstream code and harnesses execute. Apps without upstream tests use the
 generic functional gate: instrument every `puter.*` call/result, fail on
-missing or rejected methods, verify KV across server restart, and round-trip
-an FS save/open.
+missing or rejected methods, verify KV across server restart, round-trip
+an FS save/open, and — since 2026-10-24 — answer a `puter.ai.chat` call
+(AI parity, owner directive: what works in CAD works in every app; the gate
+points `hubAiDefaultModel` at its built-in test provider and requires the
+canned reply in every app page, CAD's own adapter included).
 
 | Adapter | Covered / upstream worker cases | Scope |
 | --- | ---: | --- |
-| calendar | 0/45 runtime cases | 45/45 RSVP adapter cases run upstream code through the upstream worker harness. |
+| calendar | 45/45 runtime cases MEASURED (2026-10-23) | 45/45 RSVP adapter cases run through the runtime seam (`test/calendar-runtime.test.js`). |
 | signatures | 159/159 runtime cases MEASURED (2026-10-23; see below) | was 0/172 - 30/30 adapted (upstream harness only). `test/signatures-runtime.test.js` now runs the 11 runtime-exercisable worker files (159 cases) through cad-home's own seam. Full upstream suite: 370/370. |
-| invoicing | 0/96 runtime cases | 96/96 email-worker + mailer adapter cases use upstream harnesses. Full upstream suite: 749/749. |
+| invoicing | 59/59 runtime cases MEASURED (2026-10-23) | email-worker 59 over the seam (`test/invoicing-runtime.test.js`); mailer's 37 app-logic cases classified upstream-only, exact names in `data/hub/test-gates/invoicing-runtime-excluded.json`. Full upstream suite: 749/749 + E2E 11/11. |
 
 The 13 signatures worker-focused files were MEASURED 2026-10-23 (real
 vitest, one file at a time; declared doc calibration): `email-worker.test.js`

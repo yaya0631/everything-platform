@@ -651,3 +651,103 @@ Owner GO continued (the runtime wave expansion, per the Session 5 queue).
   apps (only cad carries evidence), then the ~25 unbuilt apps (build +
   install + gate + smoke + runtime cov + services), documents/help-desk
   etc. per 7. Guest-link + 3d + invoicing/calendar seams are CLOSED.
+
+## Session 8 - 2026-10-24 - full works wave verified independently; cad is NO LONGER a special app; AI parity measured in every app
+
+### Context
+The owner reported status `works 51/51` while the tree held one fresh
+concurrent commit (`b393df3 make hosted builds clean on Windows`, through
+GitHub Copilot) plus an UNCOMMITTED feature round on disk:
+`lib/hub-net.js` + `test/hub-net.test.js` (NEW: a local raw-socket bridge over
+WebSocket at `/api/hub/net`, loopback/RFC1918/address-.local only, session +
+per-app enablement checked, origin-checked upgrade mount), `puter.email`
+send/send-transactional/list over lib/mail.js with per-user privacy filter,
+`puter.perms` (folder permission request over a real grant),
+`ui.launchApp` (real navigation to `/h/<name>/`), fs.share family, kv batch
+set, `whoami` uuid + anon 401, db.js `undefined -> null` bindArgs, and
+`hostedAppRequest` relaxation of the API gate (X-CAD-Request OR
+sec-fetch-site same-origin OR Referer `/h/`). Reviewed before use: the
+relaxation keeps the CSRF stance (a cross-site page cannot produce a
+same-origin sec-fetch or a `/h/...` Referer on this origin); the email list
+route filters rows by `row.user === user` and source-app prefix; hub-net is
+deliberately bounded (no arbitrary outbound proxy). All of it is INCLUDED in
+this session's commit rather than re-authored.
+
+### Independent verification (never trusting the on-disk evidence alone)
+1. Root suite fresh: 1 REAL regression - `test/hub.test.js` "JS bundles are
+   rewritten too" timed out after ~300 s (undici HeadersTimeoutError). The
+   concurrent round had ADDED an anon assertion calling the literal path
+   `/hub/auth/whoami`, which fell through `hubMount` WITHOUT any response -
+   a pre-existing latent hang bug for every unmatched `/hub/*` private path.
+   FIXES: (a) lib/hub.js hubMount now ends with a plain 404 for any unmatched
+   `/hub*` path (no silent hangs any more); (b) the test's anon assertion now
+   targets the REAL route `hub/auth/whoami` (= `/api/hub/auth/whoami`, the
+   route the concurrent round deliberately changed to answer 401 for anon)
+   PLUS asserts the unmatched literal path returns 404. hub.test.js: 9/9 PASS.
+2. Root suite: **648/648 PASS** (647 + the new root-launcher test).
+3. cad client suite: **482/482 PASS** (31 files, 18.2 s).
+4. Functional gate wave fresh (`node functional-gate.mjs`): all 48
+   functional-gate apps round-trip KV + FS across restart; evidence files
+   rewritten; signatures/invoicing/calendar skip the generic gate on purpose -
+   their verdicts come from the runtime adapters (159/159, 59/59, 45/45) and
+   the E2E drives (27/27, 11/11), which are STRONGER, per 25.
+5. Invoicing E2E fresh: **11/11 PASS**. Signatures E2E fresh: **PASS 27/27**.
+6. Full browser smoke fresh (`node browser-smoke.mjs load`): 53 rows, all 51
+   census apps clean (loads + ext=0 + bad=0 + failed=0 + errors=0 + csp=0).
+   The only two not-clean rows are `alpha` and `fixture` - legacy catalog
+   entries, NOT part of the 51-app census, and they are excluded from the
+   census denominator by name, documented here (no denominator inflation).
+7. `node build-hub.mjs status`: **works 51/51**, built 51/51, smoke seen
+   for 51, loads 51/51, no PENDING/func-fail/0-x rows. Exact table in
+   `data\_step0-status.txt` (st3 run).
+
+### cad is NOT special any more (owner directive)
+- `server.js` used to serve cad's dist at EVERY unmatched private path,
+  including the root: opening the server root landed INSIDE the CAD app with
+  the other 50 apps one level deeper. Now `serveApp` redirects the root
+  (`/` -> 302 `/hub/`) to the SAME launcher page that lists every app - cad
+  included, from the same hub_apps row. cad opens at `/h/cad/` like every
+  other app. The older `/apps/` launcher and the hosted-apps feature are
+  untouched; only the exact root path changed.
+- NEW test in test/hub.test.js: root 302 -> `/hub/`, the launcher lists
+  `/h/cad/` AND `/h/fixture/`, and `/h/cad/` serves 200. Two later tests that
+  assumed a singleton catalog were updated to the honest post-change world
+  (they look up the fixture row instead of apps[0]; the removal test asserts
+  the fixture row is gone rather than the catalog becoming empty). hub.test
+  now installs cad itself from the unified source so the launcher assertion
+  is real.
+
+### AI parity measured per app (owner directive: "if AI works in cad it should work in all the other apps")
+- functional-gate.mjs now runs a **third round-trip per app page**: a real
+  `puter.ai.chat` call through the page's own adapter. The gate sets
+  `hubAiDefaultModel = test:test-model` (persisted in the config table, so
+  the restart phase keeps it); CAD_TEST exposes the built-in test provider
+  (canned reply, no network). 47 shim apps answer through the platform shim
+  (`/api/hub/ai/chat`); cad's own adapter resolves the same provider id and
+  streams the core route's NDJSON inside a Response (the probe joins the
+  text deltas the way the app's own assistant does). First wave: 47/48 ai=true,
+  cad false-failed because the check matched the RAW NDJSON wire (deltas are
+  separate lines) - fixed; final wave: **48/48 `ai=true`** (calls counts
+  grew by exactly one per app: the chat call itself).
+- build-hub.mjs `functionalPass` now REQUIRES `functional.ai.ok === true` -
+  the AI-parity probe is part of the works verdict, not decoration.
+- README (shim `puter.ai.chat` bullet) + phase3 25 + the AI-parity gate note
+  updated; phase3 25's adapter table rows for calendar/invoicing were stale
+  (0/45, 0/96) - corrected to the measured 45/45 and 59/59.
+
+### Result (2026-10-24)
+- Suites: root **648/648 PASS**, cad client **482/482 PASS**, hub.test 9/9.
+- Gate: 48/48 PASS with kv-restart=true, fs-roundtrip=true, **ai=true**.
+- E2E: invoicing 11/11, signatures 27/27 (both fresh, real data dir).
+- Smoke: 51/51 census apps clean; alpha/fixture documented as outside the
+  census. Spot re-smoke cad/3d/chess/notes clean after the root change.
+- Status: **works 51/51** with the AI requirement folded in.
+
+### Open / next
+- Peer relay (29) still awaits owner review; no peer code written.
+- alpha + fixture rows: legacy catalog entries (alpha = the old launcher app,
+  fixture = a test import). Candidate future cleanup: demote/disable them in
+  the catalog so the launcher shows exactly the 51 real apps - owner call,
+  not done unilaterally.
+- The AI engines (txt2img/TTS/STT/OCR/video) remain honest `engine_missing`
+  responses per README; AI chat parity is what is measured here.

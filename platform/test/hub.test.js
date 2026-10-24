@@ -6,6 +6,7 @@ import test from 'node:test';
 import { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import path from 'node:path';
 import { start, cleanup, client } from './helpers.js';
 import * as hub from '../lib/hub.js';
 import * as store from '../lib/store.js';
@@ -137,7 +138,25 @@ test('JS bundles are rewritten too (chess-style Puter loaders inside code)', asy
 
   const anon = client(running.base);
   anon.cookie = '';
+  assert.equal((await anon.get('hub/auth/whoami')).status, 401);
+  assert.equal((await anon.get('/hub/auth/whoami')).status, 404);
   assert.equal((await anon.get('/h/fixture/')).status, 401);
+});
+
+test('the root page is the hub launcher, not CAD; CAD opens like any app', async () => {
+  const p = await as('person1');
+  const root = await p.get('/');
+  assert.equal(root.status, 302);
+  assert.equal(root.headers.get('location'), '/hub/');
+  // cad is installed in the same catalog as every other app (from its own
+  // dist, same installFromDist), and the launcher lists it like any app.
+  hub.installFromDist('cad', path.resolve(import.meta.dirname, '../../upstream/src/cad/dist'), { sha: SHA40('c'), source: 'import', title: 'CAD' });
+  const home = await p.get('/hub/');
+  assert.match(String(home.body), /\/h\/cad\//);
+  assert.match(String(home.body), /\/h\/fixture\//);
+  // cad itself serves from its own hub path like every other app.
+  const cad = await p.get('/h/cad/');
+  assert.equal(cad.status, 200);
 });
 
 test('enable/disable and per-user allow lists drive what people see', async () => {
@@ -159,7 +178,7 @@ test('enable/disable and per-user allow lists drive what people see', async () =
   // Unknown names in the list are dropped at save time.
   await a.put('hub/apps/fixture', { users: ['person1', 'not_a_user'] });
   const cat = await a.get('hub/apps');
-  assert.deepEqual(cat.body.apps[0].users, ['person1']);
+  assert.deepEqual(cat.body.apps.find((x) => x.name === 'fixture').users, ['person1']);
 });
 
 test('the external-URL scan reports what a build would reach', async () => {
@@ -203,7 +222,7 @@ test('cross-origin mutations are refused; CSP reports land; removal is clean', a
   assert.match(String((await (await as('person1')).get('/hub/')).body), /\/h\/fixture\//);
 
   assert.equal((await a.del('hub/apps/fixture')).status, 200);
-  assert.equal(hub.listApps().length, 0);
+  assert.equal(hub.listApps().filter((x) => x.name === 'fixture').length, 0); // cad stays installed alongside
   assert.equal((await a.get('/h/fixture/')).status, 404);
   assert.equal((await a.del('hub/apps/fixture')).status, 404);
 });
