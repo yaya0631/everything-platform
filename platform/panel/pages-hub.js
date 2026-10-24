@@ -97,7 +97,17 @@ export async function page({ me, refresh }) {
   );
 
   const ai = await api('GET', 'hub/ai-settings');
-  const aiDefault = input({ value: String(ai.defaultModel || ''), placeholder: 'ollama:llama3.2 — left empty, puter.ai.chat refuses calls' });
+  const enabledModels = await api('GET', 'ai/models').catch(() => []);
+  const aiDefault = input({ value: String(ai.defaultModel || ''), placeholder: 'ollama:llama3.2 - left empty, puter.ai.chat refuses calls' });
+  // Suggest exactly the enabled model ids (provider:model), so the provider
+  // prefix and the real slug cannot be mistyped.
+  const modelHints = h(
+    'datalist',
+    { id: 'hub-ai-model-ids' },
+    (Array.isArray(enabledModels) ? enabledModels : []).map((m) => h('option', { value: m.id }, m.label || '')),
+  );
+  aiDefault.setAttribute('list', 'hub-ai-model-ids');
+  aiDefault.after(modelHints);
   const aiAliases = h('textarea.input', { rows: 3, spellcheck: false, placeholder: '{"gpt-4o": "ollama:llama3.2"}' });
   aiAliases.value = String(ai.aliases || '');
   const aiSection = sectionWithActions(

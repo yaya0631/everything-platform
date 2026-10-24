@@ -785,6 +785,25 @@ this session's commit rather than re-authored.
 - Suites after the fix: root **649/649 PASS**, cad client 482/482
   (unchanged code); gate restore-fix verified in real Chromium class runs
   (`chess` PASS ai=true, real db value still undefined after).
+- Owner then configured providers (OpenRouter key + Google key) and hit
+  TWO real snags in the Hub AI default-model field:
+  1. They typed `OpenRouter:deepseek-v4.1-flash-1017` (display-name prefix
+     + slug missing the `deepseek/` vendor part). Shaped like provider:model
+     so the validator accepted it, but resolution hit a provider id that
+     does not exist -> the same misleading "not set up" error. The live
+     value is now the canonical `openrouter:deepseek/deepseek-v4.1-flash-1017`.
+  2. A genuine field bug: the validator's model part `[\w .:*-]` had no
+     `/`, so the CORRECT OpenRouter/Google ids (which contain a slash)
+     could not be saved at all. Fixed in hub.js (`[\w .:/\-*]` now), error
+     message shows a slash example.
+- Panel: the Hub AI default-model input now suggests exactly the enabled
+  model ids (datalist fed from `ai/models`), so `provider:model` cannot
+  be mistyped from memory.
+- End-to-end proof on the owner's REAL config (untracked probe, deleted
+  after): a hub app asking `gpt-4o-mini`, another cloud name, or nothing
+  at all all resolve to the configured default; a real 11-in/17-out-token
+  call through their OpenRouter key returned "probe-ok". Hub apps are live
+  on owner AI with zero per-app code.
 
 ### Open / next
 - Peer relay (29) still awaits owner review; no peer code written.

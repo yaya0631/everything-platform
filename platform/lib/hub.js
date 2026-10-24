@@ -749,8 +749,10 @@ export function register(s) {
   mut('PUT', 'ai-settings', async ({ req, res }) => {
     const body = (await readJSONBody(req)) || {};
     const dm = String(body.defaultModel || '').trim();
-    if (dm && !/^[a-zA-Z0-9_-]{1,40}:[\w .:*-]{1,120}$/.test(dm)) {
-      throw new HttpError(400, 'bad_model', 'Use a model id like provider:modelname (for example ollama:llama3.2).');
+    // The model part may contain '/' (openrouter and google style ids:
+    // openrouter:deepseek/deepseek-v4.1-flash-1017).
+    if (dm && !/^[a-zA-Z0-9_-]{1,40}:[\w .:/\-*]{1,120}$/.test(dm)) {
+      throw new HttpError(400, 'bad_model', 'Use a model id like provider:modelname (for example ollama:llama3.2 or openrouter:google/gemma-2b-it:free).');
     }
     config.set('hubAiDefaultModel', dm || null);
     const aliases = String(body.aliases || '').trim();
