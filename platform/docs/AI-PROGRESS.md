@@ -742,6 +742,13 @@ this session's commit rather than re-authored.
 - Smoke: 51/51 census apps clean; alpha/fixture documented as outside the
   census. Spot re-smoke cad/3d/chess/notes clean after the root change.
 - Status: **works 51/51** with the AI requirement folded in.
+- Same-day follow-up (owner hit it live): the root redirect left
+  signed-out visitors at a DEAD END - `/hub/` said "sign in first" with no
+  button, and the sign-in UI lives in the CAD app that no longer owns the
+  root. Both hub anon arms (launcher + `/h/<app>/`) now serve a real
+  sign-in page linking `/h/cad/` (Sign in is top right there, verified in
+  cad's own shell code) and back to the launcher. hub.test 9/9 with the
+  new assertions; root suite fresh 648/648. Commit 198c3fd.
 
 ### Open / next
 - Peer relay (29) still awaits owner review; no peer code written.
