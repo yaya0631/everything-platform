@@ -17,7 +17,7 @@ import path from 'node:path';
 import { stripBom } from './lib/jsonread.js';
 import * as hub from './lib/hub.js';
 import * as hubWorkersApi from './lib/hub-workers.js';
-import { buildApp, upstreamRoot, cloneDirty, appSourceDir, sourceKind, BuildError, ROOT_DIR } from './lib/hub-build.js';
+import { buildApp, upstreamRoot, cloneDirty, cleanGeneratedBuildArtifacts, appSourceDir, sourceKind, BuildError, ROOT_DIR } from './lib/hub-build.js';
 import { zeroMatchVerdict, REWRITE_RULES } from './lib/hub-rewrite.js';
 import * as configm from './lib/config.js';
 
@@ -125,6 +125,7 @@ async function buildOne(name, opts, state) {
   // Own-source apps (SOURCE_OVERRIDES in lib\hub-build.js) build from this
   // repo, so the pristine-clone guards below do not apply to them.
   const own = sourceKind(name) === 'own';
+  const dir = appSourceDir(name);
   if (!own && cloneDirty()) throw new BuildError('the upstream clone is dirty — commit or clean it before building');
   let built;
   try {
@@ -134,6 +135,7 @@ async function buildOne(name, opts, state) {
     writeState(state);
     throw err;
   }
+  if (!own) cleanGeneratedBuildArtifacts(dir);
   if (!own && cloneDirty()) throw new BuildError('the upstream clone went dirty during the build — aborting install');
   const info = hub.installFromDist(name, built.distDir, {
     sha: built.sha || 'imported', base: built.base, source: 'build', title: built.title, description: built.description,

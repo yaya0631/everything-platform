@@ -97,10 +97,58 @@ export function cloneSha() {
 
 /** null when clean; a readable report when not. */
 export function cloneDirty() {
-  const res = spawnSync(GIT, ['-C', upstreamRoot(), 'status', '--porcelain'], { encoding: 'utf8', shell: false });
-  if (res.status !== 0) return { note: 'everythingDir is not a git clone â€” the pristine-copy check was skipped.' };
-  const lines = String(res.stdout || '').split(/\r?\n/).filter(Boolean);
-  return lines.length ? { lines } : null;
+  const root = upstreamRoot();
+  const tracked = spawnSync(GIT, ['-C', root, 'diff', '--quiet'], { encoding: 'utf8', shell: false });
+  if (tracked.status !== 0) return { note: 'could not inspect the upstream clone status.' };
+  const staged = spawnSync(GIT, ['-C', root, 'diff', '--cached', '--quiet'], { encoding: 'utf8', shell: false });
+  if (staged.status !== 0) return { lines: ['staged files differ'] };
+  const untracked = spawnSync(GIT, ['-C', root, 'ls-files', '--others', '--exclude-standard'], { encoding: 'utf8', shell: false });
+  if (untracked.status !== 0) return { note: 'could not inspect untracked files in the upstream clone.' };
+  const lines = String(untracked.stdout || '').split(/\r?\n/).filter(Boolean);
+  return lines.length ? { lines: lines.map((line) => `?? ${line}`) } : null;
+}
+
+/**
+ * Some upstream build scripts generate bundled worker files and provenance
+ * notices inside their source tree. Those artifacts belong in the imported
+ * hub dist, not in the upstream checkout. Remove only the known generated
+ * paths after a build so the clone remains a usable source mirror.
+ */
+export function cleanGeneratedBuildArtifacts(dir) {
+  const repo = upstreamRoot();
+  const generated = [];
+  const walk = (root, rel = '') => {
+    if (!fs.existsSync(root)) return;
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+      const childRel = path.join(rel, entry.name);
+      const child = path.join(root, entry.name);
+      if (entry.isDirectory()) walk(child, childRel);
+      else if (childRel === path.join('public', 'THIRD_PARTY_NOTICES.txt')
+        || childRel.startsWith(`public${path.sep}worker${path.sep}`)) {
+        generated.push({ child, rel: childRel });
+      }
+    }
+  };
+  walk(path.join(dir, 'public'), 'public');
+  for (const { child, rel } of generated) {
+    const gitRel = rel.split(path.sep).join('/');
+    const repoRel = path.relative(repo, child).split(path.sep).join('/');
+    const tracked = spawnSync(GIT, ['-C', repo, 'ls-files', '--error-unmatch', repoRel], { encoding: 'utf8', shell: false });
+    if (tracked.status === 0) {
+      const bytes = spawnSync(GIT, ['-C', repo, 'show', `HEAD:${repoRel}`], { encoding: null, shell: false });
+      if (bytes.status === 0) fs.writeFileSync(child, bytes.stdout);
+    } else {
+      fs.rmSync(child, { recursive: true, force: true });
+    }
+  }
+  const workerDir = path.join(dir, 'public', 'worker');
+  if (fs.existsSync(workerDir)) {
+    for (const entry of fs.readdirSync(workerDir, { withFileTypes: true })) {
+      const child = path.join(workerDir, entry.name);
+      if (entry.isDirectory() && fs.readdirSync(child).length === 0) fs.rmSync(child, { force: true });
+    }
+    if (fs.readdirSync(workerDir).length === 0) fs.rmSync(workerDir, { recursive: true, force: true });
+  }
 }
 
 /** The vite base setting written in the app's own config, if any. */
