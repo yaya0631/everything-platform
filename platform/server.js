@@ -31,7 +31,7 @@ import * as hubNet from './lib/hub-net.js';
 import * as fn from './lib/functions.js';
 import { APP_DIR, DATA_DIR } from './lib/paths.js';
 import { checkWorkerNodeVersion } from './lib/hub-workers-run.js';
-import { HttpError, Router, send, readJSONBody, cookies, isHttps, realClientKey, serveStatic, sendNotFound, recordError } from './lib/http.js';
+import { HttpError, Router, send, readJSONBody, readBody, cookies, isHttps, realClientKey, serveStatic, sendNotFound, recordError, sendHtml } from './lib/http.js';
 
 const COOKIE = 'cad_session';
 const MAX_KV = 256 * 1024;
@@ -99,6 +99,34 @@ open.add('POST', 'auth/login', async ({ req, res }) => {
 open.add('POST', 'auth/logout', async ({ req, res }) => {
   store.endSession(sessionToken(req));
   return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie(req, '', 0) });
+});
+
+/** The hub's no-JavaScript sign-in form (lib/hub.js signInPage) posts here.
+ * Same rate limiting and login as the JSON route. Browser form posts carry
+ * `sec-fetch-site: same-origin`, so the /api gate accepts them; a page on
+ * another site gets 403. Success 303-redirects to the hidden `to` field,
+ * which may only be a same-site path. */
+open.add('POST', 'hub/signin', async ({ req, res }) => {
+  const type = String(req.headers['content-type'] || '');
+  let body;
+  if (type.includes('application/x-www-form-urlencoded')) {
+    const params = new URLSearchParams((await readBody(req, 8192)).toString('utf8'));
+    body = { username: params.get('username'), password: params.get('password'), to: params.get('to') || '/' };
+  } else {
+    body = (await readJSONBody(req)) || {};
+  }
+  const key = failureKey(req, body.username);
+  checkFailures(key);
+  const name = store.checkLogin(body.username, body.password);
+  if (!name) {
+    addFailure(key);
+    return sendHtml(res, 401, hub.signInPage('That username and password do not match an account on this server.', typeof body.to === 'string' ? body.to : '/'));
+  }
+  failures.delete(key);
+  const session = store.createSession(name, { userAgent: req.headers['user-agent'] });
+  const to = typeof body.to === 'string' && body.to.startsWith('/') && !body.to.startsWith('//') ? body.to : '/';
+  res.writeHead(303, { Location: to, 'Set-Cookie': sessionCookie(req, session, store.SESSION_MAX_AGE) });
+  return res.end();
 });
 
 api.add('GET', 'auth/me', async ({ res, account }) => send(res, 200, store.publicUser(account)));

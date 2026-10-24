@@ -148,15 +148,16 @@ test('the root page is the hub launcher, not CAD; CAD opens like any app', async
   const root = await p.get('/');
   assert.equal(root.status, 302);
   assert.equal(root.headers.get('location'), '/hub/');
-  // Signed-out visitors get a real sign-in page pointing at the CAD app,
-  // where the account UI lives - not a dead end with no button.
+  // Signed-out visitors get the hub's OWN sign-in form at the launcher -
+  // identity is platform UI, not something that lives inside an app.
   const anon = client(running.base);
   anon.cookie = '';
   const gate = await anon.get('/hub/');
   assert.equal(gate.status, 401);
   const gateHtml = String(gate.body);
-  assert.match(gateHtml, /href="\/h\/cad\/"/);
-  assert.match(gateHtml, /href="\/"/);
+  assert.match(gateHtml, /action="\/api\/hub\/signin"/);
+  assert.match(gateHtml, /name="username"/);
+  assert.match(gateHtml, /name="password"/);
   // cad is installed in the same catalog as every other app (from its own
   // dist, same installFromDist), and the launcher lists it like any app.
   hub.installFromDist('cad', path.resolve(import.meta.dirname, '../../upstream/src/cad/dist'), { sha: SHA40('c'), source: 'import', title: 'CAD' });
@@ -166,6 +167,49 @@ test('the root page is the hub launcher, not CAD; CAD opens like any app', async
   // cad itself serves from its own hub path like every other app.
   const cad = await p.get('/h/cad/');
   assert.equal(cad.status, 200);
+});
+
+test('the hub sign-in form logs in without any JavaScript', async () => {
+  const anon = client(running.base);
+  anon.cookie = '';
+  // A real browser form post: urlencoded, no X-CAD-Request header, no JSON.
+  const login = await fetch(`${running.base}/api/hub/signin`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ username: 'person1', password: 'person1-password', to: '/' }).toString(),
+  });
+  assert.equal(login.status, 303);
+  assert.equal(login.headers.get('location'), '/');
+  const cookie = (login.headers.get('set-cookie') || '').split(';')[0];
+  assert.match(cookie, /^cad_session=.+/);
+
+  // The session works: the launcher renders the app grid now.
+  anon.cookie = cookie;
+  assert.equal((await anon.get('/hub/')).status, 200);
+
+  // Wrong password re-renders the form with the error, no cookie set.
+  anon.cookie = '';
+  const bad = await fetch(`${running.base}/api/hub/signin`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ username: 'person1', password: 'wrong' }).toString(),
+  });
+  assert.equal(bad.status, 401);
+  assert.equal(bad.headers.get('set-cookie'), null);
+  assert.match(String(await bad.text()), /do not match an account/);
+
+  // The hidden destination may only be a same-site path.
+  anon.cookie = '';
+  const evil = await fetch(`${running.base}/api/hub/signin`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ username: 'person1', password: 'person1-password', to: '//evil.example' }).toString(),
+  });
+  assert.equal(evil.status, 303);
+  assert.equal(evil.headers.get('location'), '/');
 });
 
 test('enable/disable and per-user allow lists drive what people see', async () => {

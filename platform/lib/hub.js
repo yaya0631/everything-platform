@@ -479,17 +479,37 @@ function statFile(root, rel) {
 
 // Home page -----------------------------------------------------------------------------------
 
-/** The not-signed-in page for the hub home page and hosted-app paths. The
- * sign-in UI itself lives in the CAD app (its account menu), so point people
- * there instead of leaving them at a dead end with no button. */
-function signInPage() {
+/** The hub's own sign-in page — identity is a platform concern, not an app
+ * feature (owner directive: CAD is not special). A plain HTML form posts to
+ * /api/hub/signin, which accepts urlencoded bodies and 303-redirects back;
+ * it works without any JavaScript. `message` renders a failure line. */
+export function signInPage(message = '', to = '/') {
+  const dest = typeof to === 'string' && to.startsWith('/') && !to.startsWith('//') ? to : '/';
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in — CAD Home</title>
-<style>:root{color-scheme:light dark;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}body{margin:0;min-height:100vh;display:grid;place-items:center;background:Canvas;color:CanvasText}main{max-width:30rem;padding:24px}h1{font-size:18px;margin:0 0 8px}p{margin:.4rem 0;opacity:.85}a{color:inherit}</style></head>
+<style>
+:root{color-scheme:light dark;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:Canvas;color:CanvasText}
+main{max-width:24rem;padding:24px;width:100%}h1{font-size:18px;margin:0 0 12px}
+p{margin:.4rem 0;opacity:.85}a{color:inherit}
+form{display:grid;gap:10px;margin-top:12px}
+label{display:grid;gap:3px;font-size:.9rem}
+input{padding:8px 10px;border:1px solid color-mix(in srgb,CanvasText 25%,transparent);border-radius:8px;background:Canvas;color:CanvasText;font:inherit}
+button{padding:9px 12px;border:0;border-radius:8px;background:Highlight;color:HighlightText;font:inherit;cursor:pointer}
+.error{color:CanvasText;background:color-mix(in srgb,Red 22%,Canvas);border-radius:8px;padding:8px 10px;margin:0 0 4px;opacity:1}
+.hint{font-size:.85rem;opacity:.65}
+</style></head>
 <body><main><h1>Sign in</h1>
-<p><a href="/h/cad/">Open CAD and choose Sign in at the top right</a> — your account lives on this server.</p>
-<p>Then come back to <a href="/">the app launcher</a> to see all your apps.</p></main></body></html>`;
+${message ? `<p class="error">${escapeHtml(message)}</p>` : ''}
+<form method="POST" action="/api/hub/signin">
+<input type="hidden" name="to" value="${escapeHtml(dest)}">
+<label>Username <input name="username" autocomplete="username" autofocus required></label>
+<label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+<button type="submit">Sign in</button>
+</form>
+<p class="hint">Your account lives on this server. Apps open from <a href="/">the launcher</a> once you are signed in.</p>
+</main></body></html>`;
 }
 
 function homeHtml(me, apps) {

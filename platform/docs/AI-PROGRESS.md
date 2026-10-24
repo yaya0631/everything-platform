@@ -744,11 +744,22 @@ this session's commit rather than re-authored.
 - Status: **works 51/51** with the AI requirement folded in.
 - Same-day follow-up (owner hit it live): the root redirect left
   signed-out visitors at a DEAD END - `/hub/` said "sign in first" with no
-  button, and the sign-in UI lives in the CAD app that no longer owns the
-  root. Both hub anon arms (launcher + `/h/<app>/`) now serve a real
-  sign-in page linking `/h/cad/` (Sign in is top right there, verified in
-  cad's own shell code) and back to the launcher. hub.test 9/9 with the
-  new assertions; root suite fresh 648/648. Commit 198c3fd.
+  button. First fix pointed at CAD (wrong instinct: that makes CAD special).
+  Owner corrected it: identity is PLATFORM UI. Now `/hub/` (and the
+  `/h/<app>/` anon arm) serve the hub's OWN no-JavaScript sign-in FORM:
+  `lib/hub.js signInPage(message, to)` posts urlencoded to the NEW open
+  route `/api/hub/signin` (server.js) - same rate limiting and failure
+  accounting as the JSON login, 303 redirect to a same-site-validated `to`,
+  form re-render with the error on 401, works in any browser without JS.
+  Proven in REAL Chromium by a probe script (root -> form -> submit ->
+  launcher with cards incl. cad, zero page errors) and by hub.test 10/10
+  (form round-trip, wrong-password re-render, open-redirect guard).
+- Legacy catalog rows REMOVED (backed up first via tools/db-backup.mjs ->
+  data/backups/cad-20261024213639.db): `alpha` and `fixture` are gone with
+  their installed folders, so the launcher is exactly the 51 real apps
+  (-owner directive context: cad was the test bed, then everything scaled;
+  no test junk in the grid). Status: **works 51/51**, 51 folders.
+  Root suite fresh **649/649 PASS**.
 
 ### Open / next
 - Peer relay (29) still awaits owner review; no peer code written.
