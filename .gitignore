@@ -4,3 +4,4 @@ _*.mjs
 *.log
 /upstream/
 /_app-folder-archive/
+.aider*
