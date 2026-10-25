@@ -123,7 +123,9 @@ export function list({ user, app, options = {} }) {
 /**
  * add per the current SDK contract: append to an existing list (creating
  * `{path: [value]}` when the key is empty), default value 1; a plain object
- * arg is a dot-path → value map, each appended at its path.
+ * arg is a dot-path → value map, each appended at its path. An ARRAY arg
+ * appends its elements, never the array itself — cap-table writes its CAS
+ * revision chain as add(key, [obj]) and expects [obj] back, not [[obj]].
  */
 export function add({ user, app, key, value }) {
   assertKey(key);
@@ -134,13 +136,14 @@ export function add({ user, app, key, value }) {
     put(user, app, key, root);
     return get({ user, app, key });
   }
+  const items = Array.isArray(target) ? target : [target];
   const root = rootFor(user, app, key, { create: false });
   if (root == null) {
-    put(user, app, key, [target]);
+    put(user, app, key, items.slice());
     return get({ user, app, key });
   }
   if (Array.isArray(root)) {
-    root.push(target);
+    for (const item of items) root.push(item);
     put(user, app, key, root);
     return root;
   }

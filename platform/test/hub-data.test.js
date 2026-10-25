@@ -267,6 +267,15 @@ test('kv: exact get/set/del/list/add/incr/decr/update semantics and the size cap
   r = await hubPost(c, 'kv/add', { key: 'log', value: 'second' });
   assert.deepEqual(k(r), ['first', 'second']);
 
+  // an array arg appends its ELEMENTS — cap-table's add(key, [obj]) revision
+  // chain must read back [obj], never [[obj]]
+  r = await hubPost(c, 'kv/add', { key: 'revs', value: [{ n: 1 }] });
+  assert.deepEqual(k(r), [{ n: 1 }]);
+  r = await hubPost(c, 'kv/add', { key: 'revs', value: [{ n: 2 }, 'tail'] });
+  assert.deepEqual(k(r), [{ n: 1 }, { n: 2 }, 'tail']);
+  r = await hubPost(c, 'kv/get', { key: 'revs' });
+  assert.deepEqual(k(r), [{ n: 1 }, { n: 2 }, 'tail']);
+
   // incr/decr are numeric
   await hubPost(c, 'kv/set', { key: 'count', value: 10 });
   r = await hubPost(c, 'kv/incr', { key: 'count', value: 5 });

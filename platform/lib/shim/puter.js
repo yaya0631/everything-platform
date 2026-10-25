@@ -487,6 +487,25 @@
         return jsonData(r);
       }, function () { return null; });
     },
+    // The puter-js contract: resolves { username, ... } for the signed-in
+    // person, rejects with auth_required when nobody is signed in.
+    whoami: function () {
+      return call('GET', '/auth/whoami').then(function (r) {
+        if (r.status === 401) {
+          var err = new Error('You are not signed in.');
+          err.code = 'auth_required';
+          err.status = 401;
+          throw err;
+        }
+        if (!r.ok) {
+          var other = new Error('Could not look up your account.');
+          other.code = 'auth_failed';
+          other.status = r.status;
+          throw other;
+        }
+        return jsonData(r);
+      });
+    },
     signIn: notYet('auth.signIn', 'People sign in once at the CAD home page; every hub app then uses that session.'),
     signOut: function () {
       return call('POST', '/auth/logout').then(function () { return undefined; });
