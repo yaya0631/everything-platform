@@ -895,11 +895,11 @@
     var finished = false;
 
     function deliver(value) {
-      if (waiting.length) waiting.shift()({ value: value, done: false });
+      if (waiting.length) waiting.shift().resolve({ value: value, done: false });
       else queue.push(value);
     }
     function deliverError(err) {
-      if (waiting.length) waiting.shift()(err);
+      if (waiting.length) waiting.shift().reject(err);
       else failures.push(err);
     }
     function handleLine(line) {
@@ -920,13 +920,13 @@
       finished = true;
       var w = waiting;
       waiting = [];
-      w.forEach(function (res) {
+      w.forEach(function (waiter) {
         if (streamRef.message) {
           var m = streamRef.message;
           streamRef.message = null;
-          res({ value: m, done: false });
+          waiter.resolve({ value: m, done: false });
         } else {
-          res({ value: undefined, done: true });
+          waiter.resolve({ value: undefined, done: true });
         }
       });
     }
@@ -958,7 +958,7 @@
           }
           return Promise.resolve({ value: undefined, done: true });
         }
-        return new Promise(function (res) { waiting.push(res); }).then(function (v) {
+        return new Promise(function (resolve, reject) { waiting.push({ resolve: resolve, reject: reject }); }).then(function (v) {
           if (v && v.done) return { value: undefined, done: true };
           return { value: v.value, done: false };
         });
@@ -1065,7 +1065,17 @@
     return Promise.reject(err && err.status ? err : new Error(String(err && err.message || err)));
   }
 
+  // The models Admin → AI turned on, in the same shape CAD uses. Apps read
+  // this to offer the person's real models rather than a hardcoded list.
+  function aiModels() {
+    return request('GET', '/ai/models').then(function (list) {
+      return Array.isArray(list) ? list : [];
+    });
+  }
+
 puter.ai = {
+    models: aiModels,
+    listModels: aiModels,
     chat: function () {
       var args = [].slice.call(arguments);
       var body = chatArgs(args);

@@ -30,6 +30,31 @@ before(async () => {
         res.writeHead(400);
         return res.end(JSON.stringify({ error: { message: 'This model does not support tools' } }));
       }
+      // A model that prints its call as DeepSeek DSML text instead of tool_calls.
+      if (b.model === 'dsml') {
+        return sse(res, [
+          { choices: [{ delta: { content: 'I will build it.\n< | DSML' } }] },
+          { choices: [{ delta: { content: ' | calls>\n< | DSML | invoke name="run_script">\n< | DSML | parameter name="script" string="true">const x = 1 < 2;' } }] },
+          { choices: [{ delta: { content: '\n</ | DSML | parameter>\n</ | DSML | invoke>\n</ | DSML | calls>\n' } }] },
+          { choices: [], usage: { prompt_tokens: 5, completion_tokens: 9 } },
+          '[DONE]',
+        ]);
+      }
+      // A model that prints a conventional call as text, split across chunks.
+      if (b.model === 'call-text') {
+        return sse(res, [
+          { choices: [{ delta: { content: 'I will add the poster layers.\nCa' } }] },
+          {
+            choices: [{
+              delta: {
+                content: 'll propose_plan(steps=[{"action":"op.add_fill_layer","args":{"color":"#2d0e06","name":"Dark Base","opacity":100},"note":"Base"},{"action":"op.add_text","args":{"color":"#ffffff","text":"SOLSTICE","size":150},"note":"Title"}], summary="A dark base and a title.", title="Sunset poster")\n',
+              },
+            }],
+          },
+          { choices: [], usage: { prompt_tokens: 7, completion_tokens: 12 } },
+          '[DONE]',
+        ]);
+      }
       return sse(res, [
         { choices: [{ delta: { content: 'Hel' } }] },
         { choices: [{ delta: { content: 'lo' } }] },
@@ -127,6 +152,7 @@ test('OpenAI-style stream: text, tool call assembled from pieces, usage logged',
   assert.equal(events.at(-1).type, 'done');
   const sent = seen.at(-1).body;
   assert.equal(sent.stream_options.include_usage, true);
+  assert.equal(sent.max_tokens, 4096);
   assert.equal(sent.tools[0].type, 'function');
   assert.equal(sent.messages[2].tool_calls[0].function.arguments, '{}');
   assert.equal(sent.messages[3].role, 'tool');
@@ -209,4 +235,54 @@ test('Groq, Google AI Studio and OpenRouter work like the other OpenAI-style pro
   assert.equal((await c.put('admin/ai/providers/nope', { apiKey: 'x' })).status, 404);
   assert.equal((await c.post('admin/ai/providers/nope/models')).status, 404);
   assert.equal((await chat({ model: 'nope:some-model', messages: [{ role: 'user', content: 'x' }]})).find((e) => e.type === 'error')?.code, 'bad_model');
+});
+
+test('textual DSML tool calls run as real tool calls, never as chat text', async () => {
+  const all = (await c.get('admin/ai')).body.models;
+  await c.put('admin/ai/models', { models: [...all, { id: 'openai:dsml', enabled: true }] });
+  const events = await chat({
+    model: 'openai:dsml',
+    messages: [{ role: 'user', content: 'Build it' }],
+    tools: [{ name: 'run_script', description: 'Run', parameters: { type: 'object', properties: { script: { type: 'string' } } } }],
+  });
+  assert.deepEqual(events.filter((e) => e.type === 'text').map((e) => e.delta), ['I will build it.\n']);
+  assert.deepEqual(events.find((e) => e.type === 'tool_call'), {
+    type: 'tool_call', id: 'call_text_0', name: 'run_script', arguments: { script: 'const x = 1 < 2;\n' },
+  });
+  assert.equal(events.at(-1).type, 'done');
+});
+
+test('conventional textual calls run as real tool calls, even when split across chunks', async () => {
+  const all = (await c.get('admin/ai')).body.models;
+  await c.put('admin/ai/models', { models: [...all, { id: 'openai:call-text', enabled: true }] });
+  const events = await chat({
+    model: 'openai:call-text',
+    messages: [{ role: 'user', content: 'Make a poster' }],
+    tools: [{ name: 'propose_plan', description: 'Plan', parameters: { type: 'object', properties: { steps: { type: 'array' } } } }],
+  });
+  assert.deepEqual(events.filter((e) => e.type === 'text').map((e) => e.delta), ['I will add the poster layers.\n']);
+  assert.deepEqual(events.find((e) => e.type === 'tool_call'), {
+    type: 'tool_call',
+    id: 'call_text_0',
+    name: 'propose_plan',
+    arguments: {
+      steps: [
+        { action: 'op.add_fill_layer', args: { color: '#2d0e06', name: 'Dark Base', opacity: 100 }, note: 'Base' },
+        { action: 'op.add_text', args: { color: '#ffffff', text: 'SOLSTICE', size: 150 }, note: 'Title' },
+      ],
+      summary: 'A dark base and a title.',
+      title: 'Sunset poster',
+    },
+  });
+  assert.equal(events.some((e) => e.type === 'text' && e.delta.includes('propose_plan')), false);
+  assert.equal(events.at(-1).type, 'done');
+});
+
+test('a sentence that mentions a call is left as prose', async () => {
+  const { parseTextToolCalls } = await import('../lib/ai.js');
+  assert.equal(parseTextToolCalls('Call me later', ['propose_plan']), null);
+  assert.deepEqual(parseTextToolCalls('Call propose_plan(steps=[], title="x")', ['propose_plan']).calls[0].arguments, {
+    steps: [],
+    title: 'x',
+  });
 });

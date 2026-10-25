@@ -20,6 +20,7 @@ import { HttpError, send, readJSONBody, requestOrigin } from './http.js';
 import * as fsops from './hub-fsops.js';
 import * as hubKv from './hub-kv.js';
 import * as hubAi from './hub-ai.js';
+import { availableModels } from './ai.js';
 import { exportUserHubData } from './hub-export.js';
 import * as hosting from './hub-hosting.js';
 import * as mail from './mail.js';
@@ -268,6 +269,14 @@ export function registerData(s) {
   });
 
   // -- ai --------------------------------------------------------------------
+
+  // The models the admin turned on, in the same shape CAD's assistant uses:
+  // [{ id, label, provider, providerLabel, tools }]. Hub apps ask for these
+  // instead of carrying their own hardcoded list.
+  route('GET', 'ai/models', async ({ res, user, account, url }) => {
+    hubApp({ url, user, account });
+    return send(res, 200, await availableModels());
+  });
 
   route('POST', 'ai/chat', async ({ req, res, user, account, url }) => {
     const body = await smallBody(req);

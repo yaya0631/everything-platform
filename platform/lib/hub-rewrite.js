@@ -135,6 +135,8 @@ export function rewriteJs(text, { name } = {}) {
  * Per-app CSP additions, only where a build really needs them (evidenced in
  * the browser pass, logged in the README honest-diffs table):
  *   - audio-studio runs WebAssembly (@ffmpeg wasm) → 'wasm-unsafe-eval';
+ *   - parametric compiles its OpenCascade geometry engine from WebAssembly and
+ *     its Emscripten glue evaluates strings → 'wasm-unsafe-eval', 'unsafe-eval';
  *   - 3d ships an emscripten-style lib that instantiates code from strings →
  *     'unsafe-eval'.
  * Every other app runs with script-src 'self'.
@@ -142,6 +144,7 @@ export function rewriteJs(text, { name } = {}) {
 export const CSP_SCRIPT_EXTRAS = {
   '3d': ["'unsafe-eval'"],
   'audio-studio': ["'wasm-unsafe-eval'"],
+  'parametric': ["'wasm-unsafe-eval'", "'unsafe-eval'"],
   'photo-studio': ["'wasm-unsafe-eval'"],
   'video-studio': ["'wasm-unsafe-eval'"],
 };

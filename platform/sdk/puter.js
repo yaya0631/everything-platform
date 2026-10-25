@@ -230,6 +230,21 @@
     }
   }
 
+  /** Normalise tool definitions the app hands in into the flat shape the core expects. */
+  function normalizeTools(tools) {
+    if (tools == null || tools === false) return undefined;
+    if (!Array.isArray(tools)) throw new Error('tools must be a list.');
+    return tools.map((t) => {
+      const f = t && typeof t.function === 'object' ? t.function : t;
+      if (!f || typeof f.name !== 'string') throw new Error('Each tool needs a name.');
+      return {
+        name: f.name,
+        description: String(f.description || ''),
+        parameters: f.parameters && typeof f.parameters === 'object' ? f.parameters : { type: 'object', properties: {} },
+      };
+    });
+  }
+
   class Message {
     constructor({ text, toolCalls, model }) {
       this.content = text;
@@ -246,7 +261,9 @@
     listModels: () => call('ai/models').then((r) => r),
     async chat(promptOrMessages, options, _e) {
       const { messages, model, stream } = normalizeChatArgs(promptOrMessages, options, _e);
-      const res = await call('ai/chat', { method: 'POST', raw: true, body: JSON.stringify({ model, messages }) });
+      const o = options && typeof options === 'object' ? options : {};
+      const tools = normalizeTools(o.tools);
+      const res = await call('ai/chat', { method: 'POST', raw: true, body: JSON.stringify({ model, messages, ...(tools ? { tools } : {}) }) });
       if (!res.ok) {
         const out = await res.json().catch(() => ({}));
         const err = new Error(out?.message || `The AI request failed (${res.status}).`);

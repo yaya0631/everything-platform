@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { REWRITE_RULES, countRuleHits, zeroMatchVerdict } from '../lib/hub-rewrite.js';
+import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS } from '../lib/hub-rewrite.js';
 
 test('the rule counter measures the real built dists (all rules match today)', () => {
   const counts = countRuleHits(path.join('data', 'hub', 'apps'));
@@ -21,6 +21,12 @@ test('countRuleHits: fixture dist hits shim-swap and html-strip, misses the rest
   assert.ok(counts['html-strip'] >= 1, 'the fixture carries a plausible.io tag to strip');
   assert.equal(counts['sw-guard'], 0, 'fixture ships no sw.js');
   assert.equal(counts['manifest'], 0, 'fixture ships no manifest');
+});
+
+test('Parametric may compile wasm and its Emscripten glue; other apps stay strict', () => {
+  const csp = cspHeader({ hashes: ['sha256-test'], extras: CSP_SCRIPT_EXTRAS.parametric });
+  assert.match(csp, /script-src 'self' 'sha256-test' 'wasm-unsafe-eval' 'unsafe-eval'/);
+  assert.doesNotMatch(cspHeader({ hashes: ['sha256-test'] }), /wasm-unsafe-eval|unsafe-eval/);
 });
 
 test('zeroMatchVerdict: a dist matching nothing fails unless the rule was retired', () => {

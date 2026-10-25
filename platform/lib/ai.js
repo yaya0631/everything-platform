@@ -153,6 +153,432 @@ function safeParse(text) {
   }
 }
 
+// Textual tool calls -----------------------------------------------------------
+//
+// Some models print a tool call instead of returning one: DeepSeek behind an
+// OpenAI-compatible gateway emits its DSML markup as plain text, which apps
+// would otherwise show in the chat and never run. The parser below turns that
+// markup into the same { name, arguments } calls the wire formats produce. It
+// is deliberately tolerant: whitespace around the pipes and the names, quoted
+// or unquoted attributes, a closing tag for each parameter or only for the
+// invoke, and `string="true"` values carrying code with < and & in them.
+
+const DSML_OPEN = /<\s*\|\s*DSML\s*\|/i;
+const DSML_CLOSE_ANY = /<\s*\/\s*\|\s*DSML\s*\|\s*(?:tool_?calls?|calls?|invoke|parameter)\s*>/gi;
+
+function dsmlAttr(attrs, name) {
+  const m = new RegExp(`(?:^|\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i').exec(attrs);
+  return m ? m[1] ?? m[2] ?? m[3] ?? '' : '';
+}
+
+function decodeEntities(text) {
+  return String(text)
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+/** The arguments of one `<|DSML| invoke>` body. */
+function dsmlArguments(body) {
+  const args = {};
+  let found = false;
+  const param = /<\s*\|\s*DSML\s*\|\s*parameter\b([^>]*)>([\s\S]*?)(?=<\s*\/\s*\|\s*DSML\s*\|\s*(?:tool_?calls?|calls?|invoke|parameter)\s*>|<\s*\|\s*DSML\s*\|\s*parameter\b|$)/gi;
+  for (const m of body.matchAll(param)) {
+    const key = dsmlAttr(m[1], 'name');
+    if (!key) continue;
+    const isString = /(?:string|type)\s*=\s*(?:"true"|'true'|true|"string"|'string')/i.test(m[1]);
+    let value = decodeEntities(m[2]).replace(/^\r?\n/, '');
+    if (!isString) {
+      const trimmed = value.trim();
+      try {
+        value = JSON.parse(trimmed);
+      } catch {
+        value = trimmed;
+      }
+    }
+    args[key] = value;
+    found = true;
+  }
+  if (!found) {
+    // Some models put the whole argument object in the invoke body.
+    const json = /\{[\s\S]*\}/.exec(body);
+    if (json) {
+      try {
+        const v = JSON.parse(json[0]);
+        if (v && typeof v === 'object' && !Array.isArray(v)) Object.assign(args, v);
+      } catch { /* not JSON */ }
+    }
+  }
+  return args;
+}
+
+/**
+ * Tool calls a model wrote as DSML text, and the prose around them.
+ * Null when the text has no DSML at all. `calls` is empty when the markup
+ * names no offered tool, so the caller can fall back to showing the text.
+ */
+function parseDsmlToolCalls(text, toolNames = null) {
+  const src = String(text || '');
+  const start = src.search(DSML_OPEN);
+  if (start < 0) return null;
+  const allowed = toolNames ? new Set(toolNames) : null;
+  const calls = [];
+  const invoke = /<\s*\|\s*DSML\s*\|\s*invoke\b([^>]*)>/gi;
+  const matches = [...src.matchAll(invoke)];
+  for (let i = 0; i < matches.length; i++) {
+    const name = dsmlAttr(matches[i][1], 'name');
+    if (!name || (allowed && !allowed.has(name))) continue;
+    const from = matches[i].index + matches[i][0].length;
+    const to = i + 1 < matches.length ? matches[i + 1].index : src.length;
+    calls.push({ id: `call_text_${i}`, name, arguments: dsmlArguments(src.slice(from, to)) });
+  }
+  let end = start;
+  for (const m of src.matchAll(DSML_CLOSE_ANY)) {
+    const at = m.index + m[0].length;
+    if (at > end) end = at;
+  }
+  return { calls, before: src.slice(0, start), after: src.slice(end) };
+}
+
+// A second textual form models use is a conventional call:
+//   Call propose_plan(steps=[...], summary="...", title="...")
+// The arguments are keyword arguments whose values are JSON (or close to it).
+// Parse this at the platform boundary too, so every app receives a real
+// tool_call instead of showing the call in the chat.
+const CALL_OPEN = /\bCall\s+([A-Za-z0-9_-]{1,64})\s*\(/i;
+
+function canonicalToolName(name, allowed) {
+  if (!allowed) return name;
+  if (allowed.has(name)) return name;
+  const lower = String(name || '').toLowerCase();
+  for (const n of allowed) if (n.toLowerCase() === lower) return n;
+  return '';
+}
+
+/** The matching close bracket of the call opened just before `from`. */
+function findCallClose(text, from) {
+  const stack = [')'];
+  let quote = '';
+  let escape = false;
+  for (let i = from; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+    if (ch === '(') stack.push(')');
+    else if (ch === '[') stack.push(']');
+    else if (ch === '{') stack.push('}');
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      if (stack.at(-1) === ch) {
+        stack.pop();
+        if (!stack.length) return i;
+      }
+    }
+  }
+  return -1;
+}
+
+/** Split keyword arguments on commas that are not nested in a value. */
+function splitCallArgs(text) {
+  const out = [];
+  let start = 0;
+  let quote = '';
+  let escape = false;
+  const stack = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+    if (ch === '(') stack.push(')');
+    else if (ch === '[') stack.push(']');
+    else if (ch === '{') stack.push('}');
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      if (stack.at(-1) === ch) stack.pop();
+    } else if (ch === ',' && !stack.length) {
+      out.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(text.slice(start));
+  return out;
+}
+
+/** The first keyword `=` in an argument, ignoring comparisons and arrows. */
+function callArgEquals(text) {
+  let quote = '';
+  let escape = false;
+  const stack = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+    if (ch === '(') stack.push(')');
+    else if (ch === '[') stack.push(']');
+    else if (ch === '{') stack.push('}');
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      if (stack.at(-1) === ch) stack.pop();
+    } else if (ch === '=' && !stack.length) {
+      const prev = text[i - 1];
+      const next = text[i + 1];
+      if (prev !== '=' && prev !== '<' && prev !== '>' && prev !== '!' && next !== '=' && next !== '>') return i;
+    }
+  }
+  return -1;
+}
+
+/** Turn Python-ish values (single quotes, True/False/None) into JSON. */
+function toJSONish(text) {
+  let out = '';
+  let quote = '';
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (escape) {
+        escape = false;
+        out += ch === "'" ? "'" : `\\${ch}`;
+        continue;
+      }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === quote) { out += '"'; quote = ''; continue; }
+      if (quote !== '"' && ch === '"') { out += '\\"'; continue; }
+      out += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; out += '"'; continue; }
+    if (/[A-Za-z_]/.test(ch)) {
+      const m = /^(True|False|None)\b/.exec(text.slice(i));
+      if (m) {
+        out += m[1] === 'True' ? 'true' : m[1] === 'False' ? 'false' : 'null';
+        i += m[0].length - 1;
+        continue;
+      }
+    }
+    out += ch;
+  }
+  return out;
+}
+
+function stripTrailingCommas(text) {
+  let out = '';
+  let quote = '';
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (escape) { escape = false; out += ch; continue; }
+      if (ch === '\\') { escape = true; out += ch; continue; }
+      if (ch === quote) quote = '';
+      out += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") { quote = ch; out += ch; continue; }
+    if (ch === ',') {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j])) j++;
+      if (text[j] === ']' || text[j] === '}') continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+function parseLooseJSON(text) {
+  const src = String(text ?? '').trim();
+  if (!src) return undefined;
+  try {
+    return JSON.parse(src);
+  } catch { /* try the Python-ish form below */ }
+  try {
+    return JSON.parse(stripTrailingCommas(toJSONish(src)));
+  } catch {
+    return undefined;
+  }
+}
+
+function parseCallArguments(text) {
+  const src = String(text || '').trim();
+  if (!src) return {};
+  if (src.startsWith('{')) {
+    const whole = parseLooseJSON(src);
+    if (whole && typeof whole === 'object' && !Array.isArray(whole)) return whole;
+  }
+  const args = {};
+  const positional = [];
+  for (const part of splitCallArgs(src)) {
+    const at = callArgEquals(part);
+    if (at < 0) {
+      if (part.trim()) positional.push(part.trim());
+      continue;
+    }
+    const key = part.slice(0, at).trim().replace(/^(["'])(.*)\1$/, '$2');
+    if (!/^[A-Za-z_$][\w$.-]*$/.test(key)) continue;
+    const valueText = part.slice(at + 1).trim();
+    const value = parseLooseJSON(valueText);
+    args[key] = value === undefined ? valueText : value;
+  }
+  if (!Object.keys(args).length && positional.length === 1) {
+    const one = parseLooseJSON(positional[0]);
+    if (one && typeof one === 'object' && !Array.isArray(one)) return one;
+    return { value: one === undefined ? positional[0] : one };
+  }
+  return args;
+}
+
+function parseCallSyntaxToolCalls(text, allowed) {
+  const src = String(text || '');
+  const re = new RegExp(CALL_OPEN.source, 'gi');
+  const calls = [];
+  let first = -1;
+  let last = -1;
+  for (let m; (m = re.exec(src)); ) {
+    const name = canonicalToolName(m[1], allowed);
+    if (!name) continue;
+    const from = m.index + m[0].length;
+    const to = findCallClose(src, from);
+    if (to < 0) continue;
+    calls.push({ id: `call_text_${calls.length}`, name, arguments: parseCallArguments(src.slice(from, to)) });
+    if (first < 0) first = m.index;
+    last = to + 1;
+    re.lastIndex = to + 1;
+  }
+  if (!calls.length) return null;
+  return { calls, before: src.slice(0, first), after: src.slice(last) };
+}
+
+/** Textual calls in either supported form, and the prose around them. */
+export function parseTextToolCalls(text, toolNames = null) {
+  const allowed = toolNames ? new Set(toolNames) : null;
+  const dsml = parseDsmlToolCalls(text, allowed);
+  if (dsml?.calls.length) return dsml;
+  return parseCallSyntaxToolCalls(text, allowed);
+}
+
+/** A possible or complete `Call name(` opener, for the streaming filter. */
+function callSyntaxStart(text, names) {
+  const allowed = new Set(names);
+  for (const m of text.matchAll(/\bCall\s*/gi)) {
+    const at = m.index;
+    const after = text.slice(at + m[0].length);
+    const token = (/^[A-Za-z0-9_-]*/.exec(after) || [''])[0];
+    const rest = after.slice(token.length);
+    const canonical = canonicalToolName(token, allowed);
+    if (canonical) {
+      if (/^\s*\(/.test(rest)) return { at, complete: true };
+      if (/^\s*$/.test(rest)) return { at, complete: false };
+      continue;
+    }
+    if (!token) return { at, complete: false };
+    const lower = token.toLowerCase();
+    if ([...allowed].some((n) => n.toLowerCase().startsWith(lower)) && /^\s*$/.test(rest)) {
+      return { at, complete: false };
+    }
+  }
+  return null;
+}
+
+/** Hold a possible `Call` opener split across stream chunks ("C", "Ca"...). */
+function callPrefixHold(text) {
+  const m = /(?:^|[^A-Za-z])(c(?:a(?:l(?:l)?)?)?)$/i.exec(text);
+  if (!m) return -1;
+  return m.index + m[0].length - m[1].length;
+}
+
+/**
+ * A streaming text filter for the repair above. Prose flows through as it
+ * arrives; once a textual call opener is seen everything is held until the
+ * stream ends, so the markup never reaches the app as chat text. Calls are
+ * emitted at the end, like the wire formats' assembled tool calls.
+ */
+function textToolCallRepair(emit, tools) {
+  const names = tools.map((t) => t.name);
+  let pending = '';
+  let block = '';
+  let inBlock = false;
+  let done = false;
+  const say = (delta) => { if (delta) emit({ type: 'text', delta }); };
+  const scan = () => {
+    if (inBlock) return;
+    const dsmlAt = pending.search(DSML_OPEN);
+    const call = callSyntaxStart(pending, names);
+    if (dsmlAt >= 0 && (!call || dsmlAt <= call.at)) {
+      const before = pending.slice(0, dsmlAt);
+      block = pending.slice(dsmlAt);
+      pending = '';
+      inBlock = true;
+      say(before);
+      return;
+    }
+    if (call) {
+      const before = pending.slice(0, call.at);
+      if (call.complete) {
+        block = pending.slice(call.at);
+        pending = '';
+        inBlock = true;
+      } else {
+        pending = pending.slice(call.at);
+      }
+      say(before);
+      return;
+    }
+    // Hold a possible opener split across deltas: DSML starts with "<",
+    // and "Call" can arrive as "C", "Ca" or "Cal" at the end of a chunk.
+    let hold = pending.length;
+    const lt = pending.lastIndexOf('<');
+    if (lt >= 0 && pending.length - lt <= 24) hold = Math.min(hold, lt);
+    const ct = callPrefixHold(pending);
+    if (ct >= 0) hold = Math.min(hold, ct);
+    if (hold > 0) {
+      say(pending.slice(0, hold));
+      pending = pending.slice(hold);
+    }
+  };
+  return {
+    text(delta) {
+      if (done) return say(delta);
+      pending += String(delta || '');
+      scan();
+    },
+    finish() {
+      if (done) return;
+      done = true;
+      if (!inBlock) { say(pending); pending = ''; return; }
+      const raw = block + pending;
+      const parsed = parseTextToolCalls(raw, names);
+      block = pending = '';
+      if (!parsed || !parsed.calls.length) { say(raw); return; }
+      // A partial opener can sit before the actual call in the held block.
+      if (parsed.before) say(parsed.before);
+      // A newline after the closing call is formatting, not a message.
+      const after = parsed.after.replace(/^\s*\n/, '');
+      if (after.trim()) say(after);
+      for (const call of parsed.calls) emit({ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments });
+    },
+    abort() {
+      if (done) return;
+      done = true;
+      say(block + pending);
+      block = pending = '';
+    },
+  };
+}
+
 /** One data URI → { media_type, data }; null when not a base64 data URI. */
 const imageParts = (uri) => {
   const m = /^data:([\w./+-]+);base64,(.+)$/.exec(String(uri));
@@ -252,12 +678,15 @@ function networkError(p, err) {
   return new HttpError(502, 'provider_unreachable', `Could not reach ${p.label}: ${err.cause?.code || err.message}`);
 }
 
+/** An app that does not choose an output cap gets this, never the model's full context. */
+const DEFAULT_MAX_TOKENS = 4096;
+
 async function runOpenAI(p, model, { messages, tools, temperature, maxTokens }, emit, signal) {
   const body = { model, messages: toOpenAI(messages), stream: true };
   if (p.streamUsage) body.stream_options = { include_usage: true };
   if (tools?.length) body.tools = tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } }));
   if (temperature != null) body.temperature = temperature;
-  if (maxTokens) body.max_tokens = maxTokens;
+  body.max_tokens = maxTokens || DEFAULT_MAX_TOKENS;
   const headers = { 'Content-Type': 'application/json' };
   if (p.apiKey) headers.Authorization = `Bearer ${p.apiKey}`;
   let res;
@@ -386,17 +815,25 @@ export async function chat({ user = null, source, model: modelId, messages, tool
   const t0 = Date.now();
   let text = '';
   const toolCalls = [];
-  const capture = (e) => {
+  const out = (e) => {
     if (e.type === 'text') text += e.delta;
     if (e.type === 'tool_call') toolCalls.push({ id: e.id, name: e.name, arguments: e.arguments });
     emit(e);
   };
+  // Models that print their tool calls (DSML) instead of returning them: hold
+  // the markup back, then emit real tool calls so the app runs them.
+  const repair = req.tools?.length ? textToolCallRepair(out, req.tools) : null;
+  const capture = repair
+    ? (e) => { if (e.type === 'text') repair.text(e.delta); else out(e); }
+    : out;
   try {
     const usage = await (p.kind === 'test' ? runTest : p.kind === 'anthropic' ? runAnthropic : runOpenAI)(p, model, req, capture, signal);
+    repair?.finish();
     logUsage({ user, source, provider, model, ...usage, ms: Date.now() - t0, status: 'ok' });
     emit({ type: 'usage', input: usage.input, output: usage.output });
     return { text, toolCalls, usage };
   } catch (err) {
+    repair?.abort();
     const aborted = err.name === 'AbortError' || signal?.aborted;
     logUsage({ user, source, provider, model, ms: Date.now() - t0, status: aborted ? 'aborted' : 'error', error: aborted ? null : err.message });
     throw err;

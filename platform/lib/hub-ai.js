@@ -60,18 +60,48 @@ function normalizeMessages(messages) {
     if (!m || !['user', 'assistant', 'system', 'tool'].includes(m.role)) {
       throw new HttpError(400, 'bad_request', 'Each message needs a role of system, user, assistant or tool.');
     }
+    let out;
     if (typeof m.content === 'string') {
-      return { role: m.role, content: m.content };
-    }
-    // Blocks: [{text}, {image_url:{url}}] — structured so vision models can see them.
-    if (Array.isArray(m.content)) {
+      out = { role: m.role, content: m.content };
+    } else if (Array.isArray(m.content)) {
+      // Blocks: [{text}, {image_url:{url}}] — structured so vision models can see them.
       const text = m.content.filter((b) => b?.type === 'text').map((b) => b.text).join('\n');
       const images = m.content.filter((b) => b?.type === 'image_url').map((b) => b.image_url?.url).filter(Boolean);
-      return images.length
+      out = images.length
         ? { role: m.role, content: text, images }
         : { role: m.role, content: text };
+    } else {
+      out = { role: m.role, content: String(m.content ?? '') };
     }
-    return { role: m.role, content: String(m.content ?? '') };
+    // A tool-calling conversation: the assistant turn carries the calls it made
+    // (flat, or OpenAI's { function: { name, arguments } } wire shape) and each
+    // tool turn answers one by id. Dropped here, the model never sees its own
+    // calls again and providers reject the tool answers as orphaned.
+    if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length) {
+      out.tool_calls = m.tool_calls.map((t) => {
+        const f = t && typeof t.function === 'object' ? t.function : t;
+        let args = t?.arguments ?? f?.arguments;
+        if (typeof args === 'string') { try { args = JSON.parse(args || '{}'); } catch { args = { _raw: args }; } }
+        return { id: String(t?.id ?? ''), name: String(f?.name ?? ''), arguments: args && typeof args === 'object' ? args : {} };
+      }).filter((t) => t.name);
+    }
+    if (m.role === 'tool') out.tool_call_id = String(m.tool_call_id ?? '');
+    return out;
+  });
+}
+
+/** Tool definitions as apps send them — flat {name,description,parameters} or
+ *  OpenAI's {type:'function',function:{…}} — in the core's flat form. */
+function normalizeTools(tools) {
+  if (tools == null || tools === false) return undefined;
+  if (!Array.isArray(tools)) throw new HttpError(400, 'bad_request', 'Tools must be a list.');
+  return tools.map((t) => {
+    const f = t && typeof t.function === 'object' ? t.function : t;
+    return {
+      name: f?.name,
+      description: String(f?.description || ''),
+      parameters: f?.parameters && typeof f.parameters === 'object' ? f.parameters : { type: 'object', properties: {} },
+    };
   });
 }
 
@@ -100,7 +130,14 @@ export async function chat({ req, res, body, user, app }) {
     }
     throw err;
   }
-  const wire = () => messages.map((m) => ({ role: m.role, content: m.content, ...(m.images?.length ? { images: m.images } : {}) }));
+  const tools = normalizeTools(body?.tools);
+  const wire = () => messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+    ...(m.images?.length ? { images: m.images } : {}),
+    ...(m.tool_calls?.length ? { tool_calls: m.tool_calls } : {}),
+    ...(m.role === 'tool' && m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
+  }));
   const t0 = Date.now();
   if (!stream) {
     let out;
@@ -110,13 +147,19 @@ export async function chat({ req, res, body, user, app }) {
         messages: wire(),
         temperature: body?.temperature,
         maxTokens: body?.max_tokens ?? body?.maxTokens,
+        ...(tools ? { tools } : {}),
       });
     } catch (e) {
       logMissed(user, app, model, e);
       throw e;
     }
     return {
-      message: { role: 'assistant', content: out.text, ...(out.toolCalls?.length ? { tool_calls: out.toolCalls } : {}) },
+      message: {
+        role: 'assistant',
+        content: out.text,
+        // OpenAI's wire shape: apps read call.function.name / .arguments.
+        ...(out.toolCalls?.length ? { tool_calls: out.toolCalls.map((t) => ({ id: t.id, type: 'function', function: { name: t.name, arguments: JSON.stringify(t.arguments ?? {}) } })) } : {}),
+      },
       finish_reason: out.toolCalls?.length ? 'tool_calls' : 'stop',
       stopReason: out.toolCalls?.length ? 'tool_use' : 'end_turn',
       usage: out.usage ? { input_tokens: out.usage.input ?? 0, output_tokens: out.usage.output ?? 0 } : { input_tokens: 0, output_tokens: 0 },
@@ -133,6 +176,7 @@ export async function chat({ req, res, body, user, app }) {
       messages: wire(),
       temperature: body?.temperature,
       maxTokens: body?.max_tokens ?? body?.maxTokens,
+      ...(tools ? { tools } : {}),
       emit: (e) => {
         if (res.writableEnded) return;
         if (e.type === 'text') {
