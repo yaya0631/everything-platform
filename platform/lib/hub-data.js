@@ -19,6 +19,7 @@ import * as db from './db.js';
 import { HttpError, send, readJSONBody, requestOrigin } from './http.js';
 import * as fsops from './hub-fsops.js';
 import * as hubKv from './hub-kv.js';
+import * as store from './store.js';
 import * as hubAi from './hub-ai.js';
 import { availableModels } from './ai.js';
 import { exportUserHubData } from './hub-export.js';
@@ -246,6 +247,9 @@ export function registerData(s) {
     if (permission !== 'folder') return send(res, 200, { granted: false, permission, app });
     const docs = `/${user}/Documents`;
     const grant = fsops.grant(user, app, docs, 'write', 'permission-request');
+    // No consent dialog on this path (an honest difference, README §11): the
+    // grant at least leaves an audit trail the person can check and revoke.
+    store.audit(user, 'hub.perms_auto_granted', { app, path: docs, perms: 'write', grant: grant.id });
     return send(res, 200, { granted: true, permission, app, path: docs, grant: grant.id });
   }, { guard: true });
 
