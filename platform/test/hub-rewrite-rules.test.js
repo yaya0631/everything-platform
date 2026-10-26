@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS, applyAppJsRules, APP_JS_RULES } from '../lib/hub-rewrite.js';
+import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS, EXTERNAL_EMBED_SOURCES, applyAppJsRules, APP_JS_RULES } from '../lib/hub-rewrite.js';
 
 test('the rule counter measures the real built dists (all rules match today)', () => {
   const counts = countRuleHits(path.join('data', 'hub', 'apps'));
@@ -57,6 +57,16 @@ test('Parametric may compile wasm and its Emscripten glue; other apps stay stric
   const csp = cspHeader({ hashes: ['sha256-test'], extras: CSP_SCRIPT_EXTRAS.parametric });
   assert.match(csp, /script-src 'self' 'sha256-test' 'wasm-unsafe-eval' 'unsafe-eval'/);
   assert.doesNotMatch(cspHeader({ hashes: ['sha256-test'] }), /wasm-unsafe-eval|unsafe-eval/);
+});
+
+test('frame-src is closed at home and opens only to the embed allowlist (m4)', () => {
+  const closed = cspHeader({ hashes: ['sha256-test'] });
+  assert.match(closed, /frame-src 'self'/);
+  assert.doesNotMatch(closed, /youtube|vimeo|docs\.google/);
+  const open = cspHeader({ hashes: ['sha256-test'], frameExtras: EXTERNAL_EMBED_SOURCES });
+  assert.ok(open.includes("frame-src 'self' " + EXTERNAL_EMBED_SOURCES.join(' ')), open);
+  assert.match(open, /https:\/\/www\.youtube-nocookie\.com/);
+  assert.match(open, /https:\/\/player\.vimeo\.com/);
 });
 
 test('zeroMatchVerdict: a dist matching nothing fails unless the rule was retired', () => {

@@ -166,6 +166,19 @@ export const CSP_SCRIPT_EXTRAS = {
 };
 
 /**
+ * The hosts an embed card may frame when Admin → Hub turns external embeds on
+ * (m4; off by default, so every app page is otherwise strict same-origin).
+ * These are the providers the upstream embed cards build (whiteboard's
+ * YouTube/Vimeo/Google Docs cards); the list is an allowlist, not a wildcard.
+ */
+export const EXTERNAL_EMBED_SOURCES = [
+  'https://www.youtube-nocookie.com',
+  'https://player.vimeo.com',
+  'https://docs.google.com',
+  'https://drive.google.com',
+];
+
+/**
  * Guard prepended to every served service-worker script. Upstream SWs cache
  * same-origin GETs cache-first (assets only on Puter, where API calls were
  * cross-origin); here the hub API is same-origin, so without this guard a
@@ -201,10 +214,13 @@ export function rewriteServiceWorker(text) {
 }
 
 /** What the strict CSP looks like for one HTML response. `extras` are the
- * per-app script-src additions from CSP_SCRIPT_EXTRAS (documented cases only). */
-export function cspHeader({ hashes = [], extras = [], connectExtras = [] } = {}) {
+ * per-app script-src additions from CSP_SCRIPT_EXTRAS (documented cases only).
+ * `connectExtras` is the per-app connect-src, `frameExtras` the external embed
+ * hosts (only when the admin turned them on, m4). */
+export function cspHeader({ hashes = [], extras = [], connectExtras = [], frameExtras = [] } = {}) {
   const script = ["'self'", ...new Set([...hashes.map((h) => `'${h}'`), ...extras])];
   const connect = ["'self'", ...new Set(connectExtras)];
+  const frame = ["'self'", ...new Set(frameExtras)];
   return [
     "default-src 'self'",
     `script-src ${script.join(' ')}`,
@@ -214,6 +230,7 @@ export function cspHeader({ hashes = [], extras = [], connectExtras = [] } = {})
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
+    `frame-src ${frame.join(' ')}`,
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",

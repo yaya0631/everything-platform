@@ -303,3 +303,33 @@ test('Admin to Hub: hub AI settings save the default model and alias map', async
   const after = await a.get('hub/ai-settings');
   assert.equal(after.body.defaultModel, '');
 });
+
+test('external embeds are closed by default and open through one admin setting (m4)', async () => {
+  install();
+  const a = await asAdmin();
+  const p = await as('person1');
+
+  const off = await a.get('hub/external-embeds');
+  assert.equal(off.status, 200);
+  assert.equal(off.body.enabled, false);
+  const closed = await p.get('/h/fixture/');
+  assert.match(String(closed.headers.get('content-security-policy')), /frame-src 'self';/);
+  assert.doesNotMatch(String(closed.headers.get('content-security-policy')), /youtube|vimeo/);
+
+  const on = await a.call('PUT', 'hub/external-embeds', { json: { enabled: true } });
+  assert.equal(on.status, 200);
+  assert.equal((await a.get('hub/external-embeds')).body.enabled, true);
+  const open = await p.get('/h/fixture/');
+  const csp = String(open.headers.get('content-security-policy'));
+  assert.match(csp, /frame-src 'self' https:\/\/www\.youtube-nocookie\.com https:\/\/player\.vimeo\.com/);
+  assert.match(csp, /https:\/\/docs\.google\.com/);
+  assert.match(csp, /https:\/\/drive\.google\.com/);
+
+  // A person who is not an admin cannot flip the setting.
+  assert.equal((await p.call('PUT', 'hub/external-embeds', { json: { enabled: false } })).status, 403);
+
+  await a.call('PUT', 'hub/external-embeds', { json: { enabled: false } });
+  const closedAgain = await p.get('/h/fixture/');
+  assert.match(String(closedAgain.headers.get('content-security-policy')), /frame-src 'self';/);
+  assert.doesNotMatch(String(closedAgain.headers.get('content-security-policy')), /youtube|vimeo/);
+});

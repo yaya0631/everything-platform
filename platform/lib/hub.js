@@ -53,6 +53,13 @@ function cspConnectExtras(name) {
   return [];
 }
 
+/** External embeds are off by default; Admin → Hub → External embeds turns on
+ * the frame-src allowlist (m4). The setting is read per response, so a change
+ * applies to the next page load without a restart. */
+function cspFrameExtras() {
+  return config.get('hubExternalEmbeds', false) === true ? rewrite.EXTERNAL_EMBED_SOURCES : [];
+}
+
 /** The bootstrap line before the shim for ?app= callers: the name rides ahead
  * of the shim so document.currentScript.dataset has it (same contract as the
  * static data-cad-app tag). */
@@ -508,6 +515,7 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
         hashes: entry.hashes,
         extras: rewrite.CSP_SCRIPT_EXTRAS[name],
         connectExtras: cspConnectExtras(name),
+        frameExtras: cspFrameExtras(),
       })
       : `default-src 'self'; script-src 'self' ${(rewrite.CSP_SCRIPT_EXTRAS[name] || []).join(' ')}; connect-src 'self'; object-src 'none'`,
     'X-Content-Type-Options': 'nosniff',
@@ -831,6 +839,13 @@ export function register(s) {
     }
     config.set('hubAiAliases', aliases ? JSON.stringify(JSON.parse(aliases)) : null);
     return send(res, 200, { ok: true });
+  });
+  admin('GET', 'external-embeds', ({ res }) => send(res, 200, { enabled: config.get('hubExternalEmbeds', false) === true }));
+  mut('PUT', 'external-embeds', async ({ req, res }) => {
+    const body = (await readJSONBody(req)) || {};
+    const enabled = body.enabled === true;
+    config.set('hubExternalEmbeds', enabled ? true : null);
+    return send(res, 200, { ok: true, enabled });
   });
   admin('GET', 'csp-reports', ({ res }) => send(res, 200, listCspReports()));
   mut('DELETE', 'csp-reports', ({ res }) => send(res, 200, clearCspReports()));

@@ -148,11 +148,29 @@ export async function page({ me, refresh }) {
       : h('p.muted', 'No reports since the server started. Good sign.'),
   );
 
+  const embeds = await api('GET', 'hub/external-embeds');
+  const embedsToggle = checkbox('Allow YouTube, Vimeo and Google Docs embeds inside hub apps', !!embeds.enabled, '');
+  const embedsSection = sectionWithActions(
+    'External embeds',
+    'Hub apps are same-origin only. Turn this on to let an embed card frame the common video and document hosts; the embed itself still loads from the internet, so it needs a connection.',
+    [
+      button('Save', {
+        sm: true,
+        onClick: action(async () => {
+          await api('PUT', 'hub/external-embeds', { enabled: embedsToggle.input.checked });
+          toast('External embed setting saved.');
+        }),
+      }),
+    ],
+    field('Embed hosts', embedsToggle.el, 'https://www.youtube-nocookie.com, https://player.vimeo.com, https://docs.google.com, https://drive.google.com'),
+  );
+
   return h(
     'div.page',
     sectionWithActions('Hub apps', `Everything dir: ${info.everythingDir} (pristine git clone; builds live in this server's data folder; apps run at /h/<name>/)`, [copyButton('npm run hub -- status', 'Copy the status command')]),
     rows,
     aiSection,
+    embedsSection,
     reportsSection,
     notice('info', INSTALL_HINT),
   );
