@@ -94,6 +94,24 @@ test('public listener serves nothing private and ignores cookies', async () => {
   }
 });
 
+test('m3: the session cookie is Secure exactly when the request is HTTPS', async () => {
+  const login = (headers = {}) => fetch(`${running.base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'X-CAD-Request': '1', 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify({ username: 'alex', password: 'password3' }),
+  });
+  const plain = await login();
+  const plainCookie = plain.headers.get('set-cookie') || '';
+  assert.match(plainCookie, /HttpOnly/);
+  assert.match(plainCookie, /SameSite=Strict/);
+  // A Secure cookie would never be sent back over plain HTTP, so a LAN box
+  // without TLS correctly gets none.
+  assert.doesNotMatch(plainCookie, /; Secure/);
+  // Behind a TLS-terminating proxy (and on direct TLS) the flag is set.
+  const proxied = await login({ 'X-Forwarded-Proto': 'https' });
+  assert.match(proxied.headers.get('set-cookie') || '', /; Secure/);
+});
+
 test('rate limiter', async () => {
   const { rateLimit } = await import('../lib/http.js');
   for (let i = 0; i < 3; i++) assert.equal(rateLimit('t', 3, 1000), true);

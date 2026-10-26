@@ -168,6 +168,8 @@ Browsers enable a few extras only on secure connections: the app working offline
 CAD_TLS_CERT=/path/cert.pem CAD_TLS_KEY=/path/key.pem npm start
 ```
 
+When a request arrives over HTTPS — direct TLS, Tailscale serve, or a reverse proxy that forwards `X-Forwarded-Proto: https` — the sign-in cookie is marked `Secure` automatically. On plain-HTTP LAN access it is deliberately not: a `Secure` cookie would then never be sent back by the browser, so sign-in would break. Put TLS in front before exposing the server beyond your own network.
+
 ## 4. Accounts and people
 
 Command line (changes apply immediately, even while the server runs):
