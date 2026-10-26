@@ -418,6 +418,30 @@ export const APP_JS_RULES = {
       replacement: 'o[e]=`${(`__CAD_GUEST_BASE__`.startsWith(`http`)?`__CAD_GUEST_BASE__/w/host/`+new URL(r.url).host.replace(/\\.puter\\.work$/,``):r.url)}/sign/${t}`;',
     },
   ],
+  whiteboard: [
+    {
+      name: 'wb-worker-path',
+      // Byte-exact slice of the built index bundle: collaboration's
+      // deploy() fetches its bundled worker source from a root-absolute URL;
+      // under the hub mount that 404s, so sharing/inviting a board died at
+      // "Preparing collaboration…". Point it at the mount: the hub serves
+      // the dist verbatim at /h/<app>/. One occurrence; the worker bundle
+      // itself never carries the string.
+      old: '"/worker/whiteboard-worker.js"',
+      replacement: '"/h/whiteboard/worker/whiteboard-worker.js"',
+    },
+  ],
+  'photo-studio': [
+    {
+      name: 'photo-worker-path',
+      // Same defect as whiteboard's wb-worker-path: the collaboration share
+      // bundle fetches its bundled worker source from a root-absolute URL,
+      // which 404s under the hub mount ("The collaboration server bundle
+      // could not load."). One occurrence in share-*.js.
+      old: '"/worker/photo-studio-worker.js"',
+      replacement: '"/h/photo-studio/worker/photo-studio-worker.js"',
+    },
+  ],
 };
 
 const SIGN_WORKER_PDF_READ = `const blob = await ownerOf(ctx).puter.fs.read(path);
@@ -499,6 +523,14 @@ export const REWRITE_RULES = [
     name: 'sign-worker-public-pdf',
     hits: (text, file) => TEXT_FILE.test(file)
       && text.includes('ownerOf(ctx).puter.fs.read(path)'),
+  },
+  {
+    name: 'wb-worker-path',
+    hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES.whiteboard[0].old),
+  },
+  {
+    name: 'photo-worker-path',
+    hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES['photo-studio'][0].old),
   },
 ];
 
