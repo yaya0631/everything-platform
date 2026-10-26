@@ -19,6 +19,8 @@ before(async () => {
     for await (const ch of req) body += ch;
     seen.push({ url: req.url, headers: req.headers, body: body ? JSON.parse(body) : null });
     if (req.url === '/v1/models') return res.end(JSON.stringify({ data: [{ id: 'gpt-test' }, { id: 'gpt-other' }] }));
+    // Ollama's native model list (the one the Test/Fetch buttons use).
+    if (req.url === '/api/tags') return res.end(JSON.stringify({ models: [{ name: 'llama3.2:3b' }, { name: 'qwen2.5:3b' }] }));
     if (req.url === '/anthropic/v1/models?limit=1000') return res.end(JSON.stringify({ data: [{ id: 'claude-test', display_name: 'Claude Test' }] }));
     if (req.url === '/v1/chat/completions') {
       const b = JSON.parse(body);
@@ -285,4 +287,55 @@ test('a sentence that mentions a call is left as prose', async () => {
     steps: [],
     title: 'x',
   });
+});
+
+test('Ollama: no key, native model list, OpenAI-compatible streaming, clear offline error', async () => {
+  // Turning Ollama on is a single switch (no key). Its native /api/tags is the
+  // model list; chat goes through the same OpenAI-compatible adapter as any
+  // cloud provider, at http://127.0.0.1:11434/v1.
+  const saved = (await c.put('admin/ai/providers/ollama', { enabled: true, baseUrl: `${mockUrl}/v1` }));
+  assert.equal(saved.status, 200);
+  const card = (await c.get('admin/ai')).body.providers.find((p) => p.id === 'ollama');
+  assert.equal(card.enabled, true);
+  assert.equal(card.needsKey, false);
+  assert.equal(card.baseUrl, `${mockUrl}/v1`);
+
+  const found = (await c.post('admin/ai/providers/ollama/models')).body.models;
+  assert.deepEqual(found.map((m) => m.id), ['ollama:llama3.2:3b', 'ollama:qwen2.5:3b']);
+  const tags = seen.findLast((x) => x.url === '/api/tags');
+  assert.equal(tags.headers.authorization, undefined, 'Ollama never gets an API key');
+
+  const probe = (await c.post('admin/ai/providers/ollama/test')).body;
+  assert.equal(probe.ok, true);
+  assert.match(probe.message, /2 models available/);
+
+  // Enabled Ollama models appear in the picker without per-model admin rows.
+  const picker = (await c.get('ai/models')).body.find((m) => m.id === 'ollama:llama3.2:3b');
+  assert.equal(picker.providerLabel, 'Ollama (this PC)');
+  assert.equal(picker.tools, true);
+
+  const events = await chat({ model: 'ollama:llama3.2:3b', messages: [{ role: 'user', content: 'Hi' }] });
+  assert.deepEqual(events.filter((e) => e.type === 'text').map((e) => e.delta), ['Hel', 'lo']);
+  assert.equal(events.at(-1).type, 'done');
+  const sent = seen.at(-1);
+  assert.equal(sent.headers.authorization, undefined);
+  assert.equal(sent.body.model, 'llama3.2:3b');
+  assert.equal(sent.body.stream, true);
+  const usage = (await c.get('admin/ai/usage?days=30')).body;
+  assert.ok(usage.byModel.some((m) => m.key === 'ollama:llama3.2:3b'));
+
+  // A stopped Ollama answers with one named error, both in Admin → Test and in
+  // an app's chat stream (never a raw fetch error).
+  await c.put('admin/ai/providers/ollama', { enabled: true, baseUrl: 'http://127.0.0.1:9/v1' });
+  const down = await c.post('admin/ai/providers/ollama/test');
+  assert.equal(down.status, 502);
+  assert.equal(down.body.code, 'ollama_down');
+  assert.match(down.body.message, /Ollama is not running/);
+  const offline = await chat({ model: 'ollama:llama3.2:3b', messages: [{ role: 'user', content: 'Hi' }] });
+  assert.equal(offline.at(-1).type, 'error');
+  assert.equal(offline.at(-1).code, 'ollama_down');
+  assert.match(offline.at(-1).message, /ollama serve/);
+
+  // Leave the shared config pointing back at the mock for later runs.
+  await c.put('admin/ai/providers/ollama', { enabled: true, baseUrl: `${mockUrl}/v1` });
 });

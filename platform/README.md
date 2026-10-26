@@ -218,6 +218,32 @@ Anyone with an edit link can change the drawing — that's the point of a link �
 
 Configure providers and API keys in **Admin → AI**: OpenAI, Anthropic, DeepSeek, Kimi (Moonshot), GLM (Zhipu/Z.ai), Groq, Google AI Studio (Gemini), OpenRouter and local Ollama (no key). For Groq, Gemini and OpenRouter, paste a key from console.groq.com/keys, aistudio.google.com/api-keys or openrouter.ai/keys. Fetch each provider's model list, tick the ones to enable, and optionally set prices per model to see estimated costs.
 
+### Running a model on this PC (Ollama)
+
+Ollama is optional: cloud keys stay the default until you switch it on, and no
+call leaves the machine once it is on. The repository never downloads a model.
+
+1. Install Ollama from ollama.com. On Windows the installer starts it; on
+   Linux/macOS run `ollama serve` (or use the desktop app).
+2. Pull a model once — this is the only download:
+
+   ```sh
+   ollama pull llama3.2:3b
+   ```
+
+   On this class of machine (8 GB RAM, 2 cores / 4 threads) a 3B model at Q4 is
+   the comfortable ceiling. 7B Q4 models fit only with nothing else open and
+   answer slowly; 1B–3B models are the practical choice.
+3. **Admin → AI → Ollama (this PC)** → tick *Use Ollama on this PC* → **Test**
+   (expect "Connected. N models available.") → **Fetch models** → tick
+   `llama3.2:3b` → **Save models**.
+4. Pick the model in the CAD assistant, and in any hub app's `puter.ai.chat`
+   model list.
+
+Ollama listens on `127.0.0.1:11434` only, so nothing is exposed to the LAN;
+this server reaches it on the same machine. If it is stopped, **Test** and any
+chat answer with the named `ollama_down` error rather than hanging.
+
 Inside the CAD app, open the **Assistant** panel (or run `ASSISTANT`, alias `AI`). It can look at the drawing and edit it: info, find, add, update, delete, transform (move/rotate/scale/mirror/copy), layers, select and zoom. All edits in one reply are a single undo step; locked layers are respected; in live drawings the edits sync like any other edits. Every call is logged in `ai_usage`, and Admin → AI shows totals per person, model and day with CSV export. There are no usage caps.
 
 ## 9. Email

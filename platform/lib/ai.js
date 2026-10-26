@@ -27,7 +27,7 @@ export const PROVIDERS = {
   groq: { label: 'Groq', kind: 'openai', baseUrl: 'https://api.groq.com/openai/v1', needsKey: true, streamUsage: true, keyHint: 'console.groq.com → API keys' },
   google: { label: 'Google AI Studio (Gemini)', kind: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', needsKey: true, streamUsage: false, keyHint: 'aistudio.google.com → API keys' },
   openrouter: { label: 'OpenRouter', kind: 'openai', baseUrl: 'https://openrouter.ai/api/v1', needsKey: true, streamUsage: false, keyHint: 'openrouter.ai → Keys' },
-  ollama: { label: 'Ollama (this PC)', kind: 'openai', baseUrl: 'http://127.0.0.1:11434/v1', needsKey: false, streamUsage: true, keyHint: 'No key needed. Install from ollama.com and pull a model.' },
+  ollama: { label: 'Ollama (this PC)', kind: 'openai', baseUrl: 'http://127.0.0.1:11434/v1', needsKey: false, streamUsage: true, keyHint: 'No key needed. Install from ollama.com, then run once: ollama pull llama3.2:3b (a 3B model is the comfortable ceiling on this class of PC).' },
 };
 
 const MAX_ROUND_MESSAGES = 400;
