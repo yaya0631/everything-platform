@@ -1,0 +1,66 @@
+{
+  "at": "2026-10-26T10:33:53.898Z",
+  "pass": true,
+  "steps": [
+    {
+      "step": "throwaway owner signs in",
+      "pass": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "step": "meetings boots inside the hub",
+      "pass": true,
+      "detail": "Puter Meetings\n11:33 • lun. 26 oct.\nC\nVideo meetings, right in your browser.\n\nStart a call in seconds, or create a link to share for later. It all runs in your browser.\n\nNew meeting\nJoin\nNothing to in"
+    },
+    {
+      "step": "the served HTML points the manifest at /hub/app-manifest/",
+      "pass": true,
+      "detail": "/hub/app-manifest/meetings/manifest.json"
+    },
+    {
+      "step": "the manifest route answers 200 without a session (m1)",
+      "pass": true,
+      "detail": "{\"status\":200,\"type\":\"application/manifest+json; charset=utf-8\"}"
+    },
+    {
+      "step": "no manifest request answers 401 (m1)",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "step": "no manifest console errors (m1)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "a hidden background-app iframe exists (m5)",
+      "pass": true,
+      "detail": "{\"src\":\"http://127.0.0.1:18171/h/calendar/?cad_launch=800cb274-2348-4e51-a8c7-1382d288c302&cad_args=%7B%22service%22%3A%22calendar-api%22%7D&cad_source_app=meetings&puter.source_app.name=meetings\",\"aria\":\"true\",\"w\":\"0px\",\"h\":\"0px\"}"
+    },
+    {
+      "step": "calendar-api posts its ready handshake (m5)",
+      "pass": true,
+      "detail": "{\"$\":\"calendar-api\",\"v\":1,\"type\":\"ready\",\"methods\":[\"ping\",\"list\"],\"scope\":{\"has\":[\"meeting\"]}}"
+    },
+    {
+      "step": "the app’s own calendar RPC round-trips (m5)",
+      "pass": true,
+      "detail": "{\"$\":\"calendar-api\",\"v\":1,\"id\":\"m1\",\"ok\":true,\"result\":{\"events\":[],\"total\":0,\"from\":1792969200000,\"to\":1795388400000}}"
+    },
+    {
+      "step": "the agenda is bound to Calendar, not the failure state (m5)",
+      "pass": true,
+      "detail": "{\"source\":[\"From Calendar\"],\"emptyTitle\":[\"No meetings today\"]}"
+    },
+    {
+      "step": "no calendar-unavailable warning (m5)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "no uncaught page errors",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

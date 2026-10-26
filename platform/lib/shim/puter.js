@@ -52,6 +52,29 @@
     return path + (path.indexOf('?') >= 0 ? '&' : '?') + 'app=' + encodeURIComponent(APPNAME);
   }
 
+  // -- cross-app connections (puter.ui.launchApp in background mode) -----
+  // A background launch opens the target app in a hidden same-origin iframe.
+  // Parent and child speak over postMessage under a random token carried in
+  // the child's URL, so no other window on the page can join the channel.
+  // Upstream apps read the launch arguments as puter.args (calendar-api's
+  // service mode) and the caller as puter.source_app.name in the URL.
+  var LAUNCH = (function () {
+    var q = null;
+    try { q = new URLSearchParams(window.location.search); } catch (e) { q = null; }
+    var args = {};
+    try {
+      var parsed = JSON.parse((q && q.get('cad_args')) || '{}');
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) args = parsed;
+    } catch (e2) { args = {}; }
+    return {
+      token: String((q && q.get('cad_launch')) || ''),
+      args: args,
+      source: String((q && q.get('cad_source_app')) || ''),
+    };
+  })();
+  puter.args = LAUNCH.args;
+  puter.sourceApp = LAUNCH.source || null;
+
   function call(method, path, body) {
     var headers = { 'X-CAD-Request': '1' };
     var init = { method: method, credentials: 'include', headers: headers };
@@ -1315,6 +1338,100 @@ puter.ai = {
     });
   }
 
+  // -- app-connection plumbing (see LAUNCH at the top) --------------------
+  function connDispatch(list, arg) {
+    var copy = (list || []).slice();
+    for (var i = 0; i < copy.length; i++) {
+      try { copy[i](arg); } catch (e) { console.error('[cad-hub] app-connection handler failed', e); }
+    }
+  }
+
+  function makeConnection(token, frame) {
+    var handlers = { message: [], close: [] };
+    var conn = {
+      usesSDK: true, // upstream apps refuse a connection without SDK messaging
+      appInstanceID: token,
+      frame: frame || null,
+      postMessage: function (data) {
+        if (conn.__closed) return;
+        var target = frame ? frame.contentWindow : window.parent;
+        if (!target) return;
+        try {
+          target.postMessage({ __cadConn: token, dir: frame ? 'to-child' : 'to-parent', data: data }, window.location.origin);
+        } catch (e) { /* uncloneable payloads are the caller's bug */ }
+      },
+      on: function (evt, fn) {
+        if (typeof fn === 'function' && handlers[evt]) handlers[evt].push(fn);
+        return conn;
+      },
+      off: function (evt, fn) {
+        var a = handlers[evt];
+        if (a) {
+          var i = a.indexOf(fn);
+          if (i >= 0) a.splice(i, 1);
+        }
+        return conn;
+      },
+      close: function () {
+        if (frame) {
+          closeConnection(conn);
+        } else if (!conn.__closed) {
+          conn.__closed = true;
+          sendChildClose();
+        }
+      },
+    };
+    conn.__handlers = handlers;
+    conn.__token = token;
+    conn.__closed = false;
+    if (frame && connections) connections[token] = conn;
+    return conn;
+  }
+
+  function sendChildClose() {
+    try { window.parent.postMessage({ __cadConn: LAUNCH.token, dir: 'to-parent', ctrl: 'close' }, window.location.origin); } catch (e) { /* parent gone */ }
+  }
+
+  // Parent side: one registry, one listener, one hidden iframe per launch.
+  var connections = null;
+  function ensureConnectionListener() {
+    if (connections) return;
+    connections = {};
+    window.addEventListener('message', function (ev) {
+      if (ev.origin !== window.location.origin) return;
+      var d = ev.data;
+      if (!d || !d.__cadConn || d.dir !== 'to-parent') return;
+      var conn = connections[d.__cadConn];
+      if (!conn || conn.__closed) return;
+      if (conn.frame && ev.source !== conn.frame.contentWindow) return;
+      if (d.ctrl === 'close') closeConnection(conn);
+      else connDispatch(conn.__handlers.message, d.data);
+    });
+  }
+  function closeConnection(conn) {
+    if (!conn || conn.__closed) return;
+    conn.__closed = true;
+    if (connections) delete connections[conn.__token];
+    try { conn.frame && conn.frame.remove(); } catch (e) { /* already gone */ }
+    connDispatch(conn.__handlers.close, undefined);
+  }
+
+  // Child side: only when this page was opened by a background launch.
+  var launchedInFrame = !!(LAUNCH.token && window.parent && window.parent !== window);
+  var childConn = launchedInFrame ? makeConnection(LAUNCH.token, null) : null;
+  if (launchedInFrame) {
+    window.addEventListener('message', function (ev) {
+      if (ev.source !== window.parent || ev.origin !== window.location.origin) return;
+      var d = ev.data;
+      if (!d || d.__cadConn !== LAUNCH.token || d.dir !== 'to-child') return;
+      if (d.ctrl === 'close') connDispatch(childConn.__handlers.close, undefined);
+      else connDispatch(childConn.__handlers.message, d.data);
+    });
+    window.addEventListener('pagehide', function () {
+      if (!childConn.__closed) sendChildClose();
+    });
+  }
+
   puter.ui = {
     showOpenFilePicker: function (options, callback) {
       options = options || {};
@@ -1441,15 +1558,35 @@ puter.ai = {
         return Promise.reject(new Error('A valid hub app name is required.'));
       }
       if (options && options.background) {
-        console.info('[cad-hub] puter.ui.launchApp: background app connections are unavailable in tab mode.');
-        return Promise.resolve(null);
+        // Background launch = a hidden same-origin iframe plus a postMessage
+        // channel (calendar-api and contacts-api services expect this). The
+        // connection is returned in a microtask, before the child document can
+        // load, so the caller's on('message') handlers cannot miss the ready
+        // handshake.
+        ensureConnectionListener();
+        var token = '';
+        try { token = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : ''; } catch (e) { token = ''; }
+        if (!token) token = 'conn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+        var frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.setAttribute('tabindex', '-1');
+        frame.title = 'background app: ' + String(app);
+        frame.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
+        var conn = makeConnection(token, frame);
+        frame.src = '/h/' + encodeURIComponent(String(app)) + '/'
+          + '?cad_launch=' + encodeURIComponent(token)
+          + '&cad_args=' + encodeURIComponent(JSON.stringify((options && options.args) || {}))
+          + '&cad_source_app=' + encodeURIComponent(APPNAME)
+          + '&puter.source_app.name=' + encodeURIComponent(APPNAME);
+        (document.body || document.documentElement).appendChild(frame);
+        return Promise.resolve(conn);
       }
       var url = '/h/' + encodeURIComponent(String(app)) + '/';
       if (options && options.items) url += '?open=' + encodeURIComponent(JSON.stringify(options.items));
       window.location.assign(url);
       return Promise.resolve(null);
     },
-    parentApp: function () { return null; },
+    parentApp: function () { return childConn; },
     requestPictureInPicture: function (video) {
       var el = video && video.requestPictureInPicture ? video : document.querySelector('video');
       return el && el.requestPictureInPicture ? el.requestPictureInPicture() : Promise.reject(new Error('Picture-in-picture is unavailable.'));
