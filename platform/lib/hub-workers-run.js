@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import * as db from './db.js';
+import * as store from './store.js';
 import * as hubKv from './hub-kv.js';
 import * as hubWorkers from './hub-workers.js';
 import { rewriteWorkerSource } from './hub-rewrite.js';
@@ -374,7 +375,7 @@ function dispatch(p, row) {
     }, Math.max(1000, Number(cfg('workers.timeout_ms')) || 30_000));
     job.timer.unref?.();
     try {
-      p.child.send({ type: 'wcall', id: job.id, file: job.file, me: job.me, callerUser: job.user, request: job.request });
+      p.child.send({ type: 'wcall', id: job.id, file: job.file, me: job.me, caller: job.caller, request: job.request });
     } catch {
       p.jobs.splice(p.jobs.indexOf(job), 1);
       p.active -= 1;
@@ -479,6 +480,13 @@ function withinPoolBudget(row) {
  * viaExec, ip, publicGuest } — the HTTP route owns the auth matrix; this is
  * runtime-only: no cookies cross this boundary (§16).
  */
+/** Owner identity for the `me` context (me.puter.auth): the deploying member
+ *  for user workers; packaged system workers have no account owner. */
+function ownerIdentity(row) {
+  if (!row.user) return { username: '', uuid: '' };
+  return { username: row.user, uuid: store.getAccount(row.user)?.uuid || '' };
+}
+
 export async function invoke(row, request, { user = null, ip = '', viaExec = false, publicGuest = false }) {
   const { text } = await scriptOf(row);
   const sha = hubWorkers.hashOf(text);
@@ -520,8 +528,10 @@ export async function invoke(row, request, { user = null, ip = '', viaExec = fal
   const job = {
     id: `w${p.counter++}`,
     file,
-    me: { kind: row.script_kind, app: row.app, user: row.user, name: row.name, publicGuest: !!publicGuest },
-    user: (viaExec && user) || null, // ctx.user only via exec (§2/§17)
+    me: { kind: row.script_kind, app: row.app, user: row.user, name: row.name, publicGuest: !!publicGuest, identity: ownerIdentity(row) },
+    // ctx.user is the CALLER's puter-shaped identity (uuid + username), the
+    // contract the upstream app workers authenticate against (§2/§17).
+    caller: user ? { username: user, uuid: store.getAccount(user)?.uuid || '' } : null,
     // The child builds absolute URLs (RSVP-style redirect targets name the
     // WORKER's own origin) — pass the real scheme+host through when known.
     request: {

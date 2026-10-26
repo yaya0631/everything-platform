@@ -32,6 +32,23 @@ router.post('/whoami', function (ctx) {
     status: 200, headers: { 'Content-Type': 'application/json' },
   });
 });
+router.post('/uuid', async function (ctx) {
+  // Mirrors the upstream workers' identify(): user.puter must answer
+  // { uuid, username } through auth.getUser() (or getUser()).
+  const u = ctx.user || ctx.requestor;
+  const out = { hasPuter: !!(u && u.puter), uuid: '', username: '' };
+  if (u && u.puter) {
+    try {
+      const p = u.puter;
+      const info = p.auth && typeof p.auth.getUser === 'function' ? await p.auth.getUser() : await p.getUser();
+      out.uuid = (info && info.uuid) || '';
+      out.username = (info && info.username) || '';
+    } catch (e) {
+      out.err = String(e && e.message).slice(0, 120);
+    }
+  }
+  return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
+});
 router.get('/csrf-headers', function (ctx) {
   return new Response(JSON.stringify({ cookie: ctx.request.headers.get('cookie') ?? null, secFetch: ctx.request.headers.get('sec-fetch-site') ?? null }), {
     status: 200, headers: { 'Content-Type': 'application/json' },
@@ -170,6 +187,21 @@ test('exec identity: ctx.user is the CALLER, never the owner', async () => {
   assert.equal(mine.body.user, 'person1'); // person1 owns echo-1...
   const theirs = await exec(strangerC, 'person1/echo-1', { method: 'POST', path: '/whoami' });
   assert.equal(theirs.body.user, 'person2'); // ...but callers keep their own names
+});
+
+// M11: the upstream app workers (teamchat, legal, fleet, ...) authenticate
+// callers through user.puter (uuid) — it used to be a 401 for everyone.
+test('exec identity: user.puter serves the caller a usable uuid (M11)', async () => {
+  const mine = await exec(hostC, 'echo-1', { method: 'POST', path: '/uuid' });
+  assert.equal(mine.status, 200, JSON.stringify(mine.body));
+  assert.equal(mine.body.hasPuter, true);
+  assert.equal(mine.body.username, 'person1');
+  assert.ok(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mine.body.uuid), `uuid -> ${mine.body.uuid} (err: ${mine.body.err || 'none'})`);
+  const again = await exec(hostC, 'echo-1', { method: 'POST', path: '/uuid' });
+  assert.equal(again.body.uuid, mine.body.uuid, 'uuid is stable per account');
+  const theirs = await exec(strangerC, 'person1/echo-1', { method: 'POST', path: '/uuid' });
+  assert.equal(theirs.body.username, 'person2', 'the identity is the caller, not the owner');
+  assert.notEqual(theirs.body.uuid, mine.body.uuid);
 });
 
 test('direct /wr/: owner ok, stranger 401, anonymous 401', async () => {

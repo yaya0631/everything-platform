@@ -233,11 +233,20 @@ function meCall(op, args) {
 }
 
 /** The owner-context SDK. `scope` guards fs (the parent enforces per-call). */
-function ownerSdk({ kind, app, user, name, publicGuest, callerUser }) {
+function ownerSdk({ kind, app, user, name, publicGuest, identity }) {
   const nsKv = `worker:${user != null ? user : `app:${app}`}:${name}`;
+  // The owner the upstream runtime exposes as `me.puter` — puter-shaped
+  // identity (auth.getUser() answers { username, uuid }); empty for packaged
+  // system workers, which have no account owner.
+  const who = { username: identity?.username || '', uuid: identity?.uuid || '' };
   return {
     __meMeta: { kind, app, user, publicGuest },
     puter: {
+      username: who.username,
+      uuid: who.uuid,
+      authToken: who.uuid,
+      getUser: async () => ({ ...who }),
+      auth: { getUser: async () => ({ ...who }) },
       kv: {
         get: (k) => meCall('kv', { op: 'get', args: Array.isArray(k) ? [k] : [String(k ?? '')] }),
         set: (k, v) => meCall('kv', {
@@ -263,6 +272,20 @@ function ownerSdk({ kind, app, user, name, publicGuest, callerUser }) {
         send: (obj) => meCall('email', { args: { to: obj?.to, subject: obj?.subject, text: obj?.text, html: obj?.html } }),
       },
     },
+  };
+}
+
+/** The caller's puter shape for ctx.user/ctx.requestor — the exact surface
+ *  the upstream workers' identify() reads: auth.getUser() (or getUser())
+ *  answering { username, uuid }, plus the token-shaped authToken. */
+function callerPuter(id) {
+  const who = { username: id.username, uuid: id.uuid };
+  return {
+    username: who.username,
+    uuid: who.uuid,
+    authToken: who.uuid,
+    getUser: async () => ({ ...who }),
+    auth: { getUser: async () => ({ ...who }) },
   };
 }
 
@@ -346,9 +369,14 @@ async function run(msg) {
   };
 
   const ctx = { request, params: hit.params, me };
-  if (msg.callerUser) {
-    ctx.user = { username: msg.callerUser };
-    ctx.requestor = { username: msg.callerUser }; // apps check both — design §2
+  if (msg.caller) {
+    // The upstream app workers (teamchat, legal, fleet, ...) authenticate the
+    // caller through user.puter — a puter-shaped { username, uuid } account
+    // with auth.getUser(), never a bare name (§2).
+    const id = typeof msg.caller === 'string' ? { username: msg.caller, uuid: '' } : msg.caller;
+    const puter = callerPuter(id);
+    ctx.user = { username: id.username, uuid: id.uuid, puter };
+    ctx.requestor = { username: id.username, uuid: id.uuid, puter }; // apps check both — design §2
   }
 
   const out = await hit.handler(ctx);

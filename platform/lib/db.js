@@ -9,6 +9,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { DATA_DIR, DB_FILE } from './paths.js';
 
 // node:sqlite prints an ExperimentalWarning on load. Hide only that one and
@@ -97,6 +98,12 @@ const MIGRATIONS = [
   ALTER TABLE hub_workers ADD COLUMN host_label TEXT;
   CREATE UNIQUE INDEX hub_workers_host_label_ci ON hub_workers(LOWER(host_label)) WHERE host_label IS NOT NULL;
   `,
+  // 7: account uuids. The upstream app workers (teamchat, legal, fleet, ...)
+  // identify their caller through user.puter by uuid — puter's shape — not
+  // by username, so every account carries one (backfilled on open).
+  `
+  ALTER TABLE users ADD COLUMN uuid TEXT;
+  `,
 ];
 
 let db = null;
@@ -151,7 +158,23 @@ export function open() {
   db.exec('PRAGMA foreign_keys = ON');
   migrate();
   importJSON();
+  backfillUuids();
   return db;
+}
+
+/** Every account has a stable uuid the workers identify callers by. */
+function backfillUuids() {
+  const missing = db.prepare("SELECT name FROM users WHERE uuid IS NULL OR uuid = ''").all();
+  if (!missing.length) return;
+  const up = db.prepare('UPDATE users SET uuid = ? WHERE name = ?');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    for (const r of missing) up.run(crypto.randomUUID(), r.name);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 export function close() {

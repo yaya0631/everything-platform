@@ -123,7 +123,7 @@ export function addUser(name, password, { admin = false, email = '', displayName
     if (getAccount(name)) throw new Error(`"${name}" already has an account.`);
     const makeAdmin = admin || countAdmins() === 0;
     db.run(
-      'INSERT INTO users(name, hash, stamp, created, display_name, email, color, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO users(name, hash, stamp, created, display_name, email, color, is_admin, uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       name,
       password != null ? hashPassword(password) : null,
       crypto.randomUUID(),
@@ -132,6 +132,7 @@ export function addUser(name, password, { admin = false, email = '', displayName
       email || null,
       defaultColor(name),
       makeAdmin ? 1 : 0,
+      crypto.randomUUID(),
     );
     fs.mkdirSync(path.join(userRoot(name), 'Drawings'), { recursive: true, mode: 0o700 });
     return { admin: makeAdmin };
