@@ -900,9 +900,103 @@ Platform commits below unless marked fork.
 
 ### Open / next waves
 
-- **W2**: `puter.peer` LAN relay (chess/checkers/backgammon online, meetings
-  huddles, collab presence) and `puter.events` (teamchat live push); update
-  the README gap rows as each lands.
+- **W3**: engines fitting this CPU - tesseract OCR, Piper TTS, optional
+  whisper.cpp; Pyodide vendoring for 3d (M6); NHTSA offline message +
+  opt-in proxy (N1); image generation stays a documented cloud option (M3).
+- **W4**: minimal eslint, CI yaml, one verify-all runner, hosting checklist +
+  README/Ollama docs, a full functional-gate + smoke re-run to replace stale
+  evidence, a fresh-host isolated E2E, and the `verification/` report updated
+  (N2/N6 documented or closed; no open findings).
+
+## Session 10 - 2026-10-26 - W2 peer/events wave: real LAN calls and live pushes
+
+Owner scope: everything the audit flagged, in waves. This session is **W2
+(peer/events)** and its acceptance. W1 is in Session 9; W3/W4 follow.
+
+Platform commits: `a33f6be` (peer/events) and `090fad8` (real chess Online
+acceptance).
+
+### What W2 adds
+
+- **`puter.peer`** (`lib/hub-peer.js` + `lib/shim/puter.js`): `serve()`,
+  `connect(code, {turnGrant, anonToken})`, `inviteCode`, `connection` events
+  with `{conn, user}`, `send`/`message`, `open`/`close` events, `close(reason)`,
+  `owner`, `connections`, `linkState` + `linkstate` events, and
+  `createGuestGrant()`. The invite code is eight chars of a no-ambiguity
+  alphabet; invites and connections are host-scoped and die with the host
+  socket. App data goes through the hub's authenticated WebSocket at
+  `/api/hub/peer`; **media does not** - it uses a browser `RTCPeerConnection`
+  between the two people, so the server never carries audio/video.
+- **Media**: three logical slots - `0` audio/mic, `1` camera video, `2`
+  screen video. The guest/dialer creates all three `sendrecv` transceivers
+  before its offer; the host/answerer adopts the offer's transceivers and
+  attaches any queued publications before `createAnswer`. Publishing after
+  the answer renegotiates once per new direction. Screen publish on an
+  established call is the tested renegotiation path. The shim also exposes
+  `peerconnection`, `publish`, `unpublish`, and `configure`.
+- **Call shape**: the guest creates an internal negotiated data channel
+  `__cad_peer` (id 0) before the offer, so apps that negotiate their own data
+  channels (whiteboard/photo-studio presence) have an SCTP transport to use.
+- **`puter.events.onLocal`**: same-user KV and FS events over
+  `/api/hub/events`. `kv:` subjects are same-user; events are emitted for
+  every KV mutation (`set`/`remove`/`incr`/`add`/`update`/`flush`, with
+  `flush` matching every KV subscription). Drive FS events are user-level and
+  cover write/delete/mkdir/rename/move/copy, with canonical Drive-path
+  aliases; sandbox FS events are app-scoped so one app cannot learn another
+  app's files. The socket reconnects silently and only calls `onError` after
+  five failed attempts; subscriptions are capped at 200 per socket. No
+  cross-user shares and no `onPersistent` (documented).
+- **Grants**: `POST /api/hub/peer/grant` requires a signed-in same-origin
+  POST; a grant is host+app scoped, in-memory, 1 h TTL, and only joins the
+  minting host's future invites. Grants are cleared on shutdown. A
+  signed-out guest can join only with a grant; a signed-in guest does not
+  need one.
+- **Tests**: `test/hub-peer.test.js` - 4/4 protocol tests (relay both ways,
+  invalid/app scoping, grant guest join + host scoping, events
+  isolation/gap/flush). Full `npm test`: **667/667**.
+- **Browser acceptance**:
+  - `peer-e2e.mjs` **18/18** Chrome steps: invite, owner, relay both ways,
+    three transceivers each, live unmuted audio+video with inbound RTP bytes,
+    linkstate, host screen share on slot 2 with renegotiation, unpublish both
+    ways, same-person KV event with value, other-person isolation, dead invite
+    `invalid_invite`, no page errors. Evidence `peer-e2e-results.json`.
+  - `chess-online-e2e.mjs` **8/8** Chrome steps against the real installed
+    chess build: two people sign in, host creates an online game, guest joins
+    with the code, both reach playing, the handshake names the opponent, host
+    and guest each make a move and see the other's move (`1. e4 e5` on both
+    boards), no page errors. Evidence `chess-online-results.json`.
+- **Contract review**: meetings' real `net/session.js` uses
+  `server connection`, `conn.owner`, `publish('camera')`,
+  `publish('screen', stream, {video})`, `configure`, `peerconnection`,
+  `media`/`mediaended`, `linkstate`, and `createGuestGrant()`; the shim
+  matches those shapes, and `createGuestGrant` carries the app name. The
+  chess acceptance exercises the data path; the peer probe exercises the
+  media path.
+
+### Known W2 limits (documented, not silent)
+
+- No STUN/TURN: peers must be able to reach the hub (same LAN or a private
+  overlay such as Tailscale). On networks with client isolation or symmetric
+  NAT, a call may connect signalling but not media.
+- The peer signaller does not auto-reconnect after a hub restart; live calls
+  end with the host socket. Rejoining creates a new invite. This is written
+  in the README limitations, not hidden.
+- Grants are in-memory, so a hub restart invalidates outstanding guest
+  invites.
+- Events are same-user only; a shared drive does not push the owner's FS
+  changes to a different signed-in person.
+
+### Verification numbers this session
+
+- `npm test`: **667/667 pass**.
+- `node peer-e2e.mjs`: **18/18**; `node chess-online-e2e.mjs`: **8/8**.
+- README peer/events sections updated with the surface, limits and test
+  counts.
+- The live server still runs the pre-W2 code; W4 restarts it after the final
+  gates, so no half-migrated live state is presented as final.
+
+### Open / next waves
+
 - **W3**: engines fitting this CPU - tesseract OCR, Piper TTS, optional
   whisper.cpp; Pyodide vendoring for 3d (M6); NHTSA offline message +
   opt-in proxy (N1); image generation stays a documented cloud option (M3).
