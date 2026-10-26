@@ -175,6 +175,12 @@ try {
           return { ok: false, error: String((e && e.message) || e).slice(0, 200) };
         }
       }, appLocalPuter);
+      // The gate forces the built-in test provider (CAD_TEST), so this proves
+      // the wiring and the page's adapter, not a real model. Say so in the
+      // evidence: `ai=echo`, never "AI works" (M10).
+      ai.mode = 'echo';
+      ai.model = 'test:test-model';
+      ai.note = 'canned test provider; proves the puter.ai.chat wiring, not a real model answer';
       const calls = await page.evaluate(() => window.__CAD_PUTER_CALLS__ || []);
       results.set(app.name, { app: app.name, pass: !errors.length && probe.kvSet && probe.fsRoundTrip && ai.ok, initialCalls: calls, errors, probe, ai, page, appLocalPuter });
     } catch (err) {
@@ -215,12 +221,18 @@ try {
   // Every target gets a verdict on disk and on stdout — including apps that
   // already failed in phase A (no page), so a wave failure is never silent.
   for (const record of results.values()) {
-    const out = { ...record, fsRoundTrip: { pass: record.probe.fsRoundTrip }, at: new Date().toISOString(), serverDataDir: dataRoot };
+    const out = {
+      ...record,
+      kind: 'infrastructure',
+      scope: 'page boots with the shim; kv/fs round-trip and restart; canned AI echo. App-specific features (editing, gameplay, invoices, ...) are NOT exercised by this gate (M10).',
+      fsRoundTrip: { pass: record.probe.fsRoundTrip },
+      at: new Date().toISOString(),
+      serverDataDir: dataRoot,
+    };
     fs.writeFileSync(path.join(gatesDir, `${record.app}-functional.json`), JSON.stringify(out, null, 2));
     const badN = out.failingCalls ? out.failingCalls.length : 0;
     const kvr = out.kvRestart ? out.kvRestart.pass : false;
-    const air = out.ai ? out.ai.ok : false;
-    console.log(`${record.app}: ${out.pass ? 'PASS' : 'FAIL'} calls=${(out.calls || []).length} kv-restart=${kvr} fs-roundtrip=${out.probe.fsRoundTrip} ai=${air}${record.shimMissing ? ' shim-missing' : ''}${!out.pass && badN ? ` failing-calls=${badN}` : ''}${out.ai && !out.ai.ok ? ` ai-fail=${JSON.stringify(out.ai.text || out.ai.error || '').slice(0, 120)}` : ''}`);
+    console.log(`${record.app}: ${out.pass ? 'PASS' : 'FAIL'} gate=infra calls=${(out.calls || []).length} kv-restart=${kvr} fs-roundtrip=${out.probe.fsRoundTrip} ai=echo${record.shimMissing ? ' shim-missing' : ''}${!out.pass && badN ? ` failing-calls=${badN}` : ''}${out.ai && !out.ai.ok ? ` ai-fail=${JSON.stringify(out.ai.text || out.ai.error || '').slice(0, 120)}` : ''}`);
   }
   if ([...results.values()].some((x) => !x.pass)) process.exitCode = 1;
 } finally {

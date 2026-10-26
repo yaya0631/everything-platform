@@ -357,6 +357,20 @@ requests / failed+404 requests / uncaught errors). **Totals: 51 scanned = 23
 installed (10 works + 13 loads-not-exercised) + 28 not installed (1 unbuilt, 5
 partly, 22 does-not-yet).**
 
+What `build-hub.mjs status` means by each verdict (audit M10):
+
+| Status | What was actually proven |
+| --- | --- |
+| **works** | a real feature suite (an app's runtime adapter / suite + E2E) passed **and** the build, install, smoke, services and every required gate passed |
+| **boots** | the page loads cleanly through the shim, its kv/fs round-trip survives a server restart, and its infra gates passed — but no app-feature suite exists, so nothing beyond boot/storage is claimed |
+| **untested** | no fresh evidence yet (missing evidence is never reported as a failure) |
+| **does not** | evidence exists and something failed |
+
+The generic functional gate is **infrastructure only** (`ai=echo`, the built-in
+test provider, no app features). It can produce `boots`, never `works`; only a
+feature suite can. Re-run `node functional-gate.mjs` + `node browser-smoke.mjs
+load` before reading status — stale evidence is reported as `untested`.
+
 | Tier (scan) | Installed | Smoke status | Apps |
 | --- | --- | --- | --- |
 | easy | yes (10) | **works** — loads and proven through the real UI, surviving reload + server restart (persist pass) | contacts¹, crm, music-studio, notes, pos, presentation, projects, solitaire, sudoku, tasks |

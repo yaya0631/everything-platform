@@ -354,6 +354,14 @@ function statusCommand({ json = false } = {}) {
       // exist and the round-trip/restart evidence carries the verdict.
       && functional.calls.every((call) => call.status === 'resolved'
         || ((call.method === 'puter.fs.read' || call.method === 'puter.fs.stat') && call.code === 'not_found'));
+    // The generic gate is infrastructure, not a feature test (audit M10): it
+    // proves the page boots with the shim, kv/fs round-trip across a restart,
+    // and a canned AI echo. No app feature (editing, gameplay, invoices, ...)
+    // is exercised, so it can never by itself make an app "works"; the honest
+    // verdict for those apps is "boots".
+    const functionalScope = 'infrastructure only: boot, shim, kv/fs round-trip, canned AI echo (ai=echo); no app features';
+    const featureTested = !!upstream;
+    const infraPass = featureTested ? true : functionalPass;
     const e2e = e2eEvidence.get(name) ?? null;
     const needsE2e = ['signatures', 'invoicing'].includes(name);
     const requiredServices = scan.calls.filter((c) => HARD_PREFIX.some((p) => c.startsWith(p)));
@@ -365,14 +373,33 @@ function statusCommand({ json = false } = {}) {
       built: !!b?.ok,
       installed: !!inst?.enabled,
       smoke: { pass: smokeClean, external: s?.external ?? null, http_bad: s?.bad ?? null, failed: s?.failed ?? null, other_errors: s?.errors ?? null, csp: s?.csp ?? null },
-      upstream: upstream ? { pass: upstream.passed, covered: upstream.covered, total: upstream.total, source: upstream.source, upstream_only_suite: upstreamSuite } : { pass: functionalPass, covered: 0, total: null, source: 'generic-functional-gate' },
+      upstream: upstream ? { pass: upstream.passed, covered: upstream.covered, total: upstream.total, source: upstream.source, upstream_only_suite: upstreamSuite } : { pass: null, covered: 0, total: null, source: 'none (the generic gate is infrastructure only)' },
+      infrastructure: { pass: featureTested ? null : functionalPass, scope: functionalScope },
       e2e: needsE2e ? { pass: e2ePass, covered: e2e?.passed ?? 0, total: e2e?.total ?? null, file: e2e?.file ?? null } : { pass: true, required: false },
       services: { pass: serviceGates.every((x) => x.provided), required: serviceGates },
     };
-    const works = gates.built && gates.installed && gates.smoke.pass && gates.upstream.pass && gates.e2e.pass && gates.services.pass;
+    // Only evidence of a FAILURE makes an app "does not". Missing evidence is
+    // "untested" - the honest label for "no browser pass has run since this
+    // check" (M10). "works" needs a real feature suite AND every other gate;
+    // without a feature suite the best honest verdict is "boots".
+    const smokeKnown = !!s;
+    const e2eKnown = !!e2e;
+    const anyFailure =
+      (!!b && !b.ok)
+      || (!!inst && !inst.enabled)
+      || (smokeKnown && !smokeClean)
+      || (featureTested && gates.upstream.pass === false)
+      || (needsE2e && e2eKnown && !e2ePass)
+      || !gates.services.pass
+      || (!!functional && !functionalPass);
+    const fullyProven = !anyFailure && featureTested && gates.upstream.pass === true
+      && smokeKnown && !!b?.ok && !!inst?.enabled && (!needsE2e || e2ePass) && gates.services.pass;
+    const booted = !anyFailure && !featureTested && functionalPass
+      && smokeKnown && !!b?.ok && !!inst?.enabled && gates.e2e.pass && gates.services.pass;
+    const status = anyFailure ? 'does not' : fullyProven ? 'works' : booted ? 'boots' : 'untested';
     return {
       name,
-      status: works ? 'works' : 'does not',
+      status,
       source_scan: scan.tier,
       source_scan_reason: scan.reasons.join('; ') || null,
       installed: inst ? { at: inst.installed_at ?? undefined, sha: inst.sha, source: inst.source, enabled: inst.enabled, files: inst.files } : null,
@@ -382,6 +409,7 @@ function statusCommand({ json = false } = {}) {
       upstream_only_suite: upstreamSuite,
       functional_gate: functional,
       functional_gate_pass: functionalPass,
+      functional_gate_scope: functional ? functionalScope : null,
       worker_adapter_coverage: adapter ? { covered: adapter.covered, total: adapter.total, files: adapter.files ?? null } : null,
       e2e,
       required_services: serviceGates,
@@ -397,19 +425,22 @@ function statusCommand({ json = false } = {}) {
   const pad = (v, n) => String(v ?? '').padEnd(n).slice(0, n);
   console.log(`${pad('app', 18)} ${pad('status', 10)} ${pad('src', 5)} ${pad('smoke', 7)} ${pad('server tests', 14)} ${pad('upstream only', 18)} ${pad('E2E', 10)} ${pad('services', 10)} ${pad('built', 7)} ${pad('installed', 9)}`);
   console.log('-'.repeat(133));
-  const t = { built: 0, ok: 0, smoke: 0, loads: 0, works: 0 };
+  const t = { built: 0, ok: 0, smoke: 0, loads: 0, works: 0, boots: 0, untested: 0 };
   for (const r of rows) {
     if (r.built) { t.built += 1; t.ok += r.built.ok ? 1 : 0; }
     if (r.smoke) { t.smoke += 1; t.loads += r.smoke.loads ? 1 : 0; }
     if (r.status === 'works') t.works += 1;
+    if (r.status === 'boots') t.boots += 1;
+    if (r.status === 'untested') t.untested += 1;
     console.log(
-      `${pad(r.name, 18)} ${pad(r.status, 10)} ${pad(r.gates.source === 'own' ? 'own' : 'up', 5)} ${pad(r.gates.smoke.pass ? 'PASS' : 'PENDING', 7)} `
-    + `${pad(r.upstream_test_coverage ? `${r.upstream_test_coverage.covered}/${r.upstream_test_coverage.total}` : (r.functional_gate ? (r.functional_gate_pass ? 'functional' : 'func-fail') : r.source_scan === 'easy' ? 'func-pending' : '-'), 14)} `
+      `${pad(r.name, 18)} ${pad(r.status, 10)} ${pad(r.gates.source === 'own' ? 'own' : 'up', 5)} ${pad(r.gates.smoke.pass ? 'PASS' : r.smoke ? 'FAIL' : '-', 7)} `
+    + `${pad(r.upstream_test_coverage ? `${r.upstream_test_coverage.covered}/${r.upstream_test_coverage.total}` : (r.functional_gate ? (r.functional_gate_pass ? 'infra' : 'infra-fail') : r.source_scan === 'easy' ? 'infra-pending' : '-'), 14)} `
       + `${pad(r.upstream_only_suite ? `${r.upstream_only_suite.covered}/${r.upstream_only_suite.total}` : '-', 18)} `
       + `${pad(r.gates.e2e.required === false ? 'n/a' : r.gates.e2e.pass ? `${r.gates.e2e.covered}/${r.gates.e2e.total}` : '-', 10)} `
       + `${pad(r.gates.services.pass ? 'PASS' : 'PENDING', 10)} ${pad(r.gates.built ? 'yes' : 'no', 7)} ${pad(r.gates.installed ? 'yes' : 'no', 9)}`,
     );
   }
   console.log('-'.repeat(127));
-  console.log(`${rows.length} apps | status works ${t.works}/${rows.length} | built ${t.ok}/${t.built} state rows ok | smoke seen for ${t.smoke} | loads ${t.loads}/${t.smoke}`);
+  console.log(`${rows.length} apps | works ${t.works} (feature-tested) | boots ${t.boots} (infrastructure only) | untested ${t.untested} | does not ${rows.length - t.works - t.boots - t.untested} | built ${t.ok}/${t.built} state rows ok | smoke seen for ${t.smoke} | loads ${t.loads}/${t.smoke}`);
+  console.log('note: "works" needs a real feature suite; the generic gate proves boot + shim + kv/fs round-trip + a canned AI echo (ai=echo). Missing evidence is "untested", never a failure (M10).');
 }

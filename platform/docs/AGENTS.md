@@ -540,6 +540,15 @@ vector/video/photo collaboration and the games' online play (peer). `assets` has
   exercises `puter.ai.chat` in EVERY app's page (gate test provider via
   `hubAiDefaultModel`; cad's own adapter included) and build-hub requires
   `ai.ok === true`. 48/48 measure `ai=true`.
+- **Correction (Session 9, audit M10):** the `works 51/51` label above
+  overstated what the generic gate proves. It exercises boot + shim + kv/fs
+  round-trip/restart + a canned AI echo (`ai=echo`, the built-in test
+  provider) and **no app feature**. `build-hub status` now reports those apps
+  as **boots**, reserves **works** for a real feature suite (runtime adapter
+  or suite + E2E) whose every gate passed, reports missing evidence as
+  **untested** (never a failure), and only says **does not** when evidence of
+  a failure exists. The gate writes `kind: infrastructure` + `scope` into its
+  evidence so a reader cannot mistake it for a feature pass.
 - New platform surfaces this round (concurrent uncommitted work, reviewed
   and committed here): `puter.net` local socket bridge (loopback/RFC1918
   only), `puter.perms`, `puter.email` send/list, fs.share family,
