@@ -1,14 +1,17 @@
 /**
- * Building apps from the pristine HeyPuter/everything clone (user-approved
+ * Building apps from the HeyPuter/everything clone (user-approved
  * setup-time work, one app at a time):
  *
  *   npm ci (or npm install when a lockfile ships)  â€” gitignored node_modules only
  *   npm run build [-- --base=/h/<name>/]           â€” vite picks the flag up
  *   git status --porcelain                          â€” abort when the clone is dirty
  *
- * The clone stays pristine: tracked files never change. Build outputs are
- * imported into the platform's data folder; `--prune` removes node_modules again.
- * Everything here is plain Node with no shell scripting, so it works on Windows.
+ * The clone's working tree stays clean. Its HEAD is this fork's own history
+ * (base 0fc4d361 plus the documented hub-integration commits), so reads and
+ * builds see committed bytes; nothing is ever edited in place. Build outputs
+ * are imported into the platform's data folder; `--prune` removes node_modules
+ * again. Everything here is plain Node with no shell scripting, so it works on
+ * Windows.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';

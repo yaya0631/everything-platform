@@ -1,5 +1,5 @@
 /**
- * The hub: apps built from the pristine HeyPuter/everything clone, served to
+ * The hub: apps built from the HeyPuter/everything clone, served to
  * the signed-in person as their own software.
  *
  * Layout (private listener only; the public listener never touches the hub)

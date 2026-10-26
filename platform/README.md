@@ -272,7 +272,7 @@ People with the **can host apps** flag (Admin → People, or `npm run user -- ho
 
 ## 11. The hub — the 50 apps from HeyPuter/everything
 
-The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (49 apps + CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to the platform folder, change with the Everything dir setting in Admin → Hub) and stays **pristine**: apps are never edited, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
+The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (49 apps + CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to the platform folder, change with the Everything dir setting in Admin → Hub); its working tree stays **clean**: HEAD is this fork's own history (base `0fc4d361` plus the documented hub-integration commits), apps are never edited in place, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
 
 **Layout on this server:** `/` opens the hub (a redirect to `/hub/`, each person's app grid — CAD is listed there like any other app and does not own the root any more). Signed-out visitors get the hub's own sign-in form right there (no JavaScript, works in any browser); apps live at `/h/<name>/` (the `/apps/` prefix belongs to the older hosted-apps feature), and the shim is at `/hub/puter.js`.
 
