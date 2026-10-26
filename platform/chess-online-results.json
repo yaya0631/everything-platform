@@ -1,0 +1,49 @@
+{
+  "app": "chess",
+  "steps": [
+    {
+      "step": "both throwaway players sign in",
+      "pass": true,
+      "detail": "{\"host\":true,\"guest\":true}"
+    },
+    {
+      "step": "both chess pages load through the hub",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "the host creates a game and gets a real invite code",
+      "pass": true,
+      "detail": "C2GHJS4U"
+    },
+    {
+      "step": "both sides reach the playing state after the handshake",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "the host is dealt a side and the handshake names it",
+      "pass": true,
+      "detail": "Connected to chessguest. You play White."
+    },
+    {
+      "step": "the host's move (e4) reaches the guest's board",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "the guest's reply (e5) reaches the host's board",
+      "pass": true,
+      "detail": "{\"host\":\"1. e4 e5\",\"guest\":\"1. e4 e5\"}"
+    },
+    {
+      "step": "no page errors on either side",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "hostList": "1. e4 e5",
+  "guestList": "1. e4 e5",
+  "code": "C2GHJS4U",
+  "passed": true
+}
