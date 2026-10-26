@@ -813,3 +813,101 @@ this session's commit rather than re-authored.
   not done unilaterally.
 - The AI engines (txt2img/TTS/STT/OCR/video) remain honest `engine_missing`
   responses per README; AI chat parity is what is measured here.
+
+## Session 9 - 2026-10-26 - W1 defect wave: audit findings fixed, gates honest, local AI proven
+
+Owner scope: everything the independent audit flagged, in waves. This session
+is **W1 (defects)**; W2 (peer/events), W3 (engines/Pyodide/NHTSA) and W4 (ops,
+full re-verification) follow. One commit per fix; suite green at each step.
+Platform commits below unless marked fork.
+
+### W1 findings closed
+
+| Finding | Fix | Commit | Evidence |
+| --- | --- | --- | --- |
+| M13 | `hub-fsops.js` re-save: `const res` -> `let res` (dedupeName loop reassigns) | `bb69fb7` | regression test in `hub-fsauth.test.js`; suite green |
+| M11 | worker identity: migration 7 uuid column + backfill, `store.addUser` uuid, `ownerIdentity()`/`caller`, `ctx.user`/`ctx.requestor` | `83ddffc` | worker suite 21/21 |
+| M12 | whiteboard + photo-studio collab workers fetch under `/h/<app>/` (served route rewrites) | `9e35ef7` | rules each hit exactly 1 file; suite 656/656 then |
+| m1 | PWA manifests/icons served outside the session gate at `/hub/app-manifest/` + `/hub/app-asset/`; JSON-aware manifest rewrite | `d15b17f` | `test/hub-pwa.test.js` + `test/fixtures/hub/manifest-dist/` |
+| m3 | no code change needed: the Secure flag already follows HTTPS; regression test + README TLS note | `96453ce` | `foundation.test.js` |
+| m5 | `launchApp({background:true})`: hidden same-origin iframe + token-keyed postMessage registry; `parentApp()`, `puter.args`, `puter.sourceApp` | `e53caa7` | `appconn-e2e.mjs` 12/12 |
+| m2 | AI streams fail once with `Error` + `code:'ai_stream_interrupted'` before the first byte and mid-body; every read has the rejection path; queued chunks still reach the app | `ffa73f4` | `ai-stream-e2e.mjs` 7/7 |
+| M8 | `puter.perms.request('folder')` mounts the same closed-shadow-root Allow/Deny dialog as a Drive write; no auto-grant; Allow audited as `hub.perms_granted` | `7bcd86d` | `perms-e2e.mjs` 13/13 |
+| m4 | `frame-src` allowlist for YouTube-nocookie/Vimeo/Google Docs behind **Admin -> Hub -> External embeds** (off by default) | `f028067` | `test/hub.test.js` + `hub-rewrite-rules.test.js` |
+| M10 | generic gate is explicitly infrastructure (`ai=echo`, no app features); status is `works`/`boots`/`untested`/`does not`, `works` reserved for a real feature suite | `917c5d0` | gate evidence carries `kind`/`scope`; status output |
+| C1 | Ollama verified end-to-end and switched on (local backend enabled); keys stay owner-managed | `3c4b5fa` | real `llama3.2:3b` answered locally; fake-Ollama HTTP test |
+| M7 | live DB: tool accounts already gone; removed the one disabled data-free `admin`; cloud keys cleared (owner re-enters) | live data | backup + audit row; see below |
+| M9 | fork working tree committed clean (`e750f374`), docs describe "clean at fork HEAD", not frozen base | `e832dbc` + fork | `git -C upstream status --porcelain` empty |
+
+### Behavior notes
+
+- **M13** was a plain JS bug: `dedupeName` reassigned the result of a `const`,
+  so every "Save to Puter" of an existing file threw after the file was
+  written. Now fixed and pinned by a test.
+- **M11** was the worker-runtime identity contract: `user.puter` was never
+  provided, so teamchat/legal/childcare/fleet/field-service/property-
+  management/help-desk backends 401'd every signed-in caller. The worker now
+  sees the caller's uuid and the requestor object.
+- **m1** keeps the `/h/` session gate untouched; only the two public,
+  credential-free PWA paths sit outside it (browsers fetch manifests without
+  cookies).
+- **m5** is Puter-style background app connections, not a windowing system:
+  a hidden iframe is a real app instance, and the meetings calendar sidebar
+  now lists real calendar events.
+- **M8** closes the last silent Drive write. The dialog is a closed shadow
+  root; only trusted pointer events decide; app script cannot click it.
+- **m4** does not weaken every app: the strict same-origin CSP is unchanged
+  until the admin turns the allowlist on, and even then only four embed hosts
+  are added to `frame-src`.
+- **M10**: the generic gate proves boot + shim + kv/fs round-trip/restart +
+  a canned AI echo, nothing else. `build-hub status` now says `boots` for
+  those apps, `untested` when evidence is missing (never a failure), and
+  `works` only with a real feature suite. README defines the vocabulary.
+- **Ollama**: no key, native `/api/tags` list, chat through the same
+  OpenAI-compatible adapter. On this PC 10 models are already installed;
+  a real call to `llama3.2:3b` streamed `LOCAL-OK` (41 in / 4 out tokens,
+  28.7 s cold on the 2-core CPU). No model was downloaded by this repo.
+  Admin shows the one-time `ollama pull llama3.2:3b` hint; README §8 has the
+  full steps and the 8 GB guidance.
+
+### Live DB cleanup (owner-approved)
+
+- Backup first: `data/backups/cad-before-cleanup-2026-10-26T11-08-51-071Z.db`.
+- The audit's tool/test accounts (`appsmoke`, `dbg`, `diaguser`, `e2eprobe`,
+  `functional-gate`, `hprobe`, `p1`, `probe-local`, `signe2e`,
+  `teamchat-functional`) were already absent. One disabled, data-free
+  `admin` row remained and was removed (sessions/kv/files/shares/links/ai/
+  apps/hub all zero; verified before delete).
+- Cloud provider keys cleared: Kimi, Google, OpenRouter, Groq. The owner
+  re-enters them in Admin -> AI. Provider addresses and the chosen model
+  list are kept.
+- Ollama enabled (`enabled: true`, no key). `hubAiDefaultModel` was left at
+  `openrouter:deepseek/deepseek-v4.1-flash-1017` because the owner said cloud
+  stays the working default; until the key is re-entered CAD offers the local
+  Ollama models and hub apps answer `no_key`. To run hub apps fully locally
+  meanwhile, set Admin -> Hub default to `ollama:llama3.2:3b`.
+
+### Verification numbers this session
+
+- `npm test`: **663/663 pass** (52s), including the new Ollama fake-HTTP test.
+- Browser E2Es (real Chromium, isolated data dirs): app connections **12/12**,
+  folder consent **13/13**, AI stream failure **7/7**; results JSONs committed.
+- `node build-hub.mjs status`: 51 apps, **works 0, boots 1, untested 50,
+  does not 0**, built 51/51. This is the honest reading of current evidence:
+  the only fresh smoke record is `cap-table` (from the audit), and the Oct 24
+  functional evidence predates this wave's fixes. W4 regenerates both.
+- `git -C upstream status --porcelain`: empty; HEAD `e750f374` on `main`.
+
+### Open / next waves
+
+- **W2**: `puter.peer` LAN relay (chess/checkers/backgammon online, meetings
+  huddles, collab presence) and `puter.events` (teamchat live push); update
+  the README gap rows as each lands.
+- **W3**: engines fitting this CPU - tesseract OCR, Piper TTS, optional
+  whisper.cpp; Pyodide vendoring for 3d (M6); NHTSA offline message +
+  opt-in proxy (N1); image generation stays a documented cloud option (M3).
+- **W4**: minimal eslint, CI yaml, one verify-all runner, hosting checklist +
+  README/Ollama docs, a full functional-gate + smoke re-run to replace stale
+  evidence, a fresh-host isolated E2E, and the `verification/` report updated
+  (N2/N6 documented or closed; no open findings).
+
