@@ -1691,6 +1691,21 @@ puter.ai = {
     },
     request: function (permission, options) {
       var o = options || {};
+      if (permission === 'folder') {
+        // A folder grant is a consent moment like any other write outside the
+        // app's own folder (M8). Ask once, in this page, with the same closed
+        // shadow-root dialog as a Drive write: only a trusted Allow creates the
+        // revocable grant; Deny is a plain `false`.
+        return puter.perms.check('folder', o).then(function (already) {
+          if (already) return true;
+          return consentOverlay({ path: 'Documents', need: 'write' }).then(function (allowed) {
+            if (!allowed) return false;
+            return request('POST', '/perms/request', { permission: permission, app: APPNAME, options: o }).then(function (result) {
+              return result && result.granted ? (result.path || true) : false;
+            });
+          });
+        });
+      }
       return request('POST', '/perms/request', { permission: permission, app: APPNAME, options: o }).then(function (result) {
         return result && result.granted ? (result.path || true) : false;
       });

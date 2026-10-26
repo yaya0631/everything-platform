@@ -246,10 +246,10 @@ export function registerData(s) {
     const permission = typeof body.permission === 'string' ? body.permission : '';
     if (permission !== 'folder') return send(res, 200, { granted: false, permission, app });
     const docs = `/${user}/Documents`;
-    const grant = fsops.grant(user, app, docs, 'write', 'permission-request');
-    // No consent dialog on this path (an honest difference, README §11): the
-    // grant at least leaves an audit trail the person can check and revoke.
-    store.audit(user, 'hub.perms_auto_granted', { app, path: docs, perms: 'write', grant: grant.id });
+    const grant = fsops.grant(user, app, docs, 'write', 'consent');
+    // The shim asks first, with a trusted-user dialog (M8); this route is the
+    // grant step after an Allow. The audit trail stays revocable in Account.
+    store.audit(user, 'hub.perms_granted', { app, path: docs, perms: 'write', grant: grant.id });
     return send(res, 200, { granted: true, permission, app, path: docs, grant: grant.id });
   }, { guard: true });
 

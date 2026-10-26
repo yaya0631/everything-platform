@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-26T10:52:01.692Z",
+  "pass": true,
+  "steps": [
+    {
+      "step": "throwaway owner signs in",
+      "pass": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "step": "the shim is live on the fixture page",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "the folder request opens the trusted consent dialog",
+      "pass": true,
+      "detail": "{\"state\":\"pending\",\"app\":\"fixture\",\"path\":\"Documents\",\"need\":\"write\",\"aim\":\"442,340\",\"closed\":true}"
+    },
+    {
+      "step": "the dialog is closed to page script (no shadowRoot)",
+      "pass": true,
+      "detail": "{\"state\":\"pending\",\"app\":\"fixture\",\"path\":\"Documents\",\"need\":\"write\",\"aim\":\"442,340\",\"closed\":true}"
+    },
+    {
+      "step": "no silent auto-grant before a decision",
+      "pass": true,
+      "detail": "{\"state\":\"pending\"}"
+    },
+    {
+      "step": "perms.check agrees no grant exists yet",
+      "pass": true,
+      "detail": "false"
+    },
+    {
+      "step": "Deny resolves false",
+      "pass": true,
+      "detail": "{\"state\":\"resolved\",\"value\":false}"
+    },
+    {
+      "step": "the dialog closes after Deny",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "Deny created no grant",
+      "pass": true,
+      "detail": "false"
+    },
+    {
+      "step": "a second request asks again after a Deny",
+      "pass": true,
+      "detail": "{\"state\":\"pending\",\"app\":\"fixture\",\"path\":\"Documents\",\"need\":\"write\",\"aim\":\"534,340\",\"closed\":true}"
+    },
+    {
+      "step": "Allow resolves with the granted folder path",
+      "pass": true,
+      "detail": "{\"state\":\"resolved\",\"value\":\"/permse2e/Documents\"}"
+    },
+    {
+      "step": "Allow creates the grant",
+      "pass": true,
+      "detail": "true"
+    },
+    {
+      "step": "the grant is in the audit log",
+      "pass": true,
+      "detail": "{\"audit\":{\"actor\":\"permse2e\",\"detail\":\"{\\\"app\\\":\\\"fixture\\\",\\\"path\\\":\\\"/permse2e/Documents\\\",\\\"perms\\\":\\\"write\\\",\\\"grant\\\":\\\"867e4815-e6a6-4dd5-a6d8-8d9429fbf294\\\"}\"},\"detail\":{\"app\":\"fixture\",\"path\":\"/permse2e/Documents\",\"perms\":\"write\",\"grant\":\"867e4815-e6a6-4dd5-a6d8-8d9429fbf294\"}}"
+    }
+  ]
+}
