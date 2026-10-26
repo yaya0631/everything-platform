@@ -216,23 +216,23 @@ export function logMissed(user, app, model, err) {
 export const ENGINE_ERRORS = {
   txt2img: {
     code: 'engine_missing',
-    message: 'Local image generation is not enabled on this server. Install the image engine (Stable Diffusion, see README §engines) or pick an AI-capable model in Admin → AI; the call will then work.',
+    message: 'Image generation is cloud-only on this server. Set a provider:model in Admin → Hub → Engines (for example openai:gpt-image-1) and add that provider’s key in Admin → AI. No Stable Diffusion runs on this CPU.',
   },
   img2txt: {
     code: 'engine_missing',
-    message: 'Local OCR is not enabled on this server. Install the tesseract engine (see README §engines) to enable puter.ai.img2txt.',
+    message: 'Local OCR is not installed on this server. Run `npm run engines:install` in the platform folder (see README §engines), then reload. Admin → Hub → Engines shows the status.',
   },
   txt2speech: {
     code: 'engine_missing',
-    message: 'Local speech synthesis is not enabled on this server. Install the Piper engine (see README §engines) to enable puter.ai.txt2speech.',
+    message: 'Local speech synthesis is not installed on this server. Run `npm run engines:install` in the platform folder (see README §engines), then reload. Admin → Hub → Engines shows the status.',
   },
   speech2txt: {
     code: 'engine_missing',
-    message: 'Local speech-to-text is not enabled on this server. Install the whisper.cpp engine (see README §engines) to enable puter.ai.speech2txt.',
+    message: 'Local speech-to-text is optional and not installed on this server. Install whisper.cpp and a ggml model under data/engines/whisper (see README §engines).',
   },
   txt2vid: {
     code: 'engine_missing',
-    message: 'Text-to-video has no provider on this server (no external services allowed). Choose a provider in Admin → Hub, or use txt2img instead.',
+    message: 'Text-to-video has no provider on this server. Image generation is the documented cloud option; text-to-video is not configured. See README §engines.',
   },
 };
 

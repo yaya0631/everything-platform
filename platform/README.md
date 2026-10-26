@@ -244,6 +244,66 @@ Ollama listens on `127.0.0.1:11434` only, so nothing is exposed to the LAN;
 this server reaches it on the same machine. If it is stopped, **Test** and any
 chat answer with the named `ollama_down` error rather than hanging.
 
+### Local engines: OCR, speech, pictures
+
+The app-facing AI surface is wider than chat. Two engines run on this PC and
+never call the internet; the third is an explicitly configured cloud option.
+Nothing is downloaded at call time.
+
+```sh
+npm run engines:install       # one-time download, pinned SHA-256
+npm run engines:check         # what is installed, non-zero if missing
+```
+
+- **OCR (`puter.ai.img2txt`)** — Tesseract.js with a local
+  `data/engines/tesseract/eng.traineddata` (`eng` is the default) and a local
+  cache. Calls are serialized on the host; a 30 MB image cap applies. The
+  installer can add more traineddata languages:
+  `npm run engines:install -- --langs eng,fra`; a call may pass
+  `{ language: 'fra' }` or a combined `'eng+fra'` when those files exist.
+  Admin → Hub → Engines shows the installed languages and a working/missing
+  status.
+- **Speech (`puter.ai.txt2speech`)** — Piper with the
+  `en_US-ljspeech-medium` voice (trained on the public-domain LJSpeech
+  dataset). Text is capped at 5,000 characters, goes to
+  Piper's stdin (never a shell command line), and comes back as a real WAV
+  served as an `<audio>` element with a blob URL. The default voice is English;
+  another Piper voice can be added under `data/engines/piper` and selected with
+  `hubPiperModel` as an advanced host-side change.
+- **Pictures (`puter.ai.txt2img`)** — **cloud-only** and off by default. Set
+  `provider:model` in Admin → Hub → Engines (for example
+  `openai:gpt-image-1`) and add that provider's key in Admin → AI, and only then
+  are prompts sent to that provider. There is no Stable Diffusion or other
+  local image model on this CPU. `txt2vid` and `speech2txt` remain named
+  `engine_missing` errors: this server ships no text-to-video provider, and
+  whisper.cpp speech-to-text is an optional engine that is not installed by
+  default.
+- **Admin → Hub → Engines** also has the on/off switches. Turning an installed
+  engine off makes calls fail with `engine_disabled`, not a fake answer. The
+  **Admin → Hub → Vehicle lookups** switch is separate (see below).
+
+Engine licenses: Tesseract.js and the `tessdata_fast` `eng` data are
+Apache-2.0; Piper is MIT; the bundled `en_US-ljspeech-medium` voice is trained
+on the public-domain LJSpeech dataset. The files stay in gitignored
+`data/engines`; keep their notices with them if you move the install.
+
+### Python in the 3d app, and vehicle lookups in fleet
+
+- **Pyodide (3d).** The 3d app's Python console loads Pyodide 314.0.7 from
+  `vendor/pyodide/`, served to signed-in sessions at `/hub/pyodide/`. The
+  jsDelivr URL in the built bundle is rewritten at serve time, and the 3d CSP
+  adds `wasm-unsafe-eval` (that app only). The runtime works offline.
+  `node pyodide-e2e.mjs` proves a signed-in browser loads it and runs
+  `6 * 7` / a JSON round-trip with no runtime request leaving the hub.
+- **NHTSA (fleet).** VIN decoding and recall checks are **off by default**. The
+  fleet build is rewritten to same-origin `/hub/nhtsa/...` paths; with the
+  switch off they answer 503 and the app shows a short offline message instead
+  of reaching the internet. **Admin → Hub → Vehicle lookups** turns on a
+  fixed proxy for exactly two upstreams (NHTSA vPIC and NHTSA recalls), with a
+  signed-in session, a 30/minute limit, an 8 s timeout and a 2 MB cap. While
+  it is on, a VIN or year/make/model leaves this machine; only enable it if
+  that is acceptable.
+
 Inside the CAD app, open the **Assistant** panel (or run `ASSISTANT`, alias `AI`). It can look at the drawing and edit it: info, find, add, update, delete, transform (move/rotate/scale/mirror/copy), layers, select and zoom. All edits in one reply are a single undo step; locked layers are respected; in live drawings the edits sync like any other edits. Every call is logged in `ai_usage`, and Admin → AI shows totals per person, model and day with CSV export. There are no usage caps.
 
 ## 9. Email
@@ -292,6 +352,8 @@ Install rules: setup-time only, always `npm ci --ignore-scripts` (or `npm instal
 **Serve-time rewriting** (all of it provable, none of it in the app's source):
 
 - `https://js.puter.com/v2/…` script tags — and the same URL built into app bundles (chess, checkers, backgammon and 3d load Puter from their own code) — become `/hub/puter.js`, the local shim.
+- The 3d bundle's `https://cdn.jsdelivr.net/pyodide/v…/full/` runtime URL becomes `/hub/pyodide/`, the vendored Pyodide core (MPL-2.0, version pinned in `vendor/pyodide/README.md`). No CDN request leaves the page.
+- Fleet's `vpic.nhtsa.dot.gov` and `api.nhtsa.gov` calls become `/hub/nhtsa/vpic/…` and `/hub/nhtsa/recalls`; the opt-in proxy is off unless the owner enables it, and the app's "could not reach" strings are rewritten to say how to enable it.
 - External `<script src>` (Plausible analytics in 8 apps, CDN bundles) and external `<link>` (canonical, preconnect, CDN stylesheets) are stripped and logged; the Admin → Hub **Scan** button lists every external URL a build contains, so nothing is hidden.
 - PWA manifests with absolute paths (`start_url`, icon srcs) get the `/h/<name>/` prefix; vite `--base` is forced the same way for apps without relative paths.
 - Apps that call `puter.*` anywhere still only ever talk to this server (same origin, `connect-src 'self'`). Signatures also calls the admin-configured guest listener while preparing signing links; only that app's CSP adds the configured guest origin, read from Admin -> Server settings.
@@ -303,6 +365,7 @@ Install rules: setup-time only, always `npm ci --ignore-scripts` (or `npm instal
 - **`puter.fs`** — read, write, mkdir, readdir, stat, delete, rename, move, copy, space, getReadURL, upload. Relative paths resolve into the app's **own data folder**; rooted paths (`/`, `~`, `/<your own username>/…`) are aliases of your Drive — for details see *Where app data lives* below.
 - **`puter.kv`** — get, set, del, list, add, incr, decr, update, expire, expireAt, flush, with the same key (1024 B) and value size (399 KiB) limits the SDK documents, including `MAX_KEY_SIZE`/`MAX_VALUE_SIZE`.
 - **`puter.ai.chat`** — all call shapes (prompt string, string + media, messages array, options with `stream`/`model`/`temperature`/`max_tokens`, image blocks with data URIs), streamed chunk shapes included. It answers from this server's own AI providers (Admin → AI); cloud model names are aliases configured there. **Every hosted app gets the same AI surface the CAD assistant uses** — measured per app in the generic functional gate (`ai=true`; the gate points `hubAiDefaultModel` at its test provider, CAD's own adapter resolves the same provider ids directly), so "AI works" is no longer a CAD-only property.
+- **`puter.ai.img2txt` / `txt2speech` / `txt2img` / `speech2txt` / `txt2vid`** — local OCR and speech, optional cloud pictures, and named errors for the rest; see *Local engines* above for the exact install, limits and cloud opt-in. Return shapes match the SDK: OCR resolves text (or a `{ text }` result in the current shim), speech resolves an `<audio>` element, pictures resolve an image element only when the owner configured a cloud image provider.
 - **`puter.ui`** — open/save file pickers (an inline overlay on the app page, no popups, no external assets, cancel resolves undefined exactly like the SDK), the alert/prompt dialogs, window-title handling and the `onLaunchedWithItems` no-ops carried in the gap ledger below.
 - **Drive consent** — a mutating `puter.fs` call on a Drive path this app has no grant for opens the in-page consent overlay (Allow/Deny, the wording names the app and the folder); Allow stores a revocable grant and retries once. See *Where app data lives*.
 - **`puter.peer`** — `serve()`, `connect(code)`, invite codes, a server-relayed data channel, the exposed `RTCPeerConnection`, and three fixed media slots (0 audio, 1 camera, 2 screen) with `publish`/`unpublish` and `media`/`mediaended` events. A signed-in host can mint a one-hour guest grant (`createGuestGrant()`); anonymous invitees then join without an account. **LAN/private-listener only** — there is no STUN/TURN or Puter cloud rendezvous, so both people must be able to reach this server (same LAN or Tailscale). Media is direct browser-to-browser; the relay never sees it.
@@ -369,7 +432,7 @@ Nothing here: everything an installed app asks for is answered, and where the an
 | --- | --- | --- | --- |
 | `ui.onLaunchedWithItems` / `ui.onItemsOpened` never fire | cad, building-design, pdf, records | no-op; the app runs without the "opened from the file manager" path | Windows shell integration phase |
 | Window management beyond the pickers (`ui.launchApp`, picture-in-picture) | meetings | named "not yet" error when called | desktop-shell phase |
-| Generative engines (`txt2img`, `img2txt`, `txt2speech`, `speech2txt`, `txt2vid`) | presentation+ (only if an app calls them; none of the 23 do) | `engine_missing` with the exact engine to install | see *Engines* |
+| Generative engines (`txt2img`, `img2txt`, `txt2speech`, `speech2txt`, `txt2vid`) | apps that call them: expense/contracts (OCR), documents/video-studio/audio-studio (speech), documents/video-studio/photo-studio/vector-studio (pictures), video-studio (video/transcription) | OCR and speech run locally when installed; `txt2img` works only after the owner configures a cloud image provider; `txt2vid` and `speech2txt` are named `engine_missing` errors (no local video model; whisper.cpp optional and not installed) | see *Local engines* |
 | Sharing files to other people / email from hub apps | none of the 23 | named "managed in the CAD app" error | hosted-apps sharing phase |
 | `puter.peer` beyond the LAN (NAT/TURN) | chess, checkers, backgammon online; meetings | works while both people can reach this server (same LAN or Tailscale); the relay is server-side and media is direct WebRTC with no STUN/TURN, so an internet/Funnel path is not offered | run a TURN service and extend the peer configuration (not implemented) |
 | Cross-person `puter.events` / shared-data events | none of the 23 | events cover only the signed-in person's own KV/fs; a subscription to another person's data has no share to name | hosted-apps sharing phase |
@@ -432,9 +495,11 @@ Where the older survey was wrong, for the record:
 
 ### How any of this is verified
 
-- `npm test` — **667 checks** over the data layer and the worker runtime, end to end (fs sandbox/Drive paths and grants incl. the consent request shape, kv contract incl. the `list` prefix semantics, AI chat shapes, import/export; peer relay/grants/events incl. cross-app isolation; Phase-3 worker registry/pool/limits incl. the network-bypass and env-hop tests; repo ASCII hygiene).
+- `npm test` - **681 checks** over the data layer and the worker runtime, end to end (fs sandbox/Drive paths and grants incl. the consent request shape, kv contract incl. the `list` prefix semantics, AI chat shapes, local engine adapters incl. real OCR/Piper and a fake cloud image provider, import/export; peer relay/grants/events incl. cross-app isolation; Phase-3 worker registry/pool/limits incl. the network-bypass and env-hop tests; repo ASCII hygiene).
 - `node peer-e2e.mjs` — **18/18** real-Chromium steps against a throwaway hub: two contexts mint and join an invite, relay messages both ways, both receive live audio and video RTP over the direct WebRTC link (three transceivers), the host publishes screen on slot 2 with the one renegotiation it needs, unpublish ends streams on the other side, a second tab of the same person receives a KV event with its value, the other person's write is not delivered, and a dead invite rejects with `invalid_invite`. Evidence: `peer-e2e-results.json`.
-- `node chess-online-e2e.mjs` — **8/8** real-Chromium steps against the installed chess build: two people sign in, one creates an online game, the other joins with the code, both reach playing, the handshake names the opponent, a move each way reaches the other board (`1. e4 e5` on both), and neither page throws. Evidence: `chess-online-results.json`.
+- `node chess-online-e2e.mjs` - **8/8** real-Chromium steps against the installed chess build: two people sign in, one creates an online game, the other joins with the code, both reach playing, the handshake names the opponent, a move each way reaches the other board (`1. e4 e5` on both), and neither page throws. Evidence: `chess-online-results.json`.
+- `node engine-e2e.mjs` - **9/9** real-Chromium steps against a throwaway hub: the shim reads the local OCR fixture and returns a playable Piper WAV, `txt2img`/`txt2vid` reject with their documented messages, and the same OCR and speech calls succeed from two **real built apps** (expense and audio-studio) under their own CSP. Needs `data/engines` installed. Evidence: `engine-e2e-results.json`.
+- `node pyodide-e2e.mjs` - **8/8** real-Chromium steps against the installed 3d build: the served bundle points at `/hub/pyodide/`, a signed-in page loads the vendored Pyodide 314.0.7 (Python 3.14.2), runs `6 * 7` and a JSON round-trip, and no runtime request leaves the hub origin. Evidence: `pyodide-e2e-results.json`.
 - `node smoke-hub.mjs` — **35/35 smoke checks, HTTP-only**: it exercises the server's endpoints (accounts, fs, kv, grants, statics, CSP headers) over plain requests. No app is ever opened in it, so it proves the backend contract, not what an app renders.
 - `node browser-smoke.mjs` — real Chrome against the real server, which is where app-side truth lives:
   - **pass A (loads):** every installed app is opened through the shim; all 23 render, and a navigation that never settles is a **failure** unless the app is on the measured long-poll list below. Per-app numbers from the last full run (SW guard on):
@@ -611,7 +676,12 @@ documented above as a kept, deliberate difference.
 
 ### Engines (puter.ai's generative calls)
 
-`puter.ai.txt2img / img2txt / txt2speech / speech2txt` answer honestly (`engine_missing`, with the message naming what to install) until the matching local engine is switched on in Admin → Hub. No external service is ever called: the engines themselves are the local install (Stable Diffusion for images, tesseract for OCR, Piper for speech, whisper.cpp for speech-to-text), each wired into the same no-external-calls rule. Until then the 23 easy-tier apps do not call any of them.
+`puter.ai.img2txt` and `txt2speech` run locally once the engines are installed
+(see *Local engines*); `txt2img` is a cloud-only option the owner must configure;
+`speech2txt` (optional whisper.cpp) and `txt2vid` answer with named
+`engine_missing` errors instead of pretending. No external service is called
+unless the owner turns on the cloud image provider or the separate NHTSA
+vehicle-lookup proxy.
 
 ### Known honest differences (Phases 1–2)
 

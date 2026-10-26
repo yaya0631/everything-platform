@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS, EXTERNAL_EMBED_SOURCES, applyAppJsRules, APP_JS_RULES } from '../lib/hub-rewrite.js';
+import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS, EXTERNAL_EMBED_SOURCES, applyAppJsRules, APP_JS_RULES, rewriteJs } from '../lib/hub-rewrite.js';
 
 test('the rule counter measures the real built dists (all rules match today)', () => {
   const counts = countRuleHits(path.join('data', 'hub', 'apps'));
@@ -84,4 +84,39 @@ test('zeroMatchVerdict: a dist matching nothing fails unless the rule was retire
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('M6: the 3d bundle\'s Pyodide CDN URL is rewritten to the vendored runtime', () => {
+  const bundle = 'let aw=`https://cdn.jsdelivr.net/pyodide/v${iw}/full/`, load=()=>import(`${aw}pyodide.mjs`); const pin="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.asm.wasm";';
+  const out = rewriteJs(bundle, { name: '3d' }).text;
+  assert.match(out, /aw=`\/hub\/pyodide\/`/);
+  assert.match(out, /import\(`\$\{aw\}pyodide\.mjs`\)/);
+  assert.match(out, /\/hub\/pyodide\/pyodide\.asm\.wasm/);
+  assert.doesNotMatch(out, /cdn\.jsdelivr\.net\/pyodide/, out);
+});
+
+test('M6: 3d may compile the vendored wasm; no external script origin is allowed', () => {
+  const csp = cspHeader({ extras: CSP_SCRIPT_EXTRAS['3d'] });
+  assert.match(csp, /script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'/);
+  assert.doesNotMatch(csp, /cdn\.jsdelivr|https:\/\/cdn\./);
+});
+
+test('fleet NHTSA lookups point at the opt-in proxy and keep an honest offline message', () => {
+  const src = [
+    'const K="https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/",M="https://api.nhtsa.gov/recalls/recallsByVehicle";',
+    'throw new Error("The VIN lookup service could not be reached. Check your connection.");',
+    'throw new Error("The VIN lookup service did not answer. Try again later.");',
+    'throw new Error("The recall service could not be reached. Check your connection.");',
+    'throw new Error("The recall service did not answer. Try again later.");',
+  ].join('\n');
+  const out = applyAppJsRules(src, 'fleet');
+  assert.deepEqual(out.missed, []);
+  assert.equal(out.applied.length, APP_JS_RULES.fleet.length);
+  assert.ok(out.text.includes('"/hub/nhtsa/vpic/"'));
+  assert.ok(out.text.includes('"/hub/nhtsa/recalls"'));
+  assert.ok(!out.text.includes('vpic.nhtsa.dot.gov'));
+  assert.ok(!out.text.includes('api.nhtsa.gov'));
+  assert.match(out.text, /Vehicle lookups are unavailable on this server/);
+  assert.match(out.text, /Recall lookups are unavailable on this server/);
+  assert.match(out.text, /Admin → Hub/);
 });

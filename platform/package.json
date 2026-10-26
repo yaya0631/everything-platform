@@ -8,6 +8,10 @@
     "setup": "npm install && npm --prefix ../upstream/src/cad install && npm --prefix ../upstream/src/cad run build",
     "build": "npm --prefix ../upstream/src/cad run build",
     "start": "node server.js",
+    "engines:install": "node engines/install.mjs",
+    "engines:check": "node engines/install.mjs --check",
+    "e2e:engines": "node engine-e2e.mjs",
+    "e2e:pyodide": "node pyodide-e2e.mjs",
     "user": "node users.js",
     "app": "node apps.js",
     "hub": "node hub.js",
@@ -15,6 +19,7 @@
   },
   "dependencies": {
     "nodemailer": "^10.1.7",
+    "tesseract.js": "^7.0.0",
     "ws": "^8.18.0"
   },
   "engines": {

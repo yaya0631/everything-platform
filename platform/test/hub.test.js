@@ -6,10 +6,12 @@ import test from 'node:test';
 import { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import path from 'node:path';
 import { start, cleanup, client } from './helpers.js';
 import * as hub from '../lib/hub.js';
 import * as store from '../lib/store.js';
+import * as config from '../lib/config.js';
 
 const FIXTURE = 'test/fixtures/hub/fixture-dist';
 const SHA40 = (c) => c.repeat(40);
@@ -302,6 +304,109 @@ test('Admin to Hub: hub AI settings save the default model and alias map', async
   assert.equal(clear.status, 200);
   const after = await a.get('hub/ai-settings');
   assert.equal(after.body.defaultModel, '');
+});
+
+test('M6: vendored Pyodide is served only to signed-in sessions', async () => {
+  const a = await asAdmin();
+  const entry = await a.call('GET', '/hub/pyodide/pyodide.mjs', { raw: true });
+  assert.equal(entry.status, 200);
+  assert.match(entry.headers.get('content-type'), /javascript/);
+  assert.match(entry.headers.get('cache-control'), /private/);
+  assert.match(await entry.text(), /loadPyodide/);
+
+  const wasm = await a.call('HEAD', '/hub/pyodide/pyodide.asm.wasm', { raw: true });
+  assert.equal(wasm.status, 200);
+  assert.equal(wasm.headers.get('content-type'), 'application/wasm');
+  assert.ok(Number(wasm.headers.get('content-length')) > 9_000_000);
+
+  const lock = await a.call('GET', '/hub/pyodide/pyodide-lock.json', { raw: true });
+  assert.equal(lock.status, 200);
+  assert.ok(JSON.parse(await lock.text()).info);
+
+  assert.equal((await a.call('GET', '/hub/pyodide/secret.txt', { raw: true })).status, 404);
+  const anon = client(running.base);
+  assert.equal((await anon.call('GET', '/hub/pyodide/pyodide.mjs', { raw: true })).status, 401);
+});
+
+test('fleet NHTSA lookups stay offline until the owner opts in, then reach only the fixed proxy', async () => {
+  const a = await asAdmin();
+  const gate = await a.get('hub/nhtsa');
+  assert.equal(gate.status, 200);
+  assert.equal(gate.body.enabled, false);
+
+  const offline = await a.call('GET', '/hub/nhtsa/vpic/1HGCM82633A004352');
+  assert.equal(offline.status, 503);
+  assert.equal(offline.body.code, 'nhtsa_offline');
+  assert.match(offline.body.message, /offline|Admin/);
+  assert.equal((await a.call('GET', '/hub/nhtsa/recalls?make=Honda&model=Civic&modelYear=2020')).status, 503);
+
+  const seen = [];
+  const upstream = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://upstream.test');
+    seen.push(`${u.pathname}${u.search}`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(u.pathname.startsWith('/vpic/')
+      ? { Results: [{ Make: 'HONDA', Model: 'Civic' }] }
+      : { results: [] }));
+  });
+  await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+  const port = upstream.address().port;
+  const saved = {
+    proxy: config.get('hubNhtsaProxy'),
+    vpic: config.get('hubNhtsaVpicBase'),
+    recalls: config.get('hubNhtsaRecallsBase'),
+  };
+  try {
+    config.set('hubNhtsaVpicBase', `http://127.0.0.1:${port}/vpic/`);
+    config.set('hubNhtsaRecallsBase', `http://127.0.0.1:${port}/recalls`);
+    const put = await a.call('PUT', 'hub/nhtsa', { json: { enabled: true } });
+    assert.equal(put.status, 200);
+    assert.equal((await a.get('hub/nhtsa')).body.enabled, true);
+
+    const vin = await a.call('GET', '/hub/nhtsa/vpic/1HGCM82633A004352');
+    assert.equal(vin.status, 200);
+    assert.equal(vin.body.Results[0].Make, 'HONDA');
+    const recalls = await a.call('GET', '/hub/nhtsa/recalls?make=Honda&model=Civic&modelYear=2020');
+    assert.equal(recalls.status, 200);
+    assert.deepEqual(recalls.body.results, []);
+    assert.ok(seen.includes('/vpic/1HGCM82633A004352?format=json'), JSON.stringify(seen));
+    assert.ok(seen.includes('/recalls?make=Honda&model=Civic&modelYear=2020'), JSON.stringify(seen));
+
+    const before = seen.length;
+    assert.equal((await a.call('GET', '/hub/nhtsa/recalls?make=Honda')).status, 400);
+    assert.equal((await a.call('GET', '/hub/nhtsa/vpic/not-a-vin!')).status, 400);
+    assert.equal((await a.call('GET', '/hub/nhtsa/unknown')).status, 404);
+    assert.equal(seen.length, before, 'invalid requests never reach NHTSA');
+  } finally {
+    await new Promise((resolve) => upstream.close(resolve));
+    config.set('hubNhtsaProxy', saved.proxy ?? null);
+    config.set('hubNhtsaVpicBase', saved.vpic ?? null);
+    config.set('hubNhtsaRecallsBase', saved.recalls ?? null);
+  }
+});
+
+test('Admin to Hub: local engine settings are visible, editable and validated', async () => {
+  const a = await asAdmin();
+  const first = await a.get('hub/engines');
+  assert.equal(first.status, 200);
+  assert.equal(typeof first.body.ocr.available, 'boolean');
+  assert.equal(typeof first.body.tts.available, 'boolean');
+  assert.match(first.body.image.hint, /cloud-only/);
+
+  const put = await a.call('PUT', 'hub/engines', { json: { ocrEnabled: false, ttsEnabled: false, imageModel: 'openai:gpt-image-1' } });
+  assert.equal(put.status, 200);
+  const off = await a.get('hub/engines');
+  assert.equal(off.body.settings.ocrEnabled, false);
+  assert.equal(off.body.settings.ttsEnabled, false);
+  assert.equal(off.body.settings.imageModel, 'openai:gpt-image-1');
+
+  const bad = await a.call('PUT', 'hub/engines', { json: { imageModel: 'not-a-provider-model' } });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.body.code, 'bad_image_model');
+
+  const reset = await a.call('PUT', 'hub/engines', { json: { ocrEnabled: true, ttsEnabled: true, imageModel: '' } });
+  assert.equal(reset.status, 200);
+  assert.equal((await a.get('hub/engines')).body.settings.imageModel, '');
 });
 
 test('external embeds are closed by default and open through one admin setting (m4)', async () => {

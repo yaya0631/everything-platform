@@ -23,6 +23,13 @@ const PUTER_TEMPLATE = /^https?:\/\/js\.puter\.com\//;
 /** js.puter.com URLs inside HTML attr values or JS strings. */
 const PUTER_BODY_RE = /https?:\/\/js\.puter\.com\/[^\s"'`()<>{}\\]*/g;
 
+/**
+ * Pyodide used to be fetched from jsDelivr by the 3d bundle. The release is now
+ * vendored under /hub/pyodide (same version the app pins); rewrite both the
+ * literal URL and the bundle's `v${version}/full/` template in one pass.
+ */
+const PYODIDE_CDN_RE = /https:\/\/cdn\.jsdelivr\.net\/pyodide\/v(?:\$\{[^}]+\}|[^/'"`\s]+)\/full\//g;
+
 const escapeAttr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 /** Replace a URL with a local path, keeping at least the shim's path. */
@@ -105,6 +112,11 @@ export function rewriteHtml(html, { name } = {}) {
     return tag;
   });
 
+  // Same local-runtime rule for an app that inlines its bundle (the 3d build
+  // keeps the URL in a module, covered by rewriteJs, but the HTML pass stays
+  // symmetric for future builds).
+  out = out.replace(PYODIDE_CDN_RE, '/hub/pyodide/');
+
   return { html: out, hashes, stripped };
 }
 
@@ -144,6 +156,8 @@ export function rewriteJs(text, { name } = {}) {
       (m, pre, q, file) => (`${pre}${q}${prefix}${file}${q}`),
     );
   }
+  // Pyodide is vendored and gated behind /hub/pyodide/ (same origin, no CDN).
+  out = out.replace(PYODIDE_CDN_RE, '/hub/pyodide/');
   return { text: out, urls };
 }
 
@@ -158,7 +172,7 @@ export function rewriteJs(text, { name } = {}) {
  * Every other app runs with script-src 'self'.
  */
 export const CSP_SCRIPT_EXTRAS = {
-  '3d': ["'unsafe-eval'"],
+  '3d': ["'unsafe-eval'", "'wasm-unsafe-eval'"],
   'audio-studio': ["'wasm-unsafe-eval'"],
   'parametric': ["'wasm-unsafe-eval'", "'unsafe-eval'"],
   'photo-studio': ["'wasm-unsafe-eval'"],
@@ -225,7 +239,9 @@ export function cspHeader({ hashes = [], extras = [], connectExtras = [], frameE
     "default-src 'self'",
     `script-src ${script.join(' ')}`,
     "style-src 'self' 'unsafe-inline'",
-    `connect-src ${connect.join(' ')}`,
+    // blob: is local engine output (speech); apps fetch the audio Blob to
+    // import it. It is not a network origin, so the strict CSP stays intact.
+    `connect-src ${[...connect, 'blob:'].filter((v, i, a) => a.indexOf(v) === i).join(' ')}`,
     "font-src 'self' data:",
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
@@ -516,6 +532,43 @@ export const APP_JS_RULES = {
       replacement: '"/h/photo-studio/worker/photo-studio-worker.js"',
     },
   ],
+  fleet: [
+    {
+      name: 'fleet-vpic-local',
+      // vPIC is an external US-government API. The app's VIN decode button
+      // must not reach it directly (strict CSP, and the home server must stay
+      // offline by default). The server's opt-in proxy owns egress instead.
+      old: '"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/"',
+      replacement: '"/hub/nhtsa/vpic/"',
+    },
+    {
+      name: 'fleet-recalls-local',
+      // Same for the recalls lookup; the proxy validates the query and only
+      // accepts make/model/modelYear.
+      old: '"https://api.nhtsa.gov/recalls/recallsByVehicle"',
+      replacement: '"/hub/nhtsa/recalls"',
+    },
+    {
+      name: 'fleet-vin-offline-unreachable',
+      old: '"The VIN lookup service could not be reached. Check your connection."',
+      replacement: '"Vehicle lookups are unavailable on this server. The owner can enable the NHTSA proxy in Admin → Hub."',
+    },
+    {
+      name: 'fleet-vin-offline-answer',
+      old: '"The VIN lookup service did not answer. Try again later."',
+      replacement: '"Vehicle lookups are unavailable on this server. The owner can enable the NHTSA proxy in Admin → Hub."',
+    },
+    {
+      name: 'fleet-recall-offline-unreachable',
+      old: '"The recall service could not be reached. Check your connection."',
+      replacement: '"Recall lookups are unavailable on this server. The owner can enable the NHTSA proxy in Admin → Hub."',
+    },
+    {
+      name: 'fleet-recall-offline-answer',
+      old: '"The recall service did not answer. Try again later."',
+      replacement: '"Recall lookups are unavailable on this server. The owner can enable the NHTSA proxy in Admin → Hub."',
+    },
+  ],
 };
 
 const SIGN_WORKER_PDF_READ = `const blob = await ownerOf(ctx).puter.fs.read(path);
@@ -605,6 +658,14 @@ export const REWRITE_RULES = [
   {
     name: 'photo-worker-path',
     hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES['photo-studio'][0].old),
+  },
+  {
+    name: 'fleet-nhtsa-local',
+    hits: (text, file) => TEXT_FILE.test(file) && APP_JS_RULES.fleet.slice(0, 2).some((r) => text.includes(r.old)),
+  },
+  {
+    name: 'fleet-nhtsa-offline',
+    hits: (text, file) => TEXT_FILE.test(file) && APP_JS_RULES.fleet.slice(2).some((r) => text.includes(r.old)),
   },
 ];
 

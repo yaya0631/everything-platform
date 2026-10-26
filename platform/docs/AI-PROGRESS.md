@@ -1005,3 +1005,86 @@ acceptance).
   evidence, a fresh-host isolated E2E, and the `verification/` report updated
   (N2/N6 documented or closed; no open findings).
 
+## Session 11 - 2026-10-26 - W3 engines/offline wave: local OCR and speech, vendored Python, opt-in NHTSA
+
+Owner scope: everything the audit flagged, in waves. This session is **W3
+(local engines + offline/opt-in services)**. W1 is in Session 9, W2 in Session
+10; W4 follows.
+
+### DONE
+
+- **Local OCR** (`lib/hub-engines.js`): Tesseract.js 7 with a pinned local
+  `tessdata_fast/eng.traineddata` and a local cache. `puter.ai.img2txt` goes
+  through the authenticated `/api/hub/engine/ocr` route; calls are serialized,
+  images are capped at 30 MB, and a missing engine fails with
+  `engine_missing`/`engine_disabled`, never fabricated text. The browser
+  acceptance read `LOCAL OCR WORKS` from the real fixture.
+- **Local speech** (`lib/hub-engines.js`): Piper 2023.11.14-2 with the
+  `en_US-ljspeech-medium` voice (public-domain LJSpeech dataset; the earlier
+  candidate voice trained on a research-only dataset was replaced before
+  release). Text is capped at 5,000 characters and written to Piper's stdin,
+  never a shell command line. The shim resolves a real blob-backed `<audio>`
+  whose bytes start `RIFF`; the test reads a WAV of ~100 KB.
+- **Engine install/check**: `engines/install.mjs`,
+  `npm run engines:install`, `npm run engines:check`. Every download is pinned
+  by SHA-256; the binaries stay in gitignored `data/engines`. The installer was
+  re-run against the pinned ljspeech voice and `engines:check` reports
+  `OCR: ready (eng)` / `Speech: ready (en_US-ljspeech-medium)`. A fresh host
+  with no files still fails honestly with the install hint.
+- **Cloud images only** (`lib/hub-engines.js`, Admin → Hub → Engines): no
+  Stable Diffusion on this CPU. `txt2img` uses an OpenAI-compatible
+  `/images/generations` endpoint only when the owner sets a `provider:model`
+  and the provider key exists. `txt2vid` is explicitly unsupported (501), and
+  optional whisper.cpp is a named 501 rather than a pretend transcript.
+- **Pyodide vendored** (`platform/vendor/pyodide/`, `platform/lib/hub*.js`):
+  Pyodide `314.0.7` (Python `3.14.2`) is served from the authenticated,
+  allowlisted `/hub/pyodide/` route; the 3d bundle's executable CDN URL is
+  rewritten at serve time. The 3d CSP gains `'wasm-unsafe-eval'` only there.
+  The acceptance ran `6 * 7` and a JSON round-trip with no runtime request
+  leaving the hub origin. MPL-2.0/PSF notice and `LICENSE` travel with the
+  vendored files.
+- **NHTSA / fleet** (`lib/hub.js`, `lib/hub-rewrite.js`, Admin → Hub → Vehicle
+  lookups): off by default (`hubNhtsaProxy=false`). When on, the fleet build's
+  vPIC decode and recall calls are rewritten to authenticated same-origin
+  `/hub/nhtsa/vpic/<vin>` and `/hub/nhtsa/recalls`; the upstreams are fixed by
+  the host (test seams only), with 30 requests/min, an 8 s timeout and a 2 MB
+  response cap. When off they answer 503 `nhtsa_offline`; the served app has
+  the short offline message. No VIN is logged (audit kind/status only).
+- **Admin/UI and shim**: engine status/consent routes, engine on/off switches,
+  the cloud image model field, the NHTSA opt-in, and the `puter.ai` adapters
+  are wired through the real shim. `puter.ai` returns the documented shapes,
+  including `engine_missing` for unsupported kinds.
+- **Docs**: README §Local engines, Pyodide/NHTSA rationale, the serve-time
+  rewrite rule, license notes, the gap ledger, and the E2E commands/counts.
+- **Verification**:
+  - `npm test`: **681/681 pass** (includes real OCR, real Piper, fake Piper,
+    fake cloud image provider, Pyodide route/rewrite, NHTSA route/rewrite).
+  - `node engine-e2e.mjs`: **9/9** Chrome steps, including OCR and speech from
+    two **real built apps** (expense and audio-studio) under their own CSP.
+  - `node pyodide-e2e.mjs`: **8/8** Chrome steps against the installed 3d
+    bundle.
+  - `node --test test/engines.test.js`: **8/8**.
+  - Evidence: `engine-e2e-results.json`, `pyodide-e2e-results.json`.
+
+### PENDING (W4)
+
+- Full functional gate + browser smoke against the installed apps, to replace
+  the stale 23-app evidence and settle the app status vocabulary.
+- Fresh-host isolated E2E, minimal eslint, CI, one verify-all runner and the
+  hosting checklist.
+- Full fleet UI click-through (route and rewrite are tested now; the UI flow
+  belongs in the W4 app acceptance) and the final live-server restart.
+- `verification/REPORT.md` re-verification: no open findings.
+
+### W3 limits (documented, not hidden)
+
+- Image generation and text-to-video have no local engine; images are the
+  documented cloud option, video is a named 501.
+- Whisper is an optional stub: the route is honest (501) rather than enabled.
+- Piper ships English; another voice is a host-side change (`hubPiperModel`).
+- The engine binaries and Pyodide runtime are large. Engines live in gitignored
+  `data/engines`; Pyodide is vendored in git, so a checkout does not download
+  it.
+- NHTSA needs the internet **only when the owner opts in**; otherwise the
+  fleet app stays on its offline message.
+

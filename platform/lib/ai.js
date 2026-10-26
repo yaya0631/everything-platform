@@ -55,6 +55,11 @@ function providerSettings(id) {
   return { ...def, id, apiKey: s.apiKey || '', baseUrl: String(s.baseUrl || def.baseUrl).replace(/\/+$/, ''), enabled: id === 'ollama' ? !!s.enabled : !!s.apiKey };
 }
 
+/** Read-only provider view for optional local/cloud engines (image generation). */
+export function providerFor(id) {
+  return providerSettings(id);
+}
+
 /** The test provider's answer: a canned echo, chunked like a real stream. */
 async function runTest(_provider, _model, req, capture) {
   const lastUser = [...req.messages].reverse().find((m) => m.role === 'user');

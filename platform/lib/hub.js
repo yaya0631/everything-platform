@@ -29,14 +29,28 @@ import * as store from './store.js';
 import * as config from './config.js';
 import * as rewrite from './hub-rewrite.js';
 import * as fsops from './hub-fsops.js';
+import * as hubEngines from './hub-engines.js';
 import { registerData } from './hub-data.js';
 import { shimSource, shimCss, workerUrlMapSource } from './hub-shim.js';
-import { HUB_DIR } from './paths.js';
+import { HUB_DIR, ROOT } from './paths.js';
 import { HttpError, send, sendHtml, serveStatic, readJSONBody, escapeHtml, messagePage, requestOrigin, rateLimit, clientIp } from './http.js';
 
 const APPS_DIR = path.join(HUB_DIR, 'apps');
 const ICONS_DIR = path.join(HUB_DIR, 'icons');
 const NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
+
+/** Vendored Pyodide core (MPL-2.0); the 3d bundle's jsDelivr URL is rewritten
+ * to /hub/pyodide/ at serve time. Only these files are reachable, and only to
+ * a signed-in session, so the app works offline without exposing the vendor
+ * folder as a general file server. */
+const PYODIDE_DIR = path.join(ROOT, 'vendor', 'pyodide');
+const PYODIDE_FILES = new Set([
+  'pyodide.mjs',
+  'pyodide.asm.mjs',
+  'pyodide.asm.wasm',
+  'python_stdlib.zip',
+  'pyodide-lock.json',
+]);
 
 const appDir = (name) => path.join(APPS_DIR, name);
 const iconFile = (name) => path.join(ICONS_DIR, `${name}.png`);
@@ -429,6 +443,127 @@ async function serveAppPublicFile(req, res, p) {
 }
 
 /**
+ * Serve the vendored Pyodide core to a signed-in session. The allowlist is
+ * deliberate: this is a runtime mount, not a second general file server.
+ * fetch/dynamic-import from an /h/ page are same-origin, so the app's session
+ * cookie travels with every request; a signed-out request gets 401 JSON and
+ * loadPyodide fails rather than exposing the runtime.
+ */
+async function servePyodideFile(req, res, p, sessionToken) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return send(res, 405, { code: 'method_not_allowed' });
+  }
+  const token = sessionToken(req);
+  const user = token ? store.sessionUser(token) : null;
+  if (!user) return send(res, 401, { code: 'unauthorized' });
+  const file = p.slice('/hub/pyodide/'.length);
+  if (!PYODIDE_FILES.has(file)) return send(res, 404, { code: 'not_found' });
+  const ok = await serveStatic(req, res, PYODIDE_DIR, `/${file}`, {
+    cache: 'private, max-age=86400',
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+      ...(file.endsWith('.zip') ? { 'Content-Type': 'application/zip' } : {}),
+    },
+  });
+  return ok || send(res, 404, { code: 'not_found' });
+}
+
+/**
+ * Optional NHTSA proxy for the fleet app. Off by default: the fleet build is
+ * rewritten to call these same-origin paths, so with no proxy the app gets a
+ * clear 503 and never touches the internet. When an owner turns it on, only
+ * these two fixed upstreams are reachable (VIN decode and recalls), with a
+ * signed-in session, a rate limit, a timeout and a response-size cap. The
+ * VIN/year/make/model is personal data: the Admin toggle says so.
+ */
+const VPIC_DEFAULT = 'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/';
+const RECALLS_DEFAULT = 'https://api.nhtsa.gov/recalls/recallsByVehicle';
+
+function nhtsaOfflineMessage(kind) {
+  return kind === 'recalls'
+    ? 'Recall lookups are offline on this server. The owner can enable the NHTSA proxy in Admin → Hub.'
+    : 'Vehicle lookups are offline on this server. The owner can enable the NHTSA proxy in Admin → Hub.';
+}
+
+async function serveNhtsa(req, res, url, sessionToken) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return send(res, 405, { code: 'method_not_allowed' });
+  }
+  const token = sessionToken(req);
+  const user = token ? store.sessionUser(token) : null;
+  if (!user) return send(res, 401, { code: 'unauthorized' });
+  if (config.get('hubNhtsaProxy', false) !== true) {
+    return send(res, 503, { code: 'nhtsa_offline', message: nhtsaOfflineMessage('vin') });
+  }
+  if (!rateLimit(`nhtsa:${user}`, 30, 60_000)) {
+    return send(res, 429, { code: 'rate_limited', message: 'Too many vehicle lookups; wait a minute.' });
+  }
+
+  const rest = url.pathname.slice('/hub/nhtsa/'.length);
+  let kind;
+  let upstream;
+  if (rest === 'recalls') {
+    kind = 'recalls';
+    const make = String(url.searchParams.get('make') || '').trim();
+    const model = String(url.searchParams.get('model') || '').trim();
+    const modelYear = String(url.searchParams.get('modelYear') || '').trim();
+    if (!make || !model || !/^\d{4}$/.test(modelYear) || make.length > 80 || model.length > 120) {
+      return send(res, 400, { code: 'bad_query', message: 'A recall lookup needs make, model and a four-digit modelYear.' });
+    }
+    const base = String(config.get('hubNhtsaRecallsBase', RECALLS_DEFAULT));
+    upstream = `${base}?${new URLSearchParams({ make, model, modelYear })}`;
+  } else if (rest.startsWith('vpic/')) {
+    kind = 'vin';
+    const vin = rest.slice('vpic/'.length);
+    if (!/^[A-Za-z0-9*]{1,32}$/.test(vin)) {
+      return send(res, 400, { code: 'bad_vin', message: 'A VIN may contain letters and digits only.' });
+    }
+    const base = String(config.get('hubNhtsaVpicBase', VPIC_DEFAULT));
+    upstream = `${base}${encodeURIComponent(vin)}?format=json`;
+  } else {
+    return send(res, 404, { code: 'not_found' });
+  }
+
+  let answer;
+  try {
+    answer = await fetch(upstream, {
+      signal: AbortSignal.timeout(8000),
+      redirect: 'error',
+      headers: { accept: 'application/json', 'user-agent': 'cad-home/2.0 (vehicle lookup proxy)' },
+    });
+  } catch {
+    store.audit(user, 'hub.nhtsa_lookup', { kind, status: 'unreachable' });
+    return send(res, 503, { code: 'nhtsa_unreachable', message: nhtsaOfflineMessage(kind) });
+  }
+  if (!answer.ok) {
+    store.audit(user, 'hub.nhtsa_lookup', { kind, status: `upstream_${answer.status}` });
+    return send(res, 502, { code: 'nhtsa_upstream', message: 'The vehicle lookup service answered with an error. Try again later.' });
+  }
+  let text;
+  try {
+    text = await answer.text();
+  } catch {
+    return send(res, 502, { code: 'nhtsa_upstream', message: 'The vehicle lookup service sent an unreadable answer.' });
+  }
+  if (Buffer.byteLength(text) > 2 * 1024 * 1024) {
+    return send(res, 502, { code: 'nhtsa_upstream', message: 'The vehicle lookup service sent too much data.' });
+  }
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return send(res, 502, { code: 'nhtsa_upstream', message: 'The vehicle lookup service sent an unreadable answer.' });
+  }
+  store.audit(user, 'hub.nhtsa_lookup', { kind, status: 'ok' });
+  return send(res, 200, body, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+  });
+}
+
+/**
  * The serving core: stat, rewrite (cached), respond. Reused by the public
  * guest-page mount (§24: signatures' sign.html to anonymous visitors — no
  * session there, the page's own capability token is the authorization).
@@ -710,6 +845,17 @@ function createMount(s) {
       return serveAppPublicFile(req, res, p);
     }
 
+    // The vendored Python runtime for the 3d app (rewritten from jsDelivr in
+    // the served bundle). Signed-in only; static bytes, no rewriting.
+    if (p.startsWith('/hub/pyodide/')) {
+      return servePyodideFile(req, res, p, sessionToken);
+    }
+
+    // Opt-in NHTSA proxy used by the fleet app's rewritten VIN/recall fetch.
+    if (p.startsWith('/hub/nhtsa/')) {
+      return serveNhtsa(req, res, url, sessionToken);
+    }
+
     if (p === '/hub/csp-report') {
       if (req.method !== 'POST') return send(res, 405, { code: 'method_not_allowed' });
       if (!rateLimit(`csp-report:${clientIp(req)}`, 60, 10 * 60_000)) return send(res, 429, { code: 'rate_limited' });
@@ -802,6 +948,8 @@ export function register(s) {
 
   // Shim data routes — fs, kv, ai.chat, grants, export (see lib/hub-data.js).
   registerData(s);
+  // Stop the Tesseract child on SIGINT/SIGTERM instead of leaving it behind.
+  if (s.onShutdown) s.onShutdown(hubEngines.shutdownEngines);
 
   admin('GET', 'apps', ({ res }) => send(res, 200, { everythingDir: config.get('everythingDir'), apps: listApps() }));
   mut('PUT', 'apps/:name', async ({ req, res, params }) => {
@@ -838,6 +986,43 @@ export function register(s) {
       }
     }
     config.set('hubAiAliases', aliases ? JSON.stringify(JSON.parse(aliases)) : null);
+    return send(res, 200, { ok: true });
+  });
+  admin('GET', 'nhtsa', ({ res }) => send(res, 200, {
+    enabled: config.get('hubNhtsaProxy', false) === true,
+    upstream: 'NHTSA vPIC (VIN decode) and NHTSA recalls; only when enabled',
+  }));
+  mut('PUT', 'nhtsa', async ({ req, res, user }) => {
+    const body = (await readJSONBody(req, 8 * 1024)) || {};
+    const enabled = body.enabled === true;
+    config.set('hubNhtsaProxy', enabled ? true : null);
+    store.audit(user, 'hub.nhtsa_proxy_changed', { enabled });
+    return send(res, 200, { ok: true, enabled });
+  });
+  admin('GET', 'engines', ({ res }) => send(res, 200, {
+    ...hubEngines.engineStatus(),
+    settings: {
+      ocrEnabled: config.get('hubOcrEnabled', true) !== false,
+      ttsEnabled: config.get('hubTtsEnabled', true) !== false,
+      imageModel: config.get('hubImageModel') || '',
+    },
+  }));
+  mut('PUT', 'engines', async ({ req, res, user }) => {
+    const b = (await readJSONBody(req, 64 * 1024)) || {};
+    if ('ocrEnabled' in b) config.set('hubOcrEnabled', b.ocrEnabled !== false);
+    if ('ttsEnabled' in b) config.set('hubTtsEnabled', b.ttsEnabled !== false);
+    if ('imageModel' in b) {
+      const model = String(b.imageModel || '').trim();
+      if (model && !/^[a-zA-Z0-9_-]{1,40}:[^:\s]{1,120}$/.test(model)) {
+        throw new HttpError(400, 'bad_image_model', 'Use provider:model, for example openai:gpt-image-1, or leave it empty.');
+      }
+      config.set('hubImageModel', model || null);
+    }
+    store.audit(user, 'hub.engines_changed', {
+      ocr: config.get('hubOcrEnabled', true) !== false,
+      tts: config.get('hubTtsEnabled', true) !== false,
+      imageModel: config.get('hubImageModel') || '',
+    });
     return send(res, 200, { ok: true });
   });
   admin('GET', 'external-embeds', ({ res }) => send(res, 200, { enabled: config.get('hubExternalEmbeds', false) === true }));

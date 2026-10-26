@@ -1125,6 +1125,96 @@
     });
   }
 
+  // -- local engine adapters (OCR, speech, optional cloud images) -----------
+  //
+  // Puter's generators return DOM elements: an <img> for txt2img and an
+  // <audio> for txt2speech. The bytes come from this server's local engines;
+  // the browser never uploads to a third party. A data: URL is used for
+  // pictures, a Blob URL for audio (CSP allows blob: media).
+  function blobToDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      try {
+        var fr = new FileReader();
+        fr.onload = function () { resolve(String(fr.result || '')); };
+        fr.onerror = function () { reject(new Error('The file could not be read.')); };
+        fr.readAsDataURL(blob);
+      } catch (e) {
+        reject(new Error('This browser could not read that file.'));
+      }
+    });
+  }
+
+  function fetchAsDataUrl(url) {
+    return fetch(url, { credentials: 'include' }).then(function (r) {
+      if (!r.ok) throw new Error('That file could not be read (' + r.status + ').');
+      return r.blob();
+    }).then(blobToDataUrl);
+  }
+
+  /** Turn the many image shapes Puter apps pass into one data: URL. */
+  function imageToDataUrl(image) {
+    if (typeof image === 'string') {
+      if (/^data:image\//i.test(image)) return Promise.resolve(image);
+      if (/^blob:/i.test(image)) return fetchAsDataUrl(image);
+      return fetchAsDataUrl(assertLocal(image));
+    }
+    if (typeof Blob !== 'undefined' && image instanceof Blob) return blobToDataUrl(image);
+    if (typeof HTMLCanvasElement !== 'undefined' && image instanceof HTMLCanvasElement) {
+      try { return Promise.resolve(image.toDataURL('image/png')); } catch (e) { /* tainted canvas */ }
+    }
+    var src = image && (image.currentSrc || image.src);
+    if (typeof src === 'string' && src) return imageToDataUrl(src);
+    return Promise.reject(new Error('puter.ai.img2txt needs an image File, Blob, URL or canvas.'));
+  }
+
+  function audioToDataUrl(audio) {
+    if (typeof audio === 'string') {
+      if (/^data:/i.test(audio)) return Promise.resolve(audio);
+      if (/^blob:/i.test(audio)) return fetchAsDataUrl(audio);
+      return fetchAsDataUrl(assertLocal(audio));
+    }
+    if (typeof Blob !== 'undefined' && audio instanceof Blob) return blobToDataUrl(audio);
+    var src = audio && (audio.currentSrc || audio.src);
+    if (typeof src === 'string' && src) return audioToDataUrl(src);
+    return Promise.reject(new Error('puter.ai.speech2txt needs an audio File, Blob, URL or audio element.'));
+  }
+
+  function imageElementFromDataUrl(dataUrl) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { reject(new Error('The image engine returned an unreadable picture.')); };
+      img.src = dataUrl;
+    });
+  }
+
+  function audioElementFromBlob(blob) {
+    var url = URL.createObjectURL(blob);
+    var audio = document.createElement('audio');
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.setAttribute('data-cad-engine', 'piper');
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      function ok() {
+        if (done) return;
+        done = true;
+        resolve(audio);
+      }
+      function fail() {
+        if (done) return;
+        done = true;
+        reject(new Error('The speech engine returned unreadable audio.'));
+      }
+      audio.addEventListener('loadedmetadata', ok, { once: true });
+      audio.addEventListener('canplay', ok, { once: true });
+      audio.addEventListener('error', fail, { once: true });
+      try { audio.load(); } catch (e) { /* older browsers load on src */ }
+      // Metadata is a nicety, not a requirement: the apps only need .src.
+      setTimeout(ok, 2500);
+    });
+  }
+
 puter.ai = {
     models: aiModels,
     listModels: aiModels,
@@ -1169,11 +1259,43 @@ puter.ai = {
         };
       });
     },
-    txt2img: notYet('ai.txt2img', "Local image generation is not enabled. Install the image engine (see README, 'engines') to enable puter.ai.txt2img."),
-    img2txt: notYet('ai.img2txt', "Local OCR is not enabled. Install the tesseract engine (see README, 'engines') to enable puter.ai.img2txt."),
-    txt2speech: notYet('ai.txt2speech', "Local speech synthesis is not enabled. Install the Piper engine (see README, 'engines') to enable puter.ai.txt2speech."),
-    speech2txt: notYet('ai.speech2txt', "Local speech-to-text is not enabled. Install the whisper.cpp engine (see README, 'engines') to enable puter.ai.speech2txt."),
-    txt2vid: notYet('ai.txt2vid', 'This server has no text-to-video provider and never calls external ones. Choose a provider in Admin → Hub (ledger).'),
+    txt2img: function (prompt, options) {
+      var opts = options && typeof options === 'object' ? options : {};
+      return request('POST', '/ai/txt2img', { prompt: String(prompt == null ? '' : prompt), options: opts }).then(function (d) {
+        if (!d || typeof d.dataUrl !== 'string') throw new Error('The image engine returned no picture.');
+        return imageElementFromDataUrl(d.dataUrl);
+      });
+    },
+    img2txt: function (image, options) {
+      var opts = options && typeof options === 'object' ? options : {};
+      return imageToDataUrl(image).then(function (dataUrl) {
+        return request('POST', '/ai/img2txt', { image: dataUrl, options: opts });
+      }).then(function (d) {
+        return d && typeof d.text === 'string' ? d.text : '';
+      });
+    },
+    txt2speech: function (text, options) {
+      var opts = options && typeof options === 'object' ? options : {};
+      return rawCall('POST', '/ai/txt2speech', 'application/json', JSON.stringify({
+        text: String(text == null ? '' : text), options: opts, app: APPNAME,
+      })).then(function (r) {
+        if (!r.ok) return jsonData(r).then(function (d) { return apiFail(r, d); }, function () { return apiFail(r, null); });
+        return r.blob();
+      }).then(audioElementFromBlob);
+    },
+    speech2txt: function (audio, options) {
+      var opts = options && typeof options === 'object' ? options : {};
+      return audioToDataUrl(audio).then(function (dataUrl) {
+        return request('POST', '/ai/speech2txt', { audio: dataUrl, options: opts });
+      }).then(function (d) {
+        return d && typeof d.text === 'string' ? d.text : '';
+      });
+    },
+    txt2vid: function () {
+      // The route answers 501 with the same engine_missing envelope as the
+      // other unsupported engines; no fake job object, no invented progress.
+      return request('POST', '/ai/txt2vid', {});
+    },
   };
 
   // -- ui pickers + dialogs -------------------------------------------------

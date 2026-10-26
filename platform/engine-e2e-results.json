@@ -1,0 +1,55 @@
+{
+  "ranAt": "2026-10-26T12:42:23.814Z",
+  "runner": "engine-e2e.mjs",
+  "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "steps": [
+    {
+      "step": "throwaway account signs in",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "the served app exposes the real puter.ai shim",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "img2txt reads the local test image",
+      "pass": true,
+      "detail": "{\"text\":\"LOCAL OCR WORKS\"}"
+    },
+    {
+      "step": "txt2speech resolves a playable WAV audio element",
+      "pass": true,
+      "detail": "{\"tag\":\"AUDIO\",\"blob\":true,\"bytes\":101536,\"riff\":\"RIFF\",\"ready\":true}"
+    },
+    {
+      "step": "txt2img refuses with the cloud-only explanation",
+      "pass": true,
+      "detail": "{\"code\":\"engine_missing\",\"message\":\"Image generation is cloud-only on this server. Set an image model in Admin → Hub → Engines (for example openai:gpt-image-1) and add that provider’s key in Admin → AI. No Stable Diffusion runs on this CPU.\"}"
+    },
+    {
+      "step": "txt2vid refuses instead of pretending",
+      "pass": true,
+      "detail": "{\"code\":\"engine_missing\",\"message\":\"Text-to-video has no provider on this server. Image generation is the documented cloud option; text-to-video is not configured. See README §engines.\"}"
+    },
+    {
+      "step": "real expense page: img2txt reads the image",
+      "pass": true,
+      "detail": "{\"text\":\"LOCAL OCR WORKS\"}"
+    },
+    {
+      "step": "real audio-studio page: txt2speech returns a WAV",
+      "pass": true,
+      "detail": "{\"tag\":\"AUDIO\",\"blob\":true,\"bytes\":67744,\"riff\":\"RIFF\"}"
+    },
+    {
+      "step": "no page errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "ok": true
+}

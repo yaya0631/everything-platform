@@ -1,0 +1,50 @@
+{
+  "ranAt": "2026-10-26T12:26:04.330Z",
+  "runner": "pyodide-e2e.mjs",
+  "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "steps": [
+    {
+      "step": "throwaway account and installed 3d app",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "3d page names a local module bundle",
+      "pass": true,
+      "detail": "/h/3d/assets/index-CRbphfCo.js"
+    },
+    {
+      "step": "the served 3d bundle points its runtime at /hub/pyodide/",
+      "pass": true,
+      "detail": "local=true executableRemote=false"
+    },
+    {
+      "step": "vendored Pyodide loads and runs Python under the 3d CSP",
+      "pass": true,
+      "detail": "{\"answer\":42,\"json\":\"{\\\"ok\\\": true, \\\"n\\\": 42}\",\"version\":\"314.0.7\",\"python\":\"3.14.2\"}"
+    },
+    {
+      "step": "the runtime is the vendored Pyodide release",
+      "pass": true,
+      "detail": "314.0.7"
+    },
+    {
+      "step": "the Python runtime is the expected 3.14 line",
+      "pass": true,
+      "detail": "3.14.2"
+    },
+    {
+      "step": "no runtime request leaves the hub origin",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "no Pyodide/CSP runtime errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "ok": true
+}

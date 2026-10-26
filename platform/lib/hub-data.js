@@ -22,6 +22,7 @@ import * as hubKv from './hub-kv.js';
 import { emitKv, emitFs } from './hub-peer.js';
 import * as store from './store.js';
 import * as hubAi from './hub-ai.js';
+import * as hubEngines from './hub-engines.js';
 import { availableModels } from './ai.js';
 import { exportUserHubData } from './hub-export.js';
 import * as hosting from './hub-hosting.js';
@@ -46,6 +47,22 @@ const safeUsers = (v) => {
 };
 
 const smallBody = async (req) => (await readJSONBody(req, 1024 * 1024)) || {};
+
+/** A data: URL from the shim, decoded defensively; no remote URLs are fetched here. */
+function dataUrlBuffer(value, what) {
+  if (typeof value !== 'string' || !value) {
+    throw new HttpError(400, `missing_${what}`, `Send the ${what} as a data URL.`);
+  }
+  const m = /^data:[^,]*;base64,([\s\S]*)$/.exec(value.trim());
+  if (!m) throw new HttpError(400, `bad_${what}`, `The ${what} must be a base64 data URL.`);
+  const b64 = m[1].replace(/\s+/g, '');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new HttpError(400, `bad_${what}`, `The ${what} is not valid base64.`);
+  try {
+    return Buffer.from(b64, 'base64');
+  } catch {
+    throw new HttpError(400, `bad_${what}`, `The ${what} could not be decoded.`);
+  }
+}
 
 function sameOriginCheck(ctx) {
   const { req } = ctx;
@@ -374,7 +391,103 @@ export function registerData(s) {
     if (out) return send(res, 200, out);
   });
 
-  for (const kind of ['txt2img', 'img2txt', 'txt2speech', 'speech2txt', 'txt2vid']) {
-    api.add('POST', `hub/ai/${kind}`, ({ res }) => hubAi.sendEngineError(res, kind));
-  }
+  // Status is public to a signed-in hub app, never a secret: it says which
+  // optional local engines are installed and where the install command is.
+  route('GET', 'ai/engines', ({ res, user, account, url }) => {
+    hubApp({ url, user, account });
+    return send(res, 200, hubEngines.engineStatus());
+  });
+
+  route('POST', 'ai/img2txt', async ({ req, res, user, account, url }) => {
+    const body = (await readJSONBody(req, 64 * 1024 * 1024)) || {};
+    const app = hubApp({ url, user, account }, body.app);
+    const image = dataUrlBuffer(body.image, 'image');
+    const t0 = Date.now();
+    try {
+      const out = await hubEngines.ocrImage(image, { language: body.options?.language });
+      hubEngines.logEngine({
+        user, app, provider: 'local:tesseract', model: out.language,
+        input: image.length, output: out.text.length, ms: Date.now() - t0, status: 'ok',
+      });
+      return send(res, 200, { text: out.text, confidence: out.confidence, language: out.language });
+    } catch (err) {
+      hubEngines.logEngine({
+        user, app, provider: 'local:tesseract', model: body.options?.language || 'eng',
+        input: image.length, ms: Date.now() - t0, status: 'error', error: err?.code || err?.message,
+      });
+      throw err;
+    }
+  }, { guard: true });
+
+  route('POST', 'ai/txt2speech', async ({ req, res, user, account, url }) => {
+    const body = (await readJSONBody(req, 256 * 1024)) || {};
+    const app = hubApp({ url, user, account }, body.app);
+    const text = String(body.text ?? body.prompt ?? '');
+    const options = body.options && typeof body.options === 'object' ? body.options : {};
+    const t0 = Date.now();
+    try {
+      const out = await hubEngines.synthesizeSpeech(text, options);
+      hubEngines.logEngine({
+        user, app, provider: 'local:piper', model: out.voice,
+        input: text.length, output: Math.round(out.wav.length / 2), ms: Date.now() - t0, status: 'ok',
+      });
+      return send(res, 200, out.wav, {
+        'Content-Type': 'audio/wav',
+        'Content-Length': out.wav.length,
+        'Cache-Control': 'no-store',
+        'X-CAD-Voice': out.voice,
+      });
+    } catch (err) {
+      hubEngines.logEngine({
+        user, app, provider: 'local:piper', model: 'piper',
+        input: text.length, ms: Date.now() - t0, status: 'error', error: err?.code || err?.message,
+      });
+      throw err;
+    }
+  }, { guard: true });
+
+  route('POST', 'ai/txt2img', async ({ req, res, user, account, url }) => {
+    const body = (await readJSONBody(req, 256 * 1024)) || {};
+    const app = hubApp({ url, user, account }, body.app);
+    const prompt = String(body.prompt ?? body.text ?? '');
+    const options = body.options && typeof body.options === 'object' ? body.options : {};
+    const t0 = Date.now();
+    try {
+      const out = await hubEngines.generateImage({ prompt, options });
+      hubEngines.logEngine({
+        user, app, provider: out.provider, model: out.model,
+        input: prompt.length, output: 1, ms: Date.now() - t0, status: 'ok',
+      });
+      return send(res, 200, out);
+    } catch (err) {
+      hubEngines.logEngine({
+        user, app, provider: 'image', model: 'image',
+        input: prompt.length, ms: Date.now() - t0, status: 'error', error: err?.code || err?.message,
+      });
+      throw err;
+    }
+  }, { guard: true });
+
+  route('POST', 'ai/speech2txt', async ({ req, res, user, account, url }) => {
+    const body = (await readJSONBody(req, 80 * 1024 * 1024)) || {};
+    const app = hubApp({ url, user, account }, body.app);
+    const audio = dataUrlBuffer(body.audio ?? body.file, 'audio');
+    const t0 = Date.now();
+    try {
+      const out = await hubEngines.transcribeSpeech(audio);
+      hubEngines.logEngine({
+        user, app, provider: 'local:whisper', model: 'whisper',
+        input: audio.length, output: String(out.text || '').length, ms: Date.now() - t0, status: 'ok',
+      });
+      return send(res, 200, out);
+    } catch (err) {
+      hubEngines.logEngine({
+        user, app, provider: 'local:whisper', model: 'whisper',
+        input: audio.length, ms: Date.now() - t0, status: 'error', error: err?.code || err?.message,
+      });
+      throw err;
+    }
+  }, { guard: true });
+
+  api.add('POST', 'hub/ai/txt2vid', ({ res }) => hubAi.sendEngineError(res, 'txt2vid'));
 }
