@@ -289,7 +289,7 @@ export async function mkdir({ user, app, input, options = {} }) {
 }
 
 export async function write({ user, app, input, data, options = {} }) {
-  const res = access({ user, app, input, need: 'write' });
+  let res = access({ user, app, input, need: 'write' });
   // puter semantics: overwrite defaults to true; dedupeName wins when asked.
   // createMissingParents defaults to false on the Drive (puter docs) but to
   // true inside the app's own folder — app-private subdirs are made freely.

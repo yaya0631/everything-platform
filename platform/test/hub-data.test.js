@@ -99,6 +99,19 @@ test('sandbox writes auto-create parents; Drive writes stay strict', async () =>
   assert.equal(opted.status, 200);
 });
 
+test('re-saving onto an existing path with dedupeName renames instead of crashing (M13)', async () => {
+  const c = await as('person2');
+  const opts = encodeURIComponent(JSON.stringify({ overwrite: false, dedupeName: true }));
+  const first = await hubBodyPut(c, `fs/write?app=alpha&path=PDF%20Editor/save.pdf&options=${opts}`, 'v1');
+  assert.equal(first.status, 200);
+  assert.equal((await first.json()).name, 'save.pdf');
+  // Second save over the same name: puter keeps both (the pdf app's exact
+  // flow) — used to throw Assignment to constant variable (hub-fsops.js:303).
+  const again = await hubBodyPut(c, `fs/write?app=alpha&path=PDF%20Editor/save.pdf&options=${opts}`, 'v2');
+  assert.equal(again.status, 200, 're-save with dedupeName must not 500');
+  assert.equal((await again.json()).name, 'save (1).pdf');
+});
+
 test('rename, move, copy and delete follow puter semantics', async () => {
   const c = await as('person1');
   await hubPost(c, 'fs/rename', { path: 'reports/a.txt', newName: 'b.txt' });
