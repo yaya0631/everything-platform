@@ -373,6 +373,55 @@ async function serveAppFile(req, res, name, rel, me) {
 }
 
 /**
+ * Session-free PWA metadata. `GET /hub/app-manifest/<name>/<file>` answers the
+ * app's rewritten manifest with icons pointing at
+ * `GET /hub/app-asset/<name>/<image>` (browsers fetch both without cookies, so
+ * neither can live behind /h/'s session gate). The manifest's own app fields
+ * stay on /h/<name>/, so installing an app still opens the private shell.
+ */
+async function serveAppPublicFile(req, res, p) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { code: 'method_not_allowed' });
+  const isManifest = p.startsWith('/hub/app-manifest/');
+  const rest = p.slice((isManifest ? '/hub/app-manifest/' : '/hub/app-asset/').length);
+  const parts = rest.split('/');
+  const name = parts.shift();
+  const file = parts.join('/');
+  if (!name || !NAME_RE.test(name) || !file) return send(res, 404, { code: 'not_found' });
+  if (isManifest) {
+    if (parts.length !== 1 || !/^(?:manifest[^/]*\.json|[^/]*\.webmanifest)$/i.test(file)) return send(res, 404, { code: 'not_found' });
+  } else if (!/\.(?:png|jpe?g|gif|svg|webp|ico)$/i.test(file)) {
+    return send(res, 404, { code: 'not_found' });
+  }
+  let row;
+  try {
+    row = requireRow(name);
+  } catch {
+    return send(res, 404, { code: 'not_found' });
+  }
+  if (!row.enabled) return send(res, 404, { code: 'not_found' });
+
+  if (isManifest) {
+    let text;
+    try {
+      text = await fsp.readFile(path.join(appDir(name), file), 'utf8');
+    } catch {
+      return send(res, 404, { code: 'not_found' });
+    }
+    const body = rewrite.rewriteManifest(text, name, { assetBase: `/hub/app-asset/${name}/` });
+    return send(res, 200, body, {
+      'Content-Type': 'application/manifest+json; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+    });
+  }
+  const ok = await serveStatic(req, res, appDir(name), `/${file}`, {
+    cache: 'no-cache',
+    headers: { 'X-Content-Type-Options': 'nosniff' },
+  });
+  return ok || send(res, 404, { code: 'not_found' });
+}
+
+/**
  * The serving core: stat, rewrite (cached), respond. Reused by the public
  * guest-page mount (§24: signatures' sign.html to anonymous visitors — no
  * session there, the page's own capability token is the authorization).
@@ -643,6 +692,14 @@ function createMount(s) {
       const name = p.slice('/hub/icon/'.length).replace(/\.png$/, '');
       if (!fs.existsSync(iconFile(name))) return send(res, 404, { code: 'not_found' });
       return serveStatic(req, res, ICONS_DIR, `/${name}.png`, { cache: 'no-cache' });
+    }
+
+    // Session-free app metadata: browsers fetch PWA manifests with credentials
+    // omitted, so the private /h/ mount can never answer them (m1). Only a
+    // manifest-shaped file or an image is reachable, only from an enabled
+    // app's own folder.
+    if (p.startsWith('/hub/app-manifest/') || p.startsWith('/hub/app-asset/')) {
+      return serveAppPublicFile(req, res, p);
     }
 
     if (p === '/hub/csp-report') {

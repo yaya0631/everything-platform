@@ -82,10 +82,13 @@ test('rewriting: shim instead of the cloud loader, analytics gone, strict CSP', 
   assert.ok(page.headers.get('content-security-policy'));
 
   assert.match(html, /src="\/hub\/puter\.js"/);
-  // Root-absolute app assets are rebased to /h/<name>/.
-  assert.match(html, /href="\/h\/fixture\/manifest\.webmanifest"/);
+  // Root-absolute app assets are rebased to /h/<name>/; the PWA manifest is
+  // the documented exception — browsers fetch it without credentials, so it
+  // lives on the session-free /hub/app-manifest/ route (m1).
+  assert.match(html, /href="\/hub\/app-manifest\/fixture\/manifest\.webmanifest"/);
   assert.match(html, /href="\/h\/fixture\/favicon\.svg"/);
   assert.doesNotMatch(html, /href="\/manifest\.webmanifest"/);
+  assert.doesNotMatch(html, /href="\/h\/fixture\/manifest\.webmanifest"/);
   assert.doesNotMatch(html, /[^"]js\.puter\.com/); // loader rewritten; can only remain in comments if stripped
   assert.doesNotMatch(html, /<script[^>]*plausible/i);
   assert.doesNotMatch(html, /<link[^>]*fonts\.googleapis/i);

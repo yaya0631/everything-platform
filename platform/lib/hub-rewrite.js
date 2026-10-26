@@ -81,6 +81,22 @@ export function rewriteHtml(html, { name } = {}) {
     return `<!-- cad-hub: external resource removed at serve time (${href}) -->`;
   });
 
+  // PWA manifests are fetched with credentials omitted (HTML spec: the
+  // manifest fetch never carries cookies), so the private /h/ mount answers
+  // 401 to every browser and the console fills with manifest errors. Serve
+  // the manifest from the session-free /hub/app-manifest/ route instead; its
+  // icons follow through /hub/app-asset/ (see rewriteManifest).
+  if (name) {
+    out = out.replace(/<link\b[^>]*>/gi, (tag) => {
+      if (!/\brel\s*=\s*["']?manifest\b/i.test(tag)) return tag;
+      const m = /\bhref\s*=\s*"([^"]*)"/i.exec(tag);
+      if (!m) return tag;
+      const file = m[1].split('/').pop();
+      if (!/^(?:manifest[^/]*\.json|[^/]*\.webmanifest)$/i.test(file)) return tag;
+      return tag.replace(m[0], `href="/hub/app-manifest/${name}/${file}"`);
+    });
+  }
+
   // Hash every inline script so script-src 'self' can allow exactly these.
   // Lazy [\s\S]*? matches the way an HTML parser does: up to the first </script>.
   out = out.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (tag, attrs, body) => {
@@ -208,15 +224,56 @@ export function cspHeader({ hashes = [], extras = [], connectExtras = [] } = {})
 
 /**
  * PWA manifests baked by some apps use absolute paths (start_url /, icon srcs
- * like /icon.svg). Under /h/<name>/ those need the app prefix — same rule as
- * the vite --base flag, applied to the JSON at serve time.
+ * like /icon.svg) or relative ones ("./", "icons/x.png"); under /h/<name>/
+ * those need the app prefix — same rule as the vite --base flag, applied to
+ * the JSON at serve time. `assetBase` is where icons/screenshots resolve:
+ * the app mount for the private /h/ route, the session-free
+ * /hub/app-asset/<name>/ route when the manifest itself is served publicly
+ * (browsers fetch manifests with credentials omitted, m1).
  */
-export function rewriteManifest(text, name) {
-  const prefix = `/h/${name}/`;
-  return text.replace(/("(?:src|start_url|scope|logout_url|serviceworker|id)"\s*:\s*)"(\/[^"]*)"/g, (m, key, url) => {
-    if (url.startsWith(prefix) || url.startsWith('//')) return m;
-    return `${key}"${prefix}${url.slice(1)}`;
-  });
+export function rewriteManifest(text, name, { assetBase = `/h/${name}/` } = {}) {
+  const appBase = `/h/${name}/`;
+  const abs = (value, base) => {
+    if (typeof value !== 'string' || !value) return value;
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value)) return value; // external or another scheme
+    if (value.startsWith(appBase) || value.startsWith(assetBase)) return value;
+    let rest = value;
+    while (rest.startsWith('./')) rest = rest.slice(2);
+    rest = rest.replace(/^\/+/, '');
+    if (!rest) return base;
+    if (rest.split('/').includes('..')) return value; // never walk out of the app
+    return base + rest;
+  };
+  const icons = (list) => {
+    if (!Array.isArray(list)) return;
+    for (const icon of list) if (icon && typeof icon === 'object') icon.src = abs(icon.src, assetBase);
+  };
+
+  let j;
+  try {
+    j = JSON.parse(text);
+  } catch {
+    // Not JSON we can walk: keep the historical leading-slash rewrite.
+    return text.replace(/("(?:src|start_url|scope|logout_url|serviceworker|id)"\s*:\s*)"(\/[^"]*)"/g, (m, key, url) => {
+      if (url.startsWith(appBase) || url.startsWith('//')) return m;
+      return `${key}"${appBase}${url.slice(1)}`;
+    });
+  }
+  if (!j || typeof j !== 'object' || Array.isArray(j)) return text;
+
+  for (const key of ['start_url', 'scope', 'id', 'logout_url', 'serviceworker']) {
+    if (key in j) j[key] = abs(j[key], appBase);
+  }
+  icons(j.icons);
+  icons(j.screenshots);
+  if (Array.isArray(j.shortcuts)) {
+    for (const shortcut of j.shortcuts) {
+      if (!shortcut || typeof shortcut !== 'object') continue;
+      shortcut.url = abs(shortcut.url, appBase);
+      icons(shortcut.icons);
+    }
+  }
+  return JSON.stringify(j);
 }
 
 /**
