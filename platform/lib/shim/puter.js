@@ -972,6 +972,16 @@
         }
       });
     }
+    function onReadError(err) {
+      // A hard server stop (taskkill, LAN drop) kills the body mid-stream.
+      // Apps get one designed, named error instead of the browser's raw
+      // TypeError, and pending next() calls never hang (m2).
+      var broke = new Error('The AI stream was interrupted: the server or the connection went away.');
+      broke.code = 'ai_stream_interrupted';
+      broke.cause = err;
+      deliverError(broke);
+      finished = true;
+    }
     function step(r) {
       if (r.done) return finishTail();
       buffer += decoder.decode(r.value, { stream: true });
@@ -981,17 +991,17 @@
         buffer = buffer.slice(idx + 1);
         handleLine(line.replace(/\r$/, ''));
       }
-      return reader.read().then(step);
+      return reader.read().then(step, onReadError);
     }
-    reader.read().then(step, function (err) {
-      deliverError(Object.assign(new Error('The stream broke.'), { cause: err }));
-      finished = true;
-    });
+    reader.read().then(step, onReadError);
 
     return {
       next: function () {
-        if (failures.length) return Promise.reject(failures.shift());
+        // Bytes received before a break are still valid data: drain the queue
+        // before surfacing the failure (a mid-stream kill must not swallow
+        // the chunks that already arrived).
         if (queue.length) return Promise.resolve({ value: queue.shift(), done: false });
+        if (failures.length) return Promise.reject(failures.shift());
         if (finished) {
           if (streamRef.message) {
             var m = streamRef.message;
@@ -1131,6 +1141,17 @@ puter.ai = {
           it.message = undefined; // set by the stream when its final line lands
           Object.defineProperty(it, 'message', { get: function () { return streamRef.message; } });
           return it;
+        }).catch(function (err) {
+          // The server died before the first byte: fetch itself rejects with
+          // "TypeError: fetch failed". Name it, so a UI can say what happened
+          // instead of printing the browser's TypeError (m2).
+          if (err && !err.status && (err.name === 'TypeError' || /fetch failed|network ?error|load failed/i.test(String(err.message || '')))) {
+            var broke = new Error('The AI stream was interrupted: the server or the connection went away.');
+            broke.code = 'ai_stream_interrupted';
+            broke.cause = err;
+            throw broke;
+          }
+          throw err;
         });
         return result;
       }

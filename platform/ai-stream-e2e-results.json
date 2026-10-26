@@ -1,0 +1,41 @@
+{
+  "at": "2026-10-26T10:48:12.184Z",
+  "pass": true,
+  "steps": [
+    {
+      "step": "throwaway owner signs in",
+      "pass": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "step": "the shim is live on the fixture page",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "a dead server before the first byte is a named error (m2)",
+      "pass": true,
+      "detail": "{\"mode\":\"before\",\"startError\":{\"name\":\"Error\",\"code\":\"ai_stream_interrupted\",\"message\":\"The AI stream was interrupted: the server or the connection went away.\"}}"
+    },
+    {
+      "step": "a stream that dies mid-body is a named error (m2)",
+      "pass": true,
+      "detail": "{\"mode\":\"mid\",\"gotIterator\":true,\"chunks\":[\"Hel\"],\"streamError\":{\"name\":\"Error\",\"code\":\"ai_stream_interrupted\",\"message\":\"The AI stream was interrupted: the server or the connection went away.\"}}"
+    },
+    {
+      "step": "chunks before the break still reach the app",
+      "pass": true,
+      "detail": "[\"Hel\"]"
+    },
+    {
+      "step": "a normal stream is unaffected",
+      "pass": true,
+      "detail": "{\"mode\":\"ok\",\"gotIterator\":true,\"chunks\":[\"Hel\",\"lo\",\"Hello\",\"Hello\"],\"finished\":true}"
+    },
+    {
+      "step": "no uncaught page errors",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}
