@@ -28,6 +28,7 @@ import * as hub from './lib/hub.js';
 import * as hubWorkersHttp from './lib/hub-workers-http.js';
 import * as hubHosting from './lib/hub-hosting.js';
 import * as hubNet from './lib/hub-net.js';
+import * as hubPeer from './lib/hub-peer.js';
 import * as fn from './lib/functions.js';
 import { APP_DIR, DATA_DIR } from './lib/paths.js';
 import { checkWorkerNodeVersion } from './lib/hub-workers-run.js';
@@ -290,7 +291,7 @@ const registry = {
   sessionToken,
   publicPort: () => boundPublicPort,
 };
-for (const m of [admin, shares, live, ai, apps, fn, hub, hubWorkersHttp, hubHosting, hubNet]) m.register(registry);
+for (const m of [admin, shares, live, ai, apps, fn, hub, hubWorkersHttp, hubHosting, hubNet, hubPeer]) m.register(registry);
 
 // Startup ----------------------------------------------------------------------------
 

@@ -1,0 +1,96 @@
+{
+  "at": "2026-10-26T11:43:30.641Z",
+  "pass": true,
+  "steps": [
+    {
+      "step": "throwaway accounts sign in",
+      "pass": true,
+      "detail": "host=true guest=true"
+    },
+    {
+      "step": "both probe pages expose puter.peer and puter.events",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "host mints an invite code",
+      "pass": true,
+      "detail": "CXN9X4BR"
+    },
+    {
+      "step": "guest connects and the host sees who arrived",
+      "pass": true,
+      "detail": "{\"joined\":{\"username\":\"peere2e\",\"name\":\"peere2e\",\"displayName\":\"peere2e\",\"uuid\":\"df69e194-c30a-4eaf-a6a9-1e2bf9172ce4\"},\"hostSees\":{\"username\":\"peere2e-other\",\"name\":\"peere2e-other\",\"displayName\":\"peere2e-other\",\"uuid\":\"a02a2eb6-90b4-4b4f-8b9c-a45bf6cca7ce\"}}"
+    },
+    {
+      "step": "both connections report open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "messages relay both ways",
+      "pass": true,
+      "detail": "{\"guestToHost\":\"hello-host\",\"hostToGuest\":\"hello-guest\"}"
+    },
+    {
+      "step": "the WebRTC connection reaches connected on both ends",
+      "pass": true,
+      "detail": "{\"host\":{\"connectionState\":\"connected\",\"iceConnectionState\":\"connected\",\"transceivers\":3},\"guest\":{\"connectionState\":\"connected\",\"iceConnectionState\":\"connected\",\"transceivers\":3}}"
+    },
+    {
+      "step": "each side receives live audio and video RTP from the other",
+      "pass": true,
+      "detail": "{\"host\":{\"inbound\":{\"audio\":1219,\"video\":23545},\"tracks\":[{\"kind\":\"audio\",\"readyState\":\"live\",\"muted\":false},{\"kind\":\"video\",\"readyState\":\"live\",\"muted\":false}]},\"guest\":{\"inbound\":{\"audio\":1708,\"video\":18325},\"tracks\":[{\"kind\":\"audio\",\"readyState\":\"live\",\"muted\":false},{\"kind\":\"video\",\"readyState\":\"live\",\"muted\":false}]}}"
+    },
+    {
+      "step": "linkstate reports connected",
+      "pass": true,
+      "detail": "{\"host\":\"connected\",\"guest\":\"connected\"}"
+    },
+    {
+      "step": "the host publishes a second video stream on the screen slot",
+      "pass": true,
+      "detail": "{\"name\":\"screen\",\"kind\":\"video\",\"readyState\":\"live\"}"
+    },
+    {
+      "step": "the screen track reaches the guest live and unmuted",
+      "pass": true,
+      "detail": "{\"muted\":false,\"readyState\":\"live\"}"
+    },
+    {
+      "step": "unpublish tells the other side which stream ended",
+      "pass": true,
+      "detail": "{\"name\":\"camera\"}"
+    },
+    {
+      "step": "onLocal resolves with a subscription",
+      "pass": true,
+      "detail": "{\"subject\":\"kv:probe\",\"subId\":\"1-14f4cb2c630770554e\"}"
+    },
+    {
+      "step": "another person’s KV write is not delivered",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "step": "a same-person tab receives the KV event with includeValue",
+      "pass": true,
+      "detail": "{\"op\":\"set\",\"key\":\"probe\",\"value\":{\"by\":\"peere2e\",\"n\":7},\"type\":\"kv\",\"at\":1793015010109}"
+    },
+    {
+      "step": "closing tells the other side the reason",
+      "pass": true,
+      "detail": "{\"reason\":\"bye from guest\"}"
+    },
+    {
+      "step": "a dead invite rejects connect() with invalid_invite",
+      "pass": true,
+      "detail": "{\"message\":\"Invalid invite code.\",\"code\":\"invalid_invite\"}"
+    },
+    {
+      "step": "no uncaught page errors",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

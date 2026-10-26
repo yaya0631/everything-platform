@@ -19,6 +19,7 @@ import * as db from './db.js';
 import { HttpError, send, readJSONBody, requestOrigin } from './http.js';
 import * as fsops from './hub-fsops.js';
 import * as hubKv from './hub-kv.js';
+import { emitKv, emitFs } from './hub-peer.js';
 import * as store from './store.js';
 import * as hubAi from './hub-ai.js';
 import { availableModels } from './ai.js';
@@ -94,16 +95,49 @@ export function registerData(s) {
     // The app name rides in the query; the body is the raw bytes.
     const app = hubApp({ url, user, account });
     const options = JSON.parse(url.searchParams.get('options') || '{}');
-    const out = await fsops.write({ user, app, input: url.searchParams.get('path'), data: req, options });
+    const input = url.searchParams.get('path');
+    const out = await fsops.write({ user, app, input, data: req, options });
+    const hit = fsHit(user, app, input, 'set');
+    if (hit) emitFs({ user, app, path: hit.path, kind: hit.kind, op: hit.op });
     return send(res, 200, out);
   }, { guard: true });
 
+  /** One virtual path an event can name, or null when it cannot be resolved. */
+  const fsHit = (user, app, input, op) => {
+    if (typeof input !== 'string' || !input) return null;
+    try {
+      const res = fsops.access({ user, app, input, need: 'write' });
+      return { path: res.virtualPath || '/', kind: res.kind, op };
+    } catch {
+      return null;
+    }
+  };
+
+  const fsHits = (user, app, input, op) => {
+    const list = Array.isArray(input) ? input : [input];
+    return list.map((one) => fsHit(user, app, one, op)).filter(Boolean);
+  };
+
+  const fsKind = (user, app, input) => fsHit(user, app, input, 'set')?.kind || null;
+
+  /** An entry's path as the app names it (sandbox paths have no leading slash). */
+  const fsOutHit = (kind, out, op = 'set') => {
+    if (!kind || !out || typeof out.path !== 'string') return null;
+    return { path: out.path.replace(/^\/+/, '') || '/', kind, op };
+  };
+
   /** POST helpers: small JSON body first, then the op with the body's app. */
-  const fsRoute = (name, fn, { guard = false } = {}) =>
+  const fsRoute = (name, fn, { guard = false, changes = null } = {}) =>
     route('POST', `fs/${name}`, async ({ req, res, url, user, account }) => {
       const body = await smallBody(req);
       const app = appFor({ url, user, account }, body.app);
-      return send(res, 200, await fn({ user, app, body }));
+      const out = await fn({ user, app, body });
+      if (changes) {
+        for (const hit of changes({ user, app, body, out }) || []) {
+          if (hit) emitFs({ user, app, path: hit.path, kind: hit.kind, op: hit.op });
+        }
+      }
+      return send(res, 200, out);
     }, { guard });
 
   const appFor = (ctx, explicit) => hubApp(ctx, explicit !== undefined ? explicit : (ctx.url ? ctx.url.searchParams.get('app') : null));
@@ -118,13 +152,38 @@ export function registerData(s) {
   route('POST', 'hosting/update', async ({ req, res, user }) => { const body = await smallBody(req); return send(res, 200, await hosting.update({ user, subdomain: body.subdomain, root_dir: body.root_dir ?? body.dirPath })); }, { guard: true });
   route('POST', 'hosting/delete', async ({ req, res, user }) => send(res, 200, hosting.remove({ user, subdomain: (await smallBody(req)).subdomain })), { guard: true });
 
-  fsRoute('mkdir', ({ user, app, body }) => fsops.mkdir({ user, app, input: body.path, options: body.options || {} }), { guard: true });
+  fsRoute('mkdir', ({ user, app, body }) => fsops.mkdir({ user, app, input: body.path, options: body.options || {} }), {
+    guard: true,
+    changes: ({ user, app, body }) => {
+      const hit = fsHit(user, app, body.path, 'set');
+      return hit ? [hit] : [];
+    },
+  });
   fsRoute('readdir', ({ user, app, body }) => fsops.readdir({ user, app, input: body.path, options: body.options || {} }));
   fsRoute('stat', ({ user, app, body }) => fsops.stat({ user, app, input: body.path }));
-  fsRoute('delete', ({ user, app, body }) => fsops.del({ user, app, input: body.path, options: body.options || {} }), { guard: true });
-  fsRoute('rename', ({ user, app, body }) => fsops.rename({ user, app, from: body.path || body.from, newName: body.newName }), { guard: true });
-  fsRoute('move', ({ user, app, body }) => fsops.move({ user, app, source: body.source, destination: body.destination, options: body.options || {} }), { guard: true });
-  fsRoute('copy', ({ user, app, body }) => fsops.copy({ user, app, source: body.source, destination: body.destination, options: body.options || {} }), { guard: true });
+  fsRoute('delete', ({ user, app, body }) => fsops.del({ user, app, input: body.path, options: body.options || {} }), {
+    guard: true,
+    changes: ({ user, app, body }) => fsHits(user, app, body.path, 'del'),
+  });
+  fsRoute('rename', ({ user, app, body }) => fsops.rename({ user, app, from: body.path || body.from, newName: body.newName }), {
+    guard: true,
+    changes: ({ user, app, body, out }) => {
+      const oldInput = body.path || body.from;
+      const kind = fsKind(user, app, oldInput);
+      return [fsHit(user, app, oldInput, 'del'), fsOutHit(kind, out, 'set')];
+    },
+  });
+  fsRoute('move', ({ user, app, body }) => fsops.move({ user, app, source: body.source, destination: body.destination, options: body.options || {} }), {
+    guard: true,
+    changes: ({ user, app, body, out }) => [
+      fsHit(user, app, body.source, 'del'),
+      fsOutHit(fsKind(user, app, body.destination), out, 'set'),
+    ],
+  });
+  fsRoute('copy', ({ user, app, body }) => fsops.copy({ user, app, source: body.source, destination: body.destination, options: body.options || {} }), {
+    guard: true,
+    changes: ({ user, app, body, out }) => [fsOutHit(fsKind(user, app, body.destination), out, 'set')],
+  });
 
   route('GET', 'fs/space', async ({ res, user }) => send(res, 200, await fsops.space({ user })));
 
@@ -204,11 +263,35 @@ export function registerData(s) {
 
   // -- kv --------------------------------------------------------------------
 
+  // Which KV writes are worth waking another tab for. `get`/`list` are not
+  // writes; batch set/delete emit one event per key below.
+  const KV_EVENT_OP = {
+    set: 'set', del: 'del', add: 'set', incr: 'set', decr: 'set',
+    update: 'set', expire: 'expire', 'expire-at': 'expire',
+  };
+
+  const emitKvWrite = (name, { user, app, body, out }) => {
+    if (name === 'flush') return emitKv({ user, app, key: '*', op: 'gap', reason: 'flush' });
+    const op = KV_EVENT_OP[name];
+    if (!op) return;
+    const value = name === 'add' || name === 'incr' || name === 'decr' || name === 'update'
+      ? out
+      : body.value;
+    const entries = Array.isArray(body.key) ? body.key : [body.key];
+    for (const entry of entries) {
+      const key = typeof entry === 'string' ? entry : entry && entry.key;
+      if (typeof key !== 'string') continue;
+      const entryValue = name === 'set' && entry && typeof entry === 'object' ? entry.value : value;
+      emitKv({ user, app, key, value: entryValue, op });
+    }
+  };
+
   const kvRoute = (name, fn, { guard = false } = {}) =>
     route('POST', `kv/${name}`, async ({ req, res, user, account }) => {
       const body = await smallBody(req);
       const app = appFor({ url: new URL(req.url, 'http://x'), user, account }, body.app);
       const out = await fn({ user, app, body });
+      emitKvWrite(name, { user, app, body, out });
       // The value itself is the JSON answer (a string value is `"soon gone"`,
       // quotes included — exactly what puter's wire carries).
       return send(res, 200, JSON.stringify(out === undefined ? null : out));

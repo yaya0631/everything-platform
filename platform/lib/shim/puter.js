@@ -1758,6 +1758,863 @@ puter.ai = {
     Socket: function (host, port) { return localSocket(host, port, false); },
     tls: { TLSSocket: function (host, port) { return localSocket(host, port, true); } },
   };
+  // -- peer ----------------------------------------------------------------
+  // The LAN signaller: invites and messages relay through this server's
+  // private WebSocket; audio/video use a direct RTCPeerConnection between the
+  // two browsers (negotiated over that socket). The contract follows the
+  // puter-js Peer API (serve/connect, send/message, close, publish/unpublish,
+  // configure, owner, connected, peerconnection, linkstate).
+  function peerError(message, code) {
+    var err = new Error(message);
+    if (code) err.code = code;
+    return err;
+  }
+
+  function eventTarget(target) {
+    var listeners = Object.create(null);
+    target.addEventListener = function (type, fn) {
+      if (typeof fn !== 'function') return;
+      (listeners[type] || (listeners[type] = [])).push(fn);
+    };
+    target.removeEventListener = function (type, fn) {
+      var list = listeners[type];
+      if (!list) return;
+      var at = list.indexOf(fn);
+      if (at >= 0) list.splice(at, 1);
+    };
+    target.dispatchEvent = function (type, event) {
+      var list = listeners[type];
+      if (!list) return;
+      list.slice().forEach(function (fn) {
+        try { fn.call(target, event); } catch (e) {
+          console.error('[cad-hub] peer ' + type + ' handler failed', e);
+        }
+      });
+    };
+    // Some apps (and older SDK snippets) use on/off instead of the DOM names.
+    target.on = function (type, fn) { target.addEventListener(type, fn); return target; };
+    target.off = function (type, fn) { target.removeEventListener(type, fn); return target; };
+    return target;
+  }
+
+  function peerSocket(extra) {
+    var scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return scheme + '//' + location.host + API + '/peer?app=' + encodeURIComponent(APPNAME) + (extra || '');
+  }
+
+  function peerParse(event) {
+    try { return JSON.parse(event.data); } catch (e) { return null; }
+  }
+
+  function bytesToB64(bytes) {
+    var text = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(text);
+  }
+
+  function b64ToBytes(text) {
+    var raw = atob(text || '');
+    var out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+
+  function peerLinkState(conn) {
+    var pc = conn.peerconnection;
+    if (!pc) return;
+    var state = pc.connectionState;
+    var mapped = state === 'connected' ? 'connected'
+      : state === 'disconnected' ? 'unstable'
+        : state === 'failed' ? 'recovering' : '';
+    if (!mapped) {
+      var ice = pc.iceConnectionState;
+      if (ice === 'connected' || ice === 'completed') mapped = 'connected';
+      else if (ice === 'disconnected') mapped = 'unstable';
+      else if (ice === 'failed') mapped = 'recovering';
+    }
+    if (!mapped || mapped === conn.linkState) return;
+    conn.linkState = mapped;
+    conn.dispatchEvent('linkstate', { state: mapped, attempt: mapped === 'connected' ? 0 : 1, of: 3 });
+  }
+
+  function peerPc(conn) {
+    if (typeof window.RTCPeerConnection !== 'function') return null;
+    var pc;
+    try { pc = new window.RTCPeerConnection({ iceServers: [] }); } catch (e) { return null; }
+    // The dialer owns the first offer and creates the three media slots in a
+    // fixed order: 0 audio, 1 camera video, 2 screen video. The answerer does
+    // not pre-create transceivers: Chrome would create a second set when the
+    // offer arrives instead of associating the local ones. It adopts the
+    // offer's transceivers, attaches any queued publication before it answers,
+    // and renegotiates if a later publish has to change a direction.
+    if (!conn._hostSide) {
+      try {
+        pc.addTransceiver('audio', { direction: 'sendrecv' });
+        pc.addTransceiver('video', { direction: 'sendrecv' });
+        pc.addTransceiver('video', { direction: 'sendrecv' });
+      } catch (e) { /* older browser: the relay still carries data */ }
+    }
+    pc.onicecandidate = function (e) {
+      if (e.candidate) conn._relay({ t: 'ice', candidate: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate });
+    };
+    pc.onconnectionstatechange = function () { peerLinkState(conn); };
+    pc.oniceconnectionstatechange = function () { peerLinkState(conn); };
+    return pc;
+  }
+
+  function peerFlushIce(conn) {
+    var pc = conn.peerconnection;
+    var list = conn._pendingIce;
+    conn._pendingIce = [];
+    if (!pc || !list.length) return Promise.resolve();
+    return Promise.all(list.map(function (candidate) {
+      return pc.addIceCandidate(candidate).catch(function () { /* stale candidate */ });
+    }));
+  }
+
+  function peerStartOffer(conn) {
+    var pc = conn.peerconnection;
+    if (!pc || conn.closed) return;
+    // Force one SCTP m-line even for data-only apps: whiteboard and
+    // photo-studio open their own negotiated presence channels directly on
+    // the exposed peerconnection, which needs an established SCTP transport.
+    try {
+      if (typeof pc.createDataChannel === 'function') {
+        pc.createDataChannel('__cad_peer', { negotiated: true, id: 0, ordered: true });
+      }
+    } catch (e) { /* data-only relays still work */ }
+    pc.createOffer().then(function (offer) {
+      return pc.setLocalDescription(offer);
+    }).then(function () {
+      conn._relay({
+        t: 'sdp',
+        description: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+      });
+    }).catch(function (err) {
+      conn.dispatchEvent('error', { error: err });
+    });
+  }
+
+  function peerDrainRemoteMedia(conn) {
+    var pending = conn._pendingRemoteMedia || [];
+    conn._pendingRemoteMedia = [];
+    pending.forEach(function (message) { peerRemoteMedia(conn, message); });
+  }
+
+  function peerApplyPendingPublishes(conn) {
+    var pending = conn._pendingPublishes || {};
+    conn._pendingPublishes = {};
+    for (var name in pending) {
+      if (conn.publications.get(name) !== pending[name]) continue;
+      peerAssignSlots(conn, name, pending[name]);
+      peerApplyConfig(conn, name);
+    }
+  }
+
+  function peerSdp(conn, description) {
+    var pc = conn.peerconnection;
+    if (!pc || !description) return;
+    conn._sdpQueue = conn._sdpQueue.then(function () {
+      return pc.setRemoteDescription(description).then(function () {
+        return peerFlushIce(conn).then(function () {
+          peerDrainRemoteMedia(conn);
+          if (description.type !== 'offer') {
+            if (conn._renegotiateAgain) {
+              conn._renegotiateAgain = false;
+              peerRenegotiate(conn);
+            }
+            return null;
+          }
+          // The host adopts the offer's transceivers; attach anything it
+          // published before the offer so the answer itself is sendrecv.
+          peerApplyPendingPublishes(conn);
+          return pc.createAnswer().then(function (answer) {
+            return pc.setLocalDescription(answer);
+          }).then(function () {
+            conn._renegotiateAgain = false;
+            conn._relay({
+              t: 'sdp',
+              description: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+            });
+          });
+        });
+      });
+    }).catch(function (err) {
+      // A signalling error is real for callers, but data relay keeps going.
+      conn.dispatchEvent('error', { error: err });
+    });
+  }
+
+  function peerRenegotiate(conn) {
+    var pc = conn.peerconnection;
+    if (!pc || conn.closed) return;
+    if (conn._negotiating || pc.signalingState !== 'stable') {
+      conn._renegotiateAgain = true;
+      return;
+    }
+    conn._negotiating = true;
+    pc.createOffer().then(function (offer) {
+      return pc.setLocalDescription(offer);
+    }).then(function () {
+      conn._relay({
+        t: 'sdp',
+        description: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+      });
+      conn._negotiating = false;
+    }, function (err) {
+      conn._negotiating = false;
+      conn.dispatchEvent('error', { error: err });
+    });
+  }
+
+  function peerIce(conn, candidate) {
+    var pc = conn.peerconnection;
+    if (!pc || !candidate) return;
+    if (!pc.remoteDescription) { conn._pendingIce.push(candidate); return; }
+    pc.addIceCandidate(candidate).catch(function () { /* stale candidate */ });
+  }
+
+  function peerApplyConfig(conn, name) {
+    var pc = conn.peerconnection;
+    var config = conn._configs[name];
+    var cfg = config && config.video;
+    var slots = conn._slots[name] || [];
+    if (!pc || !cfg) return;
+    slots.forEach(function (slot) {
+      var tr = pc.getTransceivers ? pc.getTransceivers()[slot] : null;
+      var sender = tr && tr.sender;
+      if (!sender || !sender.track || sender.track.kind !== 'video' || !sender.getParameters) return;
+      try {
+        var params = sender.getParameters();
+        if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+        var encoding = {};
+        for (var key in cfg) {
+          if (Object.prototype.hasOwnProperty.call(cfg, key) && key !== 'degradationPreference') encoding[key] = cfg[key];
+        }
+        if (cfg.degradationPreference) params.degradationPreference = cfg.degradationPreference;
+        Object.assign(params.encodings[0], encoding);
+        var pending = sender.setParameters(params);
+        if (pending && typeof pending.catch === 'function') pending.catch(function () { /* unsupported hint */ });
+      } catch (e) { /* Firefox rejects some encoding hints; media still flows */ }
+    });
+  }
+
+  function peerLogicalSlots(name, stream) {
+    var slots = [];
+    var used = [];
+    var videoPool = /screen|display|share/i.test(String(name)) ? [2, 1] : [1, 2];
+    var tracks = [];
+    try { tracks = stream.getTracks ? stream.getTracks() : []; } catch (e) { tracks = []; }
+    tracks.forEach(function (track) {
+      var pool = track.kind === 'audio' ? [0] : videoPool;
+      for (var i = 0; i < pool.length; i++) {
+        if (used.indexOf(pool[i]) >= 0) continue;
+        used.push(pool[i]);
+        slots.push(pool[i]);
+        break;
+      }
+    });
+    return slots;
+  }
+
+  function peerAssignSlots(conn, name, stream) {
+    var pc = conn.peerconnection;
+    var slots = peerLogicalSlots(name, stream);
+    conn._slots[name] = slots;
+    if (!pc) return { slots: slots, changed: false };
+    var tracks = [];
+    try { tracks = stream.getTracks ? stream.getTracks() : []; } catch (e) { tracks = []; }
+    var changed = false;
+    slots.forEach(function (slot, index) {
+      var track = tracks[index];
+      var tr = pc.getTransceivers ? pc.getTransceivers()[slot] : null;
+      if (!tr || !track) return;
+      if (tr.direction === 'recvonly' || tr.direction === 'inactive') {
+        try { tr.direction = 'sendrecv'; changed = true; } catch (e) { /* old browser */ }
+      }
+      if (tr.sender) {
+        try {
+          var pending = tr.sender.replaceTrack(track);
+          if (pending && pending.catch) pending.catch(function () { /* kind mismatch */ });
+        } catch (e2) { /* kind mismatch */ }
+      }
+    });
+    return { slots: slots, changed: changed };
+  }
+
+  function peerPublish(conn, name, stream, options) {
+    if (!name || !stream) throw new Error('publish() needs a stream name and a MediaStream.');
+    conn.publications.set(name, stream);
+    conn._configs[name] = conn._configs[name] || {};
+    if (options && options.video) conn._configs[name].video = Object.assign({}, conn._configs[name].video || {}, options.video);
+    var pc = conn.peerconnection;
+    var slots = peerLogicalSlots(name, stream);
+    conn._slots[name] = slots;
+    if (pc && (!conn._hostSide || pc.remoteDescription)) {
+      var assigned = peerAssignSlots(conn, name, stream);
+      peerApplyConfig(conn, name);
+      if (assigned.changed) {
+        if (pc.signalingState === 'stable') peerRenegotiate(conn);
+        else if (pc.signalingState !== 'have-remote-offer') conn._renegotiateAgain = true;
+      }
+    } else {
+      conn._pendingPublishes[name] = stream;
+    }
+    conn._relay({ t: 'media', action: 'publish', name: name, slots: slots });
+  }
+
+  function peerUnpublish(conn, name) {
+    var pc = conn.peerconnection;
+    var slots = conn._slots[name] || [];
+    delete conn._pendingPublishes[name];
+    if (pc) {
+      slots.forEach(function (slot) {
+        var tr = pc.getTransceivers ? pc.getTransceivers()[slot] : null;
+        if (tr && tr.sender) {
+          try {
+            var pending = tr.sender.replaceTrack(null);
+            if (pending && pending.catch) pending.catch(function () {});
+          } catch (e) { /* already gone */ }
+        }
+      });
+    }
+    delete conn._slots[name];
+    delete conn._configs[name];
+    conn.publications.delete(name);
+    conn._relay({ t: 'media', action: 'unpublish', name: name });
+  }
+
+  function peerConfigure(conn, name, options) {
+    var cfg = options && options.video;
+    if (!name || !cfg) return;
+    conn._configs[name] = conn._configs[name] || {};
+    conn._configs[name].video = Object.assign({}, conn._configs[name].video || {}, cfg);
+    peerApplyConfig(conn, name);
+  }
+
+  function peerRemoteMedia(conn, message) {
+    if (message.action === 'unpublish') {
+      var ended = conn.media.get(message.name);
+      if (!ended) return;
+      try { ended.getTracks().forEach(function (track) { ended.removeTrack(track); }); } catch (e) { /* ignore */ }
+      conn.media.delete(message.name);
+      conn.dispatchEvent('mediaended', { name: message.name, stream: ended });
+      return;
+    }
+    if (message.action !== 'publish') return;
+    var pc = conn.peerconnection;
+    var transceivers = pc && pc.getTransceivers ? pc.getTransceivers() : [];
+    if (!transceivers.length) {
+      // The answerer has not applied the offer yet; its receiver tracks do
+      // not exist. Replay this once they do.
+      conn._pendingRemoteMedia.push(message);
+      return;
+    }
+    var stream = conn.media.get(message.name);
+    if (!stream) {
+      try { stream = new MediaStream(); } catch (e) { return; }
+      conn.media.set(message.name, stream);
+    }
+    (message.slots || []).forEach(function (slot) {
+      var tr = transceivers[slot];
+      var track = tr && tr.receiver && tr.receiver.track;
+      if (!track) return;
+      try {
+        var known = stream.getTracks().some(function (t) { return t === track; });
+        if (!known) stream.addTrack(track);
+      } catch (e) { /* ignore */ }
+      conn.dispatchEvent('media', { name: message.name, stream: stream, track: track });
+    });
+  }
+
+  function peerConn(server, ws, id, owner, hostSide) {
+    var conn = eventTarget({
+      owner: owner || null,
+      connected: false,
+      closed: false,
+      linkState: 'connecting',
+      publications: new Map(),
+      media: new Map(),
+      peerconnection: null,
+      send: function (data) { peerSend(conn, data); },
+      close: function (reason) { peerClose(conn, reason); },
+      publish: function (name, stream, options) { peerPublish(conn, name, stream, options); },
+      unpublish: function (name) { peerUnpublish(conn, name); },
+      configure: function (name, options) { peerConfigure(conn, name, options); },
+      _server: server,
+      _ws: ws,
+      _id: id,
+      _hostSide: !!hostSide,
+      _slots: Object.create(null),
+      _configs: Object.create(null),
+      _pendingPublishes: Object.create(null),
+      _pendingRemoteMedia: [],
+      _pendingIce: [],
+      _negotiating: false,
+      _renegotiateAgain: false,
+      _sdpQueue: Promise.resolve(),
+    });
+    conn.peerconnection = peerPc(conn);
+    conn._relay = function (data) {
+      if (conn.closed || !conn._ws || conn._ws.readyState !== WebSocket.OPEN) return;
+      var envelope = conn._hostSide
+        ? { type: 'relay', connId: conn._id, data: data }
+        : { type: 'relay', data: data };
+      try { conn._ws.send(JSON.stringify(envelope)); } catch (e) { /* closing */ }
+    };
+    conn._fromPeer = function (data) {
+      if (!data || conn.closed) return;
+      if (data.t === 'msg') {
+        var payload = data.data;
+        if (data.binary && typeof payload === 'string') {
+          try { payload = b64ToBytes(payload).buffer; } catch (e) { payload = null; }
+        }
+        conn.dispatchEvent('message', { data: payload });
+      } else if (data.t === 'sdp') {
+        peerSdp(conn, data.description);
+      } else if (data.t === 'ice') {
+        peerIce(conn, data.candidate);
+      } else if (data.t === 'media') {
+        peerRemoteMedia(conn, data);
+      }
+    };
+    conn._open = function () {
+      if (conn.closed) return;
+      conn.connected = true;
+      conn.dispatchEvent('open', {});
+      if (!conn._hostSide) peerStartOffer(conn);
+    };
+    conn._remoteClose = function (reason) {
+      if (conn.closed) return;
+      conn.closed = true;
+      conn.connected = false;
+      try { if (conn.peerconnection) conn.peerconnection.close(); } catch (e) { /* already closed */ }
+      if (conn._server) conn._server.connections.delete(conn._id);
+      conn.dispatchEvent('close', { reason: reason || 'The connection closed.' });
+    };
+    return conn;
+  }
+
+  function peerSend(conn, data) {
+    if (conn.closed) throw new Error('The connection is closed.');
+    if (!conn.connected) throw new Error('The connection is not open yet.');
+    if (typeof Blob !== 'undefined' && data instanceof Blob) {
+      data.arrayBuffer().then(function (buffer) {
+        conn._relay({ t: 'msg', data: bytesToB64(new Uint8Array(buffer)), binary: true });
+      }, function () { /* unreadable blob */ });
+      return;
+    }
+    if (typeof ArrayBuffer !== 'undefined' && (data instanceof ArrayBuffer || ArrayBuffer.isView(data))) {
+      var bytes = data instanceof ArrayBuffer
+        ? new Uint8Array(data)
+        : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+      conn._relay({ t: 'msg', data: bytesToB64(bytes), binary: true });
+      return;
+    }
+    conn._relay({ t: 'msg', data: data });
+  }
+
+  function peerClose(conn, reason) {
+    if (conn.closed) return;
+    conn.closed = true;
+    conn.connected = false;
+    try { if (conn.peerconnection) conn.peerconnection.close(); } catch (e) { /* already closed */ }
+    if (conn._server) conn._server.connections.delete(conn._id);
+    if (conn._hostSide) {
+      if (conn._ws && conn._ws.readyState === WebSocket.OPEN) {
+        try { conn._ws.send(JSON.stringify({ type: 'close-conn', connId: conn._id, reason: reason || 'Closed.' })); } catch (e) { /* closing */ }
+      }
+    } else if (conn._ws) {
+      if (conn._ws.readyState === WebSocket.OPEN) {
+        try { conn._ws.send(JSON.stringify({ type: 'close', reason: reason || 'Closed.' })); } catch (e) { /* closing */ }
+      }
+      try { conn._ws.close(); } catch (e2) { /* closing */ }
+    }
+  }
+
+  function peerServer(ws) {
+    var server = eventTarget({
+      inviteCode: '',
+      connections: new Map(),
+      _closed: false,
+      close: function () {
+        if (server._closed) return;
+        server._closed = true;
+        server.connections.forEach(function (conn) {
+          conn.closed = true;
+          conn.connected = false;
+          try { if (conn.peerconnection) conn.peerconnection.close(); } catch (e) { /* ignore */ }
+        });
+        server.connections.clear();
+        try { ws.send(JSON.stringify({ type: 'close-server' })); } catch (e) { /* closing */ }
+        try { ws.close(); } catch (e2) { /* closing */ }
+        server.dispatchEvent('close', { reason: 'The server closed.' });
+      },
+      _socketClosed: function (reason) {
+        if (server._closed) return;
+        server._closed = true;
+        server.connections.forEach(function (conn) { conn._remoteClose(reason || 'The invite closed.'); });
+        server.connections.clear();
+        server.dispatchEvent('close', { reason: reason || 'The invite closed.' });
+      },
+    });
+    return server;
+  }
+
+  puter.peer = {
+    createGuestGrant: function () {
+      return request('POST', '/peer/grant', {}).then(function (data) {
+        return { grant: data && data.grant, expiresAt: data && data.expiresAt };
+      });
+    },
+
+    serve: function () {
+      return new Promise(function (resolve, reject) {
+        var ws;
+        try { ws = new WebSocket(peerSocket('')); } catch (e) {
+          return reject(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+        }
+        var server = peerServer(ws);
+        var settled = false;
+        var timer = setTimeout(function () {
+          fail(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+        }, 15000);
+        function fail(err) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try { ws.close(); } catch (e) { /* closing */ }
+          reject(err);
+        }
+        ws.onopen = function () {
+          try { ws.send(JSON.stringify({ type: 'serve' })); } catch (e) {
+            fail(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+          }
+        };
+        ws.onerror = function () { if (!settled) fail(peerError('Could not reach the signaller.', 'signaller_unreachable')); };
+        ws.onclose = function () {
+          if (!settled) return fail(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+          server._socketClosed('The invite closed.');
+        };
+        ws.onmessage = function (event) {
+          var msg = peerParse(event);
+          if (!msg) return;
+          if (msg.type === 'served') {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            server.inviteCode = msg.inviteCode;
+            resolve(server);
+          } else if (msg.type === 'connection') {
+            var conn = peerConn(server, ws, msg.connId, msg.user, true);
+            server.connections.set(msg.connId, conn);
+            server.dispatchEvent('connection', { conn: conn, user: msg.user });
+            queueMicrotask(function () { conn._open(); });
+          } else if (msg.type === 'conn-closed') {
+            var open = server.connections.get(msg.connId);
+            if (open) {
+              server.connections.delete(msg.connId);
+              open._remoteClose(msg.reason);
+            }
+          } else if (msg.type === 'relay') {
+            var target = server.connections.get(msg.connId);
+            if (target) target._fromPeer(msg.data);
+          } else if (msg.type === 'error') {
+            if (!settled) fail(peerError(msg.message || 'The signaller refused the invite.', msg.code));
+          }
+        };
+      });
+    },
+
+    connect: function (code, options) {
+      return new Promise(function (resolve, reject) {
+        if (!code || typeof code !== 'string') {
+          return reject(peerError('An invite code is required.', 'invalid_invite'));
+        }
+        var extra = '';
+        if (options && options.turnGrant) extra += '&grant=' + encodeURIComponent(options.turnGrant);
+        var ws;
+        try { ws = new WebSocket(peerSocket(extra)); } catch (e) {
+          return reject(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+        }
+        var conn = null;
+        var settled = false;
+        var timer = setTimeout(function () {
+          fail(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+        }, 15000);
+        function fail(err) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try { ws.close(); } catch (e) { /* closing */ }
+          reject(err);
+        }
+        ws.onopen = function () {
+          try {
+            ws.send(JSON.stringify({
+              type: 'join',
+              code: code,
+              anonToken: (options && options.anonToken) || undefined,
+            }));
+          } catch (e) {
+            fail(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+          }
+        };
+        ws.onerror = function () { if (!settled) fail(peerError('Could not reach the signaller.', 'signaller_unreachable')); };
+        ws.onclose = function () {
+          if (!settled) return fail(peerError('Could not reach the signaller.', 'signaller_unreachable'));
+          if (conn) conn._remoteClose('The connection was lost.');
+        };
+        ws.onmessage = function (event) {
+          var msg = peerParse(event);
+          if (!msg) return;
+          if (msg.type === 'joined') {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            conn = peerConn(null, ws, msg.connId, msg.host, false);
+            resolve(conn);
+            queueMicrotask(function () { conn._open(); });
+          } else if (msg.type === 'join-error') {
+            fail(peerError(msg.message || 'Invalid invite code.', msg.code || 'invalid_invite'));
+          } else if (msg.type === 'conn-closed' && conn) {
+            conn._remoteClose(msg.reason);
+          } else if (msg.type === 'relay' && conn) {
+            conn._fromPeer(msg.data);
+          } else if (msg.type === 'error' && !settled) {
+            fail(peerError(msg.message || 'The signaller refused the connection.', msg.code));
+          }
+        };
+      });
+    },
+  };
+
+  // -- events (onLocal) ----------------------------------------------------
+  // Realtime change delivery for one person's own data. The socket is opened
+  // lazily on the first subscription and reconnects with backoff; changes
+  // that happened while it was down arrive as a `gap` event so the app knows
+  // to re-read rather than assume it saw everything.
+  var eventBus = {
+    ws: null,
+    ready: false,
+    subs: Object.create(null),
+    seq: 0,
+    retry: 0,
+    failures: 0,
+    timer: null,
+  };
+
+  function eventsSocketUrl() {
+    var scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return scheme + '//' + location.host + API + '/events?app=' + encodeURIComponent(APPNAME);
+  }
+
+  function eventsLiveCount() {
+    var n = 0;
+    for (var id in eventBus.subs) if (!eventBus.subs[id].dead) n++;
+    return n;
+  }
+
+  function eventsSend(frame) {
+    if (!eventBus.ws || eventBus.ws.readyState !== WebSocket.OPEN) return false;
+    try { eventBus.ws.send(JSON.stringify(frame)); return true; } catch (e) { return false; }
+  }
+
+  function eventsResubscribe() {
+    for (var id in eventBus.subs) {
+      var sub = eventBus.subs[id];
+      if (sub.dead) continue;
+      if (eventsSend({ type: 'sub', id: sub.requestId, subject: sub.subject, includeValue: sub.includeValue })) {
+        sub.resubscribed = sub.everReady;
+      }
+    }
+  }
+
+  function eventsRetry() {
+    if (eventBus.timer || eventsLiveCount() === 0) return;
+    var delay = Math.min(30000, 1000 * Math.pow(2, Math.min(eventBus.retry++, 5)));
+    eventBus.timer = setTimeout(function () {
+      eventBus.timer = null;
+      eventsEnsure();
+    }, delay);
+  }
+
+  function eventsDeliver(sub, event) {
+    if (!sub || sub.dead) return;
+    try {
+      sub.handler({ event: event });
+    } catch (e) {
+      console.error('[cad-hub] events handler failed', e);
+    }
+  }
+
+  /** Give up on the transport: every standing subscription is told once. */
+  function eventsFailAll(message) {
+    for (var id in eventBus.subs) {
+      var sub = eventBus.subs[id];
+      if (sub.dead) continue;
+      sub.dead = true;
+      if (sub.timer) clearTimeout(sub.timer);
+      delete eventBus.subs[id];
+      var err = peerError(message, 'events_unavailable');
+      if (sub.ready) {
+        if (sub.options && typeof sub.options.onError === 'function') {
+          try { sub.options.onError(err); } catch (e) { /* caller's error */ }
+        }
+      } else {
+        sub.reject(err);
+      }
+    }
+  }
+
+  function eventsHandle(sub) {
+    return {
+      subId: sub.serverId,
+      subject: sub.subject,
+      anchor: sub.anchor,
+      match: sub.match,
+      op: sub.op,
+      includeValue: sub.includeValue,
+      off: function () {
+        if (sub.dead) return Promise.resolve();
+        sub.dead = true;
+        delete eventBus.subs[sub.requestId];
+        if (sub.serverId) eventsSend({ type: 'unsub', subId: sub.serverId });
+        return Promise.resolve();
+      },
+    };
+  }
+
+  function eventsEnsure() {
+    if (eventBus.ws && (eventBus.ws.readyState === WebSocket.CONNECTING || eventBus.ws.readyState === WebSocket.OPEN)) return;
+    if (typeof WebSocket !== 'function') return eventsRetry();
+    var ws;
+    try { ws = new WebSocket(eventsSocketUrl()); } catch (e) { return eventsRetry(); }
+    eventBus.ws = ws;
+    eventBus.ready = false;
+    ws.onopen = function () {
+      if (eventBus.ws !== ws) return;
+      eventBus.ready = true;
+      eventBus.retry = 0;
+      eventBus.failures = 0;
+      eventsResubscribe();
+    };
+    ws.onmessage = function (event) {
+      var msg = peerParse(event);
+      if (!msg) return;
+      if (msg.type === 'sub-ok') {
+        var sub = eventBus.subs[msg.id];
+        if (!sub || sub.dead) return;
+        sub.serverId = msg.subId;
+        sub.anchor = msg.anchor;
+        sub.match = msg.match;
+        sub.op = msg.op;
+        if (!sub.ready) {
+          sub.ready = true;
+          sub.everReady = true;
+          if (sub.timer) { clearTimeout(sub.timer); sub.timer = null; }
+          sub.resolve(eventsHandle(sub));
+        } else if (sub.resubscribed) {
+          sub.resubscribed = false;
+          eventsDeliver(sub, { op: 'gap', subject: sub.subject, reason: 'reconnect' });
+        }
+        return;
+      }
+      if (msg.type === 'sub-error') {
+        var failed = eventBus.subs[msg.id];
+        if (!failed || failed.dead) return;
+        var err = peerError(msg.message || 'That event subject is not supported.', msg.code || 'subject_does_not_exist');
+        if (!failed.ready) {
+          failed.dead = true;
+          if (failed.timer) clearTimeout(failed.timer);
+          delete eventBus.subs[msg.id];
+          failed.reject(err);
+        } else {
+          failed.dead = true;
+          delete eventBus.subs[msg.id];
+          if (failed.options && typeof failed.options.onError === 'function') {
+            try { failed.options.onError(err); } catch (e) { /* caller's error */ }
+          }
+        }
+        return;
+      }
+      if (msg.type === 'event') {
+        var target = eventBus.subs[msg.id];
+        if (target && !target.dead) eventsDeliver(target, msg.event || {});
+      }
+    };
+    ws.onerror = function () { /* onclose does the retrying */ };
+    ws.onclose = function () {
+      if (eventBus.ws !== ws) return;
+      eventBus.ws = null;
+      eventBus.ready = false;
+      if (eventsLiveCount() === 0) return;
+      // A dropped link is not the end of the subscription: the socket is
+      // remade and the subscription re-made on it. Only after several failed
+      // attempts is the caller told, so it can fall back to polling.
+      eventBus.failures += 1;
+      if (eventBus.failures > 5) {
+        eventsFailAll('Could not reconnect to the event service.');
+        return;
+      }
+      eventsRetry();
+    };
+  }
+
+  function onLocal(subject, handler, options) {
+    return new Promise(function (resolve, reject) {
+      if (typeof subject !== 'string' || !subject.trim() || subject.length > 2048) {
+        return reject(peerError('onLocal() needs an event subject.', 'invalid_subject'));
+      }
+      if (typeof handler !== 'function') {
+        return reject(peerError('onLocal() needs a handler function.', 'invalid_handler'));
+      }
+      if (!APPNAME) return reject(peerError('Events need a hub app name.', 'not_an_app'));
+      var o = options || {};
+      var requestId = 's' + ++eventBus.seq + '-' + Date.now().toString(36);
+      var sub = {
+        requestId: requestId,
+        subject: subject.trim(),
+        handler: handler,
+        options: o,
+        includeValue: !!o.includeValue,
+        ready: false,
+        everReady: false,
+        resubscribed: false,
+        dead: false,
+        serverId: '',
+        anchor: 0,
+        match: 'exact',
+        op: 'set|del|expire|gap',
+        resolve: resolve,
+        reject: reject,
+        timer: null,
+      };
+      eventBus.subs[requestId] = sub;
+      var wait = Number(o.timeout);
+      var limit = Number.isFinite(wait) && wait > 0 ? Math.min(wait, 120000) : 15000;
+      sub.timer = setTimeout(function () {
+        if (sub.ready || sub.dead) return;
+        sub.dead = true;
+        delete eventBus.subs[requestId];
+        reject(peerError('The event subscription timed out.', 'events_timeout'));
+      }, limit);
+      eventsEnsure();
+      if (eventBus.ready && !eventsSend({ type: 'sub', id: requestId, subject: sub.subject, includeValue: sub.includeValue })) {
+        sub.dead = true;
+        delete eventBus.subs[requestId];
+        if (sub.timer) clearTimeout(sub.timer);
+        reject(peerError('Could not reach the event service.', 'events_unavailable'));
+      }
+    });
+  }
+
+  puter.events = {
+    onLocal: onLocal,
+  };
+
   puter.email = {
     send: function (message) {
       return request('POST', '/email/send', { message: message, app: APPNAME });
