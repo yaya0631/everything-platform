@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-27T08:26:01.945Z",
+  "at": "2026-10-27T10:23:48.374Z",
   "checks": [
     {
       "name": "empty data directory starts with zero apps",
@@ -29,7 +29,7 @@
     {
       "name": "admin engine status is readable",
       "ok": true,
-      "detail": "status=200 body={\"ocr\":{\"available\":false,\"enabled\":true,\"language\":\"eng\",\"languages\":[],\"path\":\"C:\\\\Users\\\\SONYMA~1\\\\AppData\\\\Local\\\\Temp\\\\cad-fresh-host-TTynAy\\\\engines\\\\tess"
+      "detail": "status=200 body={\"ocr\":{\"available\":false,\"enabled\":true,\"language\":\"eng\",\"languages\":[],\"path\":\"C:\\\\Users\\\\SONYMA~1\\\\AppData\\\\Local\\\\Temp\\\\cad-fresh-host-FSM2et\\\\engines\\\\tess"
     },
     {
       "name": "OCR is reported missing, not faked, on a fresh host",
@@ -44,7 +44,7 @@
     {
       "name": "the installed app gets the real shim and writes KV",
       "ok": true,
-      "detail": "{\"value\":\"survives-restart-1793089557578\",\"shim\":true}"
+      "detail": "{\"value\":\"survives-restart-1793096624309\",\"shim\":true}"
     },
     {
       "name": "no page errors on the fresh install",
@@ -54,7 +54,7 @@
     {
       "name": "the session and KV value survive a server restart",
       "ok": true,
-      "detail": "\"survives-restart-1793089557578\""
+      "detail": "\"survives-restart-1793096624309\""
     },
     {
       "name": "no page errors after restart",

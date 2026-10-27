@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-10-27T08:26:13.583Z",
+  "ranAt": "2026-10-27T10:23:59.131Z",
   "runner": "engine-e2e.mjs",
   "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "steps": [
@@ -21,7 +21,7 @@
     {
       "step": "txt2speech resolves a playable WAV audio element",
       "pass": true,
-      "detail": "{\"tag\":\"AUDIO\",\"blob\":true,\"bytes\":99488,\"riff\":\"RIFF\",\"ready\":true}"
+      "detail": "{\"tag\":\"AUDIO\",\"blob\":true,\"bytes\":101024,\"riff\":\"RIFF\",\"ready\":true}"
     },
     {
       "step": "txt2img refuses with the cloud-only explanation",
@@ -41,7 +41,7 @@
     {
       "step": "real audio-studio page: txt2speech returns a WAV",
       "pass": true,
-      "detail": "{\"tag\":\"AUDIO\",\"blob\":true,\"bytes\":63648,\"riff\":\"RIFF\"}"
+      "detail": "{\"tag\":\"AUDIO\",\"blob\":true,\"bytes\":67232,\"riff\":\"RIFF\"}"
     },
     {
       "step": "no page errors",

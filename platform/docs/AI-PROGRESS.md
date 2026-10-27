@@ -1160,3 +1160,67 @@ Commit: `2c72120`.
   are explicit 501s. Engines live in gitignored `data/engines`.
 - `puter.hosting` stays disabled by default; enabling it is an owner decision.
 
+## Session 13 - 2026-10-27 - app AI failures + Admin -> AI bulk model management
+
+Commits: `5ebf63d` (AI), `d8da10e` (Admin bulk).
+
+### Problem
+
+- Photo Studio rejected the image preview and then ended with "I could not settle
+  on a plan for this." The live usage table has 49 `hub:photo-studio` errors;
+  the only enabled models are text-only OpenRouter ids, so the app's image
+  request was refused before its text fallback, and small models could loop
+  through its 8 tool rounds without calling `propose_plan` or `answer`.
+- The admin model table only had a per-row switch/delete and a Save button.
+  With 463 models in the live list there was no practical way to keep a small
+  set.
+
+### DONE
+
+- **Platform-wide image fallback:** `lib/ai.js` recognizes an image-related
+  400/404/413/415/422 from both the OpenAI-compatible and Anthropic adapters,
+  retries the same turn without images, and returns the normal text/tool reply.
+  A model-level refusal ("does not support image input") is remembered for the
+  life of the process; a one-off bad image is retried but not cached. This
+  prevents Photo Studio, documents and 3D from showing their own "preview was
+  dropped" warning for a text-only model.
+- **Tool-loop finalization:** when the offered tools include a final action
+  (`answer`, `propose_plan`, `finish*`, `submit*`, ...), `lib/ai.js` adds a
+  system reminder after 4 tool rounds in the current turn, and after 6 rounds
+  leaves only the final tools. Apps without a final tool (3D, documents) are
+  untouched. The regression test simulates Photo Studio's search loop and
+  reaches `propose_plan` on call 7, before the app's 8-round cap.
+- **Usage log timing:** `hub-ai.logMissed` now writes `ms = 0` instead of an
+  epoch timestamp in the duration column.
+- **Admin -> AI bulk models:** checkbox column, select-all-shown with partial
+  state, shift-click range selection, selected count, bulk enable/disable,
+  remove-selected, keep-only-selected, clear, and confirmations. Edits stay
+  local until "Save models", matching the existing model/price flow.
+- **Durable browser evidence:** `admin-bulk-e2e.mjs` (and
+  `npm run e2e:admin-bulk`) starts a throwaway server, seeds 30 models, and
+  verifies shift range, select-all, keep-only, bulk disable and remove through
+  the real panel and the admin API. No live data is touched.
+
+### Verification
+
+- `npm test`: **686/686 PASS** (4 new AI tests; `test/ai.test.js` 13/13).
+- `npm run lint`: **0 errors, 53 warnings**.
+- `npm run verify`: **PASS** (host checks).
+- `npm run verify:full`: **PASS** (full hosting acceptance; 51/51 apps load,
+  gate 51/51, engines 9/9, Pyodide 8/8, peer 18/18, chess 8/8, and the new
+  admin bulk E2E).
+- `npm run e2e:admin-bulk`: **PASS** (system Chrome, throwaway data, 0 page errors).
+- `node build-hub.mjs status`: **51 apps | works 3 | boots 48 | untested 0 | does not 0**.
+- Live restart after the change: public `/healthz` **200**, private `/` **302 ->
+  /hub/**, `/hub/` **401** without a session. A SQLite backup
+  (`data/backups/cad-20261027104156.db`) was taken before the restart.
+- `upstream/` is clean at `e750f374`; no app source was edited.
+
+### PENDING / limits
+
+- Live chat still needs an owner credential: the OpenRouter key is empty, only
+  OpenRouter models are enabled, the GLM key has no enabled GLM model, and no
+  Ollama model is pulled. Until one path is available, requests fail before the
+  image fallback can run. This is a configuration gap, not the plan-loop bug.
+- The image cache is in-process and only learns after a real refusal; there is
+  no model-metadata pass that pre-marks text-only models.

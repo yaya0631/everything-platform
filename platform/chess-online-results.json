@@ -14,7 +14,7 @@
     {
       "step": "the host creates a game and gets a real invite code",
       "pass": true,
-      "detail": "388ERT24"
+      "detail": "R75TSWUG"
     },
     {
       "step": "both sides reach the playing state after the handshake",
@@ -44,6 +44,6 @@
   ],
   "hostList": "1. e4 e5",
   "guestList": "1. e4 e5",
-  "code": "388ERT24",
+  "code": "R75TSWUG",
   "passed": true
 }

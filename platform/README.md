@@ -219,7 +219,7 @@ Anyone with an edit link can change the drawing — that's the point of a link �
 
 ## 8. AI
 
-Configure providers and API keys in **Admin → AI**: OpenAI, Anthropic, DeepSeek, Kimi (Moonshot), GLM (Zhipu/Z.ai), Groq, Google AI Studio (Gemini), OpenRouter and local Ollama (no key). For Groq, Gemini and OpenRouter, paste a key from console.groq.com/keys, aistudio.google.com/api-keys or openrouter.ai/keys. Fetch each provider's model list, tick the ones to enable, and optionally set prices per model to see estimated costs.
+Configure providers and API keys in **Admin → AI**: OpenAI, Anthropic, DeepSeek, Kimi (Moonshot), GLM (Zhipu/Z.ai), Groq, Google AI Studio (Gemini), OpenRouter and local Ollama (no key). For Groq, Gemini and OpenRouter, paste a key from console.groq.com/keys, aistudio.google.com/api-keys or openrouter.ai/keys. Fetch each provider's model list, tick the ones to enable, and optionally set prices per model to see estimated costs. With a long list, use the row checkboxes: shift-click a range, **Select all shown**, then **Enable selected**, **Disable selected**, **Remove selected**, or **Keep only selected**. These edits apply when you click **Save models**.
 
 ### Running a model on this PC (Ollama)
 
