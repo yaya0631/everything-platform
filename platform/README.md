@@ -44,6 +44,9 @@ installs, serves and gates them through the same machinery.
    npm run setup
    ```
 
+   For the complete order (engines, app builds, first owner, firewall,
+   verification) use [`docs/HOSTING.md`](docs/HOSTING.md).
+
 4. Create your own account. You will be asked for a password, which is hidden as you type. The first account becomes the server admin:
 
    ```sh
@@ -330,9 +333,9 @@ People with the **can host apps** flag (Admin → People, or `npm run user -- ho
 
 > **Functions can use the network.** The sandbox restricts files and processes — **not** network access. A serverless function can reach the internet and your LAN. Only give "can host apps" to people you trust.
 
-## 11. The hub — the 50 apps from HeyPuter/everything
+## 11. The hub — the 51 apps from HeyPuter/everything
 
-The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (49 apps + CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to the platform folder, change with the Everything dir setting in Admin → Hub); its working tree stays **clean**: HEAD is this fork's own history (base `0fc4d361` plus the documented hub-integration commits), apps are never edited in place, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
+The [HeyPuter/everything](https://github.com/HeyPuter/everything) collection (51 app builds, including CAD) runs on this server through the hub. The clone lives at the **everything dir** (default `../upstream` next to the platform folder, change with the Everything dir setting in Admin → Hub); its working tree stays **clean**: HEAD is this fork's own history (base `0fc4d361` plus the documented hub-integration commits), apps are never edited in place, only rebuilt (`git -C upstream pull` to update), and every cloud touchpoint is exchanged when files are *served*, not in the source.
 
 **Layout on this server:** `/` opens the hub (a redirect to `/hub/`, each person's app grid — CAD is listed there like any other app and does not own the root any more). Signed-out visitors get the hub's own sign-in form right there (no JavaScript, works in any browser); apps live at `/h/<name>/` (the `/apps/` prefix belongs to the older hosted-apps feature), and the shim is at `/hub/puter.js`.
 
@@ -372,15 +375,19 @@ Install rules: setup-time only, always `npm ci --ignore-scripts` (or `npm instal
 - **`puter.events`** — `onLocal(subject, handler, options)` for this signed-in person's own **KV** (`kv:key`, `kv:*`) and **filesystem** (`fs:path`, prefix match) changes, with `includeValue` and an `off()` handle. A dropped socket reconnects and delivers a `gap` event so the app re-reads; after five failed attempts it calls `onError` and the app falls back to its polling path. There are no cross-person or cross-app KV events on this server.
 - Everything else that has no local equivalent (`hosting`, `net.tls`/`net.Socket`, SMTP email, cross-person sharing, Puter's cloud registry) fails with an explicit, named error rather than pretending — every one of those is an entry in the gap ledger or a documented local equivalent.
 
-**Which apps are served:** Admin → Hub switches apps on or off, and each app is either for everyone (default) or restricted to a named list of accounts, enforced on the home page and at serve time. `node build-hub.mjs scan` reports, straight from each app's source, which `puter.*` calls it makes and therefore its tier — 23 apps need only what this phase provides and are installed with `node build-hub.mjs build-all [--prune]` (state and results land in `data/hub/build-state.json`, so a batch can resume).
+**Which apps are served:** Admin → Hub switches apps on or off, and each app is either for everyone (default) or restricted to a named list of accounts, enforced on the home page and at serve time. `node build-hub.mjs scan` reports, straight from each app's source, which `puter.*` calls it makes and therefore its tier. This host has all **51** upstream app builds installed (`node build-hub.mjs build-all`; state and results land in `data/hub/build-state.json`, so a batch can resume), and the W4 gate re-tested every one against the local shim.
 
 **Why apps run on the same origin as the server:** strict CSP, and the shim's origin-relative API paths, need it — and it keeps configuration zero. Same-origin is a *namespace, not a security boundary*; the actual protections are: no upstream code is ever modified (every swap is re-derived at serve time and checkable with the Scan button), all mutating API calls require `X-CAD-Request` plus a same-origin `Origin`/`Sec-Fetch-Site` check, cookies are HttpOnly + SameSite=Strict, and every install is admin-approved. Anything a *user* authors (published docs, embeds, user SVG) never renders on this origin — it goes to the public listener or a sandboxed frame in later phases.
 
-Counted from the real-Chromium load pass over all 23 installed apps (re-run
-`node browser-smoke.mjs load` + `node _smoketable.mjs` after any mass update):
-**23/23 render; over every request they made, not one went to an external
-origin; 0 CSP violations; 0 uncaught errors; 0 failed requests; exactly 5
-non-200 responses — the same-origin first-run 404s listed in the table above.**
+Counted from the real-Chromium load pass over all 51 installed apps (re-run
+`node browser-smoke.mjs load` after any mass update):
+**51/51 render; over every request they made, not one went to an external
+origin; 0 CSP violations; 0 uncaught errors; 0 failed requests; 0 unexpected
+4xx/5xx responses.** The only navigation timeouts are the measured long-poll
+cases named below. The 3d build's root-absolute Inter-font URLs (a real 404
+found by the W4 gate) are now rebased at serve time; email's first-run
+`/api/hub/fs/stat` 403 is the app's deliberate request-access probe, not a
+broken load.
 String counts over the builds agree and include everything, not just runtime:
 576 distinct absolute-URL strings on disk, overwhelmingly *not* runtime paths
 (OOXML namespace URIs inside generated documents, the apps' own marketing
@@ -419,8 +426,8 @@ Which apps can write outside their own data folder, from their source:
 | --- | --- | --- | --- |
 | audio-studio | export writes `/<person>/AudioStudio/…` directly | installed | the consent overlay, once per path until revoked |
 | projects, music-studio | "Save as…" flows through `ui.showSaveFilePicker` — the folder you pick in that dialog **is** the consent, granted under source `picker-save` | installed | the pick dialog itself; the file lands where you chose |
-| video-studio | export writes `/<person>/Videos/…` directly | workers tier, not installed yet | the consent overlay, same rule |
-| spreadsheet | "Save to Drive" via `ui.showSaveFilePicker` | workers tier, not installed yet | the pick dialog itself, same rule |
+| video-studio | export writes `/<person>/Videos/…` directly | installed | the consent overlay, same rule |
+| spreadsheet | "Save to Drive" via `ui.showSaveFilePicker` | installed | the pick dialog itself, same rule |
 
 No other installed app writes outside its own folder — checked for every app the scan reports as touching `fs`, not just the named ones (email composes to the app's own data folder by design; presentation, notes, cap-table, pos, crm and survey save relative paths only). Every path above is refused before grant, never auto-granted, and revocable in **Account → Hub app data**.
 
@@ -431,12 +438,11 @@ Nothing here: everything an installed app asks for is answered, and where the an
 | Gap | Who hits it | Local behaviour | The way to enable it |
 | --- | --- | --- | --- |
 | `ui.onLaunchedWithItems` / `ui.onItemsOpened` never fire | cad, building-design, pdf, records | no-op; the app runs without the "opened from the file manager" path | Windows shell integration phase |
-| Window management beyond the pickers (`ui.launchApp`, picture-in-picture) | meetings | named "not yet" error when called | desktop-shell phase |
+| Window management (`ui.launchApp`) | meetings | opens the child app in a hidden same-origin iframe and relays `postMessage` (m5); picture-in-picture remains a named "not yet" error | desktop-shell phase for PiP |
 | Generative engines (`txt2img`, `img2txt`, `txt2speech`, `speech2txt`, `txt2vid`) | apps that call them: expense/contracts (OCR), documents/video-studio/audio-studio (speech), documents/video-studio/photo-studio/vector-studio (pictures), video-studio (video/transcription) | OCR and speech run locally when installed; `txt2img` works only after the owner configures a cloud image provider; `txt2vid` and `speech2txt` are named `engine_missing` errors (no local video model; whisper.cpp optional and not installed) | see *Local engines* |
-| Sharing files to other people / email from hub apps | none of the 23 | named "managed in the CAD app" error | hosted-apps sharing phase |
+| Sharing files to other people / email from hub apps | none of the 51 | named "managed in the CAD app" error | hosted-apps sharing phase |
 | `puter.peer` beyond the LAN (NAT/TURN) | chess, checkers, backgammon online; meetings | works while both people can reach this server (same LAN or Tailscale); the relay is server-side and media is direct WebRTC with no STUN/TURN, so an internet/Funnel path is not offered | run a TURN service and extend the peer configuration (not implemented) |
-| Cross-person `puter.events` / shared-data events | none of the 23 | events cover only the signed-in person's own KV/fs; a subscription to another person's data has no share to name | hosted-apps sharing phase |
-| Upstream's `src/assets` (AssetDesk) does not build | assets tier table | cannot be installed until upstream commits its `src/` | upstream fix |
+| Cross-person `puter.events` / shared-data events | none of the 51 | events cover only the signed-in person's own KV/fs; a subscription to another person's data has no share to name | hosted-apps sharing phase |
 
 ### The app tiers, re-derived from source
 
@@ -445,9 +451,8 @@ table re-derives it with `node build-hub.mjs scan`, which reads each app's sourc
 and reports exactly which `puter.*` calls it makes, and reconciles it with
 `node build-hub.mjs status` (installed vs not) and the real-Chromium smoke
 (`node browser-smoke.mjs load`, columns: loads / CSP violations / external
-requests / failed+404 requests / uncaught errors). **Totals: 51 scanned = 23
-installed (10 works + 13 loads-not-exercised) + 28 not installed (1 unbuilt, 5
-partly, 22 does-not-yet).**
+requests / failed+404 requests / uncaught errors). **Totals: 51 scanned = 51
+installed; W4 reports 3 `works`, 48 `boots`, 0 `untested`, 0 `does not`.**
 
 What `build-hub.mjs status` means by each verdict (audit M10):
 
@@ -458,26 +463,23 @@ What `build-hub.mjs status` means by each verdict (audit M10):
 | **untested** | no fresh evidence yet (missing evidence is never reported as a failure) |
 | **does not** | evidence exists and something failed |
 
+| Status | Apps | What the current evidence actually says |
+| --- | --- | --- |
+| **works** | 3/51 | calendar (45/45 upstream suite), invoicing (59/59 suite + 11/11 E2E), signatures (159/159 suite + 27/27 E2E) — real feature suites passed |
+| **boots** | 48/51 | W4 clean load (0 external, 0 CSP, 0 uncaught, 0 unexpected 4xx/5xx) + 51/51 infrastructure gate (shim, kv/fs, restart, canned AI echo) |
+| **untested** | 0 | every installed app has fresh W4 evidence |
+| **does not** | 0 | no failing gate; app-specific limits remain named in the gap ledger |
+
 The generic functional gate is **infrastructure only** (`ai=echo`, the built-in
 test provider, no app features). It can produce `boots`, never `works`; only a
 feature suite can. Re-run `node functional-gate.mjs` + `node browser-smoke.mjs
 load` before reading status — stale evidence is reported as `untested`.
-
-| Tier (scan) | Installed | Smoke status | Apps |
-| --- | --- | --- | --- |
-| easy | yes (10) | **works** — loads and proven through the real UI, surviving reload + server restart (persist pass) | contacts¹, crm, music-studio, notes, pos, presentation, projects, solitaire, sudoku, tasks |
-| easy | yes (13) | loads, not exercised — renders clean (0 externals, 0 CSP hits, 0 uncaught errors); data flows not driven by a recipe yet | 3d, accounting, audio-studio, backgammon, cap-table, checkers, chess², circuits, expense, inventory, parametric, survey, time-tracking |
-| easy | no | cannot build — upstream never committed `src/` | assets |
-| partly | no | — | building-design, cad, pdf, records (only the "opened from the file manager" entry point never fires → shell integration phase); meetings (window UI beyond pickers) |
-| partly | no | — | chess, checkers, backgammon offline is complete; **Online** now works through `puter.peer` on the LAN (the SDK is loaded lazily there, so the load pass never touches it); meetings window UI beyond pickers remains |
-| does not | no | — | api-client (net.tls/net.Socket); calendar, email (SMTP/perms phases); childcare, documents, field-service, fleet, help-desk, invoicing, legal, photo-studio, property-management, signatures, spreadsheet, teamchat, vector-studio, video-studio, whiteboard³, wiki³ (workers — Phase 3); contracts, hiring, shifts (hosting — publishing phase) |
-
-¹ contacts was imported in Phase 1; it is easy tier except the never-firing
-`onLaunchedWithItems`. ² chess/checkers/backgammon scan `easy` (they only call
-`auth.signIn`) but their **Online** mode is peer-dependent — recorded as easy-
-tier installs whose one feature is the named peer gap. ³ whiteboard and wiki
-also want `net.fetch` — hard-refused by the no-external-calls rule until a
-documented local proxy exists.
+The scan tiers (`easy` / `partly` / `does not`) are source-call classifications,
+not installation status: W1-W3 implemented the worker, hosting, permission and
+network surfaces those labels name, and W4 installed all 51 builds.
+The separate persist pass drives ten apps' real UIs (create → reload → server
+restart) and passed; it is additional evidence for those flows, not a claim that
+the other forty-one apps' features were exercised.
 
 Where the older survey was wrong, for the record:
 
@@ -495,48 +497,37 @@ Where the older survey was wrong, for the record:
 
 ### How any of this is verified
 
-- `npm test` - **681 checks** over the data layer and the worker runtime, end to end (fs sandbox/Drive paths and grants incl. the consent request shape, kv contract incl. the `list` prefix semantics, AI chat shapes, local engine adapters incl. real OCR/Piper and a fake cloud image provider, import/export; peer relay/grants/events incl. cross-app isolation; Phase-3 worker registry/pool/limits incl. the network-bypass and env-hop tests; repo ASCII hygiene).
+- `npm test` - **682 checks** over the data layer and the worker runtime, end to end (fs sandbox/Drive paths and grants incl. the consent request shape, kv contract incl. the `list` prefix semantics, AI chat shapes, local engine adapters incl. real OCR/Piper and a fake cloud image provider, import/export; peer relay/grants/events incl. cross-app isolation; Phase-3 worker registry/pool/limits incl. the network-bypass and env-hop tests; repo ASCII hygiene).
 - `node peer-e2e.mjs` — **18/18** real-Chromium steps against a throwaway hub: two contexts mint and join an invite, relay messages both ways, both receive live audio and video RTP over the direct WebRTC link (three transceivers), the host publishes screen on slot 2 with the one renegotiation it needs, unpublish ends streams on the other side, a second tab of the same person receives a KV event with its value, the other person's write is not delivered, and a dead invite rejects with `invalid_invite`. Evidence: `peer-e2e-results.json`.
 - `node chess-online-e2e.mjs` - **8/8** real-Chromium steps against the installed chess build: two people sign in, one creates an online game, the other joins with the code, both reach playing, the handshake names the opponent, a move each way reaches the other board (`1. e4 e5` on both), and neither page throws. Evidence: `chess-online-results.json`.
 - `node engine-e2e.mjs` - **9/9** real-Chromium steps against a throwaway hub: the shim reads the local OCR fixture and returns a playable Piper WAV, `txt2img`/`txt2vid` reject with their documented messages, and the same OCR and speech calls succeed from two **real built apps** (expense and audio-studio) under their own CSP. Needs `data/engines` installed. Evidence: `engine-e2e-results.json`.
 - `node pyodide-e2e.mjs` - **8/8** real-Chromium steps against the installed 3d build: the served bundle points at `/hub/pyodide/`, a signed-in page loads the vendored Pyodide 314.0.7 (Python 3.14.2), runs `6 * 7` and a JSON round-trip, and no runtime request leaves the hub origin. Evidence: `pyodide-e2e-results.json`.
-- `node smoke-hub.mjs` — **35/35 smoke checks, HTTP-only**: it exercises the server's endpoints (accounts, fs, kv, grants, statics, CSP headers) over plain requests. No app is ever opened in it, so it proves the backend contract, not what an app renders.
+- `node fresh-host-e2e.mjs` - **12/12** checks from an empty data directory: zero apps, no anonymous admin API, first owner login, install one app, the real shim writes KV, missing engines are reported honestly, and that session + KV value survive a server restart. Evidence: `fresh-host-e2e-results.json`.
+- `npm run lint` - **0 errors** (correctness rules only; unused-code warnings are visible, not fatal).
+- `npm run verify` - one command for lint, the 682-check suite, `engines:check`, the HTTP smoke and the fresh-host acceptance. `npm run verify:full` adds the real-browser engine/Pyodide/peer/chess checks and runs the installed-app smoke + infrastructure gate on a throwaway copy of `data/` (only gate evidence is copied back); the W4 full run exited **PASS**. CI: `.github/workflows/verify.yml` targets a self-hosted runner on the host because the tests need the sibling `../upstream` fork and installed engines.
+- `node smoke-hub.mjs` - **37/37 smoke checks, HTTP-only**: it exercises the server's endpoints (accounts, fs, kv, grants, statics, CSP headers) over plain requests. No app is ever opened in it, so it proves the backend contract, not what an app renders.
 - `node browser-smoke.mjs` — real Chrome against the real server, which is where app-side truth lives:
-  - **pass A (loads):** every installed app is opened through the shim; all 23 render, and a navigation that never settles is a **failure** unless the app is on the measured long-poll list below. Per-app numbers from the last full run (SW guard on):
+  - **pass A (loads):** every installed app is opened through the shim; all 51 render. Per-app numbers from the W4 full run (SW guard on):
 
-    | Apps | renders | external requests | unexpected 404s | nav timeout |
+    | Apps | renders | external requests | unexpected 4xx/5xx | failed requests |
     | --- | --- | --- | --- | --- |
-    | 3d, accounting, backgammon, cap-table, checkers, chess, contacts, crm, inventory, parametric, pos, presentation, projects, survey, tasks, time-tracking | yes | 0 | 0 | — |
-    | audio-studio, music-studio, solitaire, sudoku | yes | 0 | 0 | **timed out — excused, measured (below)** |
-    | circuits | yes | 0 | 1 | — |
-    | expense | yes | 0 | 2 | — |
-    | notes | yes | 0 | 2 | — |
+    | all 51 installed builds | **51/51** | **0** | **0** | **0** |
 
-    - **One definition of a "failed request"**, used for every smoke row in
-      this section: (a) any request to an **external origin** — always
-      counted, always expected to be zero — and (b) a request that failed
-      abnormally (network error or HTTP ≥ 500). Same-origin first-boot 404s
-      are *expected first-run probes*, named per app rather than hidden —
-      the five above are exactly that: `circuits` →
-      `Libraries/My components.circuitslib`, `expense` →
-      `expenses-data/reports.json` + `statements.json`, `notes` →
-      `notes/library.json` + `trash.json`; each app probes for a file it
-      creates on first save. Zero CSP violations, zero uncaught errors, zero
-      "not available on this server" errors (chess/checkers/backgammon load
-      the shim only when *Online* is clicked, and the smoke pokes them).
-    - **The four navigation timeouts, measured.** Each of them runs a
-      recurring account/sync poll through the shim — `auth.isSignedIn()`
-      resolves to `GET /api/hub/auth/whoami`, paired with kv reads/writes —
-      landing more often than puppeteer's 500 ms idle window, so
-      `networkidle2` never fires, while **zero requests are ever stuck in
-      flight** and the page is fully interactive (element counts 425–2246;
-      evidence tool `_netchurn.mjs`). Solitaire draws the whole board on a
-      canvas, which is why it shows only 63 characters of text ("Solitaire /
-      Moves 0 / Klondike · Draw 1 / Undo / New 24 / Powered by Puter") while
-      all 237 elements are live. These four sit on the smoke's `LONG_POLL`
-      exemption list with exactly this recorded reason; any other app that
-      times out now fails the run.
-  - **pass B (persist):** 10/10 sampled apps create data through the real UI, show it again after reload, and survive a server restart (server-side + UI-visible). Every `persist` run first wipes the smoke user's app data, so recipes always prove a true first run — onboarding dialogs included.
+    - Zero CSP violations, zero uncaught page errors, zero "not available on
+      this server" errors, and zero unexpected 4xx/5xx. The W4 load pass found
+      and fixed the last real asset defect: 3d's CSS and runtime JS emitted
+      root-absolute `/assets/...` font URLs, which 404ed outside `/h/3d/`;
+      both are now rebased at serve time. Email's first-run
+      `/api/hub/fs/stat` 403 is its deliberate request-access probe; the app
+      renders the consent panel and is not counted as a failed load.
+    - **The eight navigation timeouts, measured:** `audio-studio`,
+      `building-design`, `meetings`, `music-studio`, `solitaire`,
+      `spreadsheet`, `sudoku`, and `whiteboard` keep a recurring account/sync
+      or document poll running through the shim, so puppeteer's `networkidle2`
+      never fires. Each page is fully interactive and every request settles;
+      they sit on the smoke's `LONG_POLL` exemption list with this recorded
+      reason. Any other app that times out fails the run.
+  - **pass B (persist):** 10/10 sampled apps create data through the real UI, show it again after reload, and survive a server restart (server-side + UI-visible). The W4 run was on an isolated copy; the smoke tool now reads every data path from `DATA_DIR`, so the file-saving recipes (notes, presentation, music-studio) are tested against the same copy as KV. Every `persist` run first wipes the smoke user's app data, so recipes always prove a true first run — onboarding dialogs included.
   - **consent drive-through:** 9/9 (hardened overlay: closed shadow root + trusted-input gating — see *Where app data lives*).
 
 ### Service workers: measured, with the guard proof

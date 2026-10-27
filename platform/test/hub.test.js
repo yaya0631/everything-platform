@@ -135,6 +135,16 @@ test('JS bundles are rewritten too (chess-style Puter loaders inside code)', asy
   assert.equal(who.status, 200);
   assert.equal(who.body.username, 'person1');
 
+  // Root-absolute CSS asset URLs are rebased at serve time too; the 3d build
+  // emits Vite font URLs this way and they otherwise 404 at the origin root.
+  const css = await p.get('/h/fixture/assets/style.css');
+  assert.equal(css.status, 200);
+  assert.match(css.headers.get('content-type') || '', /text\/css/);
+  assert.match(String(css.body), /url\(\/h\/fixture\/assets\/demo\.woff2\)/);
+  assert.doesNotMatch(String(css.body), /url\(\/assets\//);
+  assert.match(String(css.body), /url\(\/hub\/pyodide\/pyodide-lock\.json\)/);
+  assert.match(String(css.body), /https:\/\/example\.com\/asset\.png/);
+
   // Unknown assets do not mask as index.html; extension-less paths do route.
   assert.equal((await p.get('/h/fixture/assets/nope.png')).status, 404);
   const route = await p.get('/h/fixture/some/route');

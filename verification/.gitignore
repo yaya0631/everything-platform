@@ -1,0 +1,5 @@
+# Large audit working copies and raw capture logs stay on the audit machine;
+# the report, findings, progress and harness are the reviewable artifacts.
+isolated-data/
+isolated-data-full/
+evidence/

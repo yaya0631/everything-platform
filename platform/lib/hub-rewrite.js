@@ -7,7 +7,8 @@
  *     CDN libraries) and recorded;
  *   - inline scripts are listed by hash so a strict CSP can allow exactly them;
  *   - JS bundles get the same js.puter.com → shim rewrite (chess, checkers,
- *     backgammon and 3d load Puter from their own code);
+ *     backgammon and 3d load Puter from their own code), and root-absolute
+ *     `/assets/...` strings in JS/CSS get the app prefix (3d's runtime fonts);
  *   - a scanner lists every remaining external URL in the built app, so the
  *     admin can see what a build would try to reach.
  *
@@ -121,6 +122,21 @@ export function rewriteHtml(html, { name } = {}) {
 }
 
 /**
+ * Rewrite root-absolute asset URLs inside a CSS file. Vite emits font and
+ * image references as `url(/assets/...)`; under `/h/<name>/` those resolve to
+ * the origin root and 404 (the 3d build's Inter fonts were the visible case).
+ * Same reserved-prefix rule as HTML: `/hub`, `/api` and `/h` are ours.
+ */
+export function rewriteCss(css, { name } = {}) {
+  if (!name) return css;
+  const prefix = `/h/${name}`;
+  const local = (url) => (/^\/+(hub|api|h)(\/|$)/.test(url) ? url : `${prefix}${url}`);
+  return css
+    .replace(/url\(\s*(['"]?)(\/(?!\/)[^'")]+)\1\s*\)/gi, (m, quote, url) => `url(${quote}${local(url)}${quote})`)
+    .replace(/@import\s+(['"])(\/(?!\/)[^'"]+)\1/gi, (m, quote, url) => `@import ${quote}${local(url)}${quote}`);
+}
+
+/**
  * Rewrite a JS bundle: puter loader URLs (used by apps that load Puter from
  * their own code, incl. lazy `<script>` injection in chess/checkers/backgammon
  * and 3d) become the shim path — with ?app=<name> so a dynamically injected
@@ -155,6 +171,11 @@ export function rewriteJs(text, { name } = {}) {
       /(navigator\s*\.\s*serviceWorker\s*\.\s*register\s*\(\s*)(['"])\/(sw[^'"\s]*\.js|service-?worker[^'"\s]*\.js)\2/gi,
       (m, pre, q, file) => (`${pre}${q}${prefix}${file}${q}`),
     );
+    // Built bundles also keep root-absolute asset strings for runtime-created
+    // resources (3d's canvas text loads the Inter faces from `/assets/...`).
+    // Those are app-local; prefix them like the HTML/CSS passes. Reserved hub
+    // roots are not in this pattern, and templated URLs are left alone.
+    out = out.replace(/(["'`])\/(assets\/[^"'`\\\s$]+)/g, (m, quote, rest) => `${quote}${prefix}${rest}`);
   }
   // Pyodide is vendored and gated behind /hub/pyodide/ (same origin, no CDN).
   out = out.replace(PYODIDE_CDN_RE, '/hub/pyodide/');

@@ -1,0 +1,33 @@
+name: verify
+
+# This project needs the sibling ../upstream app fork and the local engine
+# models, so the checked-in CI target is the host itself (a self-hosted runner
+# on the server PC). A GitHub-hosted runner would need that tree cloned first.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/verify.yml'
+
+jobs:
+  verify:
+    runs-on: [self-hosted, Windows, X64]
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit and integration suite
+        run: npm test
+      - name: Host checks
+        run: npm run verify

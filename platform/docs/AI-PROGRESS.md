@@ -1066,7 +1066,7 @@ Owner scope: everything the audit flagged, in waves. This session is **W3
   - `node --test test/engines.test.js`: **8/8**.
   - Evidence: `engine-e2e-results.json`, `pyodide-e2e-results.json`.
 
-### PENDING (W4)
+### PENDING (W4) — completed in Session 12
 
 - Full functional gate + browser smoke against the installed apps, to replace
   the stale 23-app evidence and settle the app status vocabulary.
@@ -1087,4 +1087,74 @@ Owner scope: everything the audit flagged, in waves. This session is **W3
   it.
 - NHTSA needs the internet **only when the owner opts in**; otherwise the
   fleet app stays on its offline message.
+
+## Session 12 — W4 hardening, hosted acceptance, final re-verification (2026-10-26/27)
+
+### DONE
+
+- **Lint and CI:** ESLint 10 with Node/browser globals (`npm run lint`, **0
+  errors, 53 visible warnings**); `.github/workflows/verify.yml` targets the
+  self-hosted Windows host because the tests need sibling `../upstream` and the
+  installed engine binaries.
+- **One runner + hosting checklist:** `verify-all.mjs` (default and `--full`),
+  `docs/HOSTING.md`, package scripts `verify`, `verify:full`, `e2e:engines`,
+  `e2e:pyodide`. Full mode copies `data/` to a throwaway directory, runs the
+  installed-app smoke/gate there, and copies only gate JSON evidence back.
+- **Isolation fixes found by the acceptance:** `functional-gate.mjs` and
+  `build-hub.mjs` now resolve gate/state paths from `DATA_DIR`; `browser-smoke`
+  now wipes and reads `DATA_DIR/hub-users`, `DATA_DIR/files` and
+  `DATA_DIR/cad.db` instead of the live path. Persist recipes also click the
+  consent overlay when one appears. This was a test-harness bug, not an app
+  regression.
+- **Clean 51-app smoke:** every installed build renders; **0 external
+  requests, 0 CSP violations, 0 uncaught errors, 0 failed requests, 0
+  unexpected 4xx/5xx**. The W4 load pass found a real 3d defect (root-absolute
+  `/assets/...` fonts in CSS and runtime JS); CSS and JS are now rebased at
+  serve time, with unit and HTTP integration tests. Email's first-run
+  `fs.stat` 403 is its request-access probe and is documented/handled.
+- **51/51 infrastructure gate:** shim load, kv/fs round-trip, server restart,
+  and canned `ai=echo`; `kind: infrastructure`, no feature claim. The gate now
+  waits for a quiet call log and retries the capture, so late app reads are not
+  mistaken for stuck calls.
+- **Persist pass:** 10/10 recipes create through the real UI, show the data
+  after reload, and survive a server restart (KV and files). The three
+  file-saving recipes (notes, presentation, music-studio) exposed the
+  isolation bug above; after the fix all three pass.
+- **Fresh host:** 12/12 from an empty data directory, including first-owner
+  login, app install, shim KV, honest missing-engine errors, and restart
+  persistence.
+- **Docs/report:** README counts and status vocabulary reconciled to 51
+  installed builds and **3 works / 48 boots / 0 untested / 0 does not**;
+  `verification/REPORT.md` is the final 24/24-closed re-verification with the
+  original FAIL report preserved; `findings.json` has `open: 0`.
+
+### Verification (W4)
+
+- `npm test`: **682/682**
+- `npm run verify:full`: **PASS** (exit 0, full hosting acceptance)
+- `npm run lint`: **0 errors, 53 warnings**
+- `node smoke-hub.mjs`: **37/37**
+- `node fresh-host-e2e.mjs`: **12/12**
+- `node engine-e2e.mjs`: **9/9**
+- `node pyodide-e2e.mjs`: **8/8**
+- `node peer-e2e.mjs`: **18/18**
+- `node chess-online-e2e.mjs`: **8/8**
+- `node browser-smoke.mjs load`: **51/51**, clean; 8 documented long-poll nav timeouts
+- `node functional-gate.mjs`: **51/51** infrastructure
+- `node browser-smoke.mjs persist-all`: **10/10**
+
+### PENDING
+
+- None in the code wave. Owner action after restart: re-enter a cloud API key
+  **or** set the Hub default to `ollama:llama3.2:3b` after `ollama pull`; the
+  cloud keys were intentionally cleared and no model is bundled.
+
+### W4 limits (same as the report)
+
+- `boots` is the honest ceiling for infrastructure evidence; no app has a full
+  feature suite in this port. Persist covers ten apps, not all feature flows.
+- No STUN/TURN; peer works only where both people can reach this server.
+- Image generation is cloud-only when configured; `txt2vid` and `speech2txt`
+  are explicit 501s. Engines live in gitignored `data/engines`.
+- `puter.hosting` stays disabled by default; enabling it is an owner decision.
 

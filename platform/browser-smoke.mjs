@@ -28,8 +28,8 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const argv = process.argv.slice(2);
-const mode = argv[0] || 'load';
-const onlyArg = argv[1] || null;
+const mode = argv[0] === 'persist-all' ? 'persist' : (argv[0] || 'load');
+const onlyArg = argv[0] === 'persist-all' ? null : (argv[1] || null);
 const only = onlyArg && onlyArg.includes(',') ? onlyArg.split(',') : onlyArg;
 const persistOnly = onlyArg; // persist mode handles the comma list itself
 
@@ -52,12 +52,13 @@ if (!chromeExe) { console.error(`browser-smoke: no Chrome found (${CHROME_CANDID
 // The testing-only flag; nothing in pass A calls AI, but keep the env honest anyway.
 process.env.CAD_TEST = '1';
 
-const [hub, serverm, storem, configm, { run, all }] = await Promise.all([
+const [hub, serverm, storem, configm, { run, all }, { DATA_DIR }] = await Promise.all([
   import('./lib/hub.js'),
   import('./server.js'),
   import('./lib/store.js'),
   import('./lib/config.js'),
   import('./lib/db.js'),
+  import('./lib/paths.js'),
 ]);
 // SW-guard control runs: BROWSER_SMOKE_SW_GUARD=off serves worker scripts
 // unguarded, to prove the cache problem exists without the fix. config.set
@@ -72,7 +73,7 @@ if (process.env.BROWSER_SMOKE_SW_GUARD === 'off') {
 const SW_GUARD_OFF = process.env.BROWSER_SMOKE_SW_GUARD === 'off';
 
 // A fresh page for the smoke user: only appsmoke's own data is touched.
-fs.rmSync(path.join(here, 'data', 'hub-users', SMOKE_USER), { recursive: true, force: true });
+fs.rmSync(path.join(DATA_DIR, 'hub-users', SMOKE_USER), { recursive: true, force: true });
 run('DELETE FROM hub_kv WHERE user = ?', SMOKE_USER);
 run('DELETE FROM hub_grants WHERE user = ?', SMOKE_USER);
 if (!storem.getAccount(SMOKE_USER)) storem.addUser(SMOKE_USER, SMOKE_PASS, { admin: true });
@@ -118,6 +119,14 @@ function attach(page) {
       return false;
     }
   };
+  const expectedPermissionProbe = (u) => {
+    try {
+      const x = new URL(u);
+      return x.pathname === '/api/hub/fs/stat' && x.searchParams.get('app') === 'email';
+    } catch {
+      return false;
+    }
+  };
   page.on('request', (req) => {
     const u = req.url();
     if (!/^https?:/.test(u)) return;
@@ -128,7 +137,7 @@ function attach(page) {
     const u = res.url();
     if (!/^https?:/.test(u) || !u.startsWith(base) || u === `${base}/favicon.ico`) return;
     if (u.endsWith('/api/hub/apps')) return; // service-worker cache probe, not app traffic
-    if (res.status() >= 400 && !(res.status() === 404 && expectedMissing(u))) net.bad.push(`${res.status()} ${reqPath(u)}`);
+    if (res.status() >= 400 && !(res.status() === 404 && expectedMissing(u)) && !(res.status() === 403 && expectedPermissionProbe(u))) net.bad.push(`${res.status()} ${reqPath(u)}`);
   });
   page.on('requestfailed', (req) => {
     const u = req.url();
@@ -521,6 +530,22 @@ async function clickSel(page, sel) {
   await sleep(500);
 }
 
+/** Click the real Allow button of the shim's consent overlay (the host is a
+ * closed shadow root, so the coordinates are published on its dataset). A
+ * missing overlay is fine: the write may already be inside an app folder with
+ * no grant needed. */
+async function allowConsent(page) {
+  const aim = await page.evaluate(() => {
+    const host = document.querySelector('.cad-consent-host');
+    return host ? host.dataset.cadAim || null : null;
+  });
+  if (!aim) return false;
+  const [x, y] = String(aim).split(',').map(Number);
+  await page.mouse.click(x, y);
+  await sleep(1600);
+  return true;
+}
+
 async function fillField(page, field, value) {
   const h = await page.evaluate((f) => {
     const trySel = (sel) => { try { return document.querySelector(sel); } catch { return null; } };
@@ -616,6 +641,10 @@ async function runSteps(page, steps, app) {
       } else if (kind === 'dialogSave') {
         if (!(await dialogSave(page))) throw new Error('no Save button in any open dialog');
         await sleep(600);
+      } else if (kind === 'consent') {
+        const clicked = await allowConsent(page);
+        console.log(`   consent step: ${clicked ? 'allowed' : 'no overlay'}`);
+        await sleep(1200);
       } else if (kind === 'js') {
         await page.evaluate(step.slice(3)).catch((e) => { throw new Error('js: ' + String(e).slice(0, 120)); });
         await sleep(600);
@@ -648,7 +677,7 @@ async function runSteps(page, steps, app) {
 const RECIPES = {
   notes: {
     what: 'typed a page title + body line into the note document (autosave)',
-    steps: ['wait:3000', 'sel:.page-title', 'type:Smoke Page Title', 'key:Enter', 'type:Smoke persistence note.', 'wait:9000'],
+    steps: ['wait:3000', 'sel:.page-title', 'type:Smoke Page Title', 'key:Enter', 'type:Smoke persistence note.', 'wait:2000', 'consent', 'wait:7000'],
     expectRx: /Smoke Page Title/,
   },
   contacts: {
@@ -673,13 +702,13 @@ const RECIPES = {
   },
   presentation: {
     what: 'renamed the deck and saved it via Save to Puter (fs .pptx)',
-    steps: ['wait:8000', 'rawclick:Untitled presentation', 'wait:1800', 'fillar:Presentation name:^Smoke Deck', 'dialogSave', 'wait:2000', 'rawclick:Save to Puter', 'wait:4000'],
+    steps: ['wait:8000', 'rawclick:Untitled presentation', 'wait:1800', 'fillar:Presentation name:^Smoke Deck', 'dialogSave', 'wait:2000', 'rawclick:Save to Puter', 'wait:1500', 'consent', 'wait:4000'],
     reopenSteps: ['pclickcatch:Back to presentations', 'wait:1500'],
     expectRx: /Smoke Deck/,
   },
   'music-studio': {
     what: 'saved the song via Ctrl+S save dialog (Projects/<name>.msproj on the fs)',
-    steps: ['wait:6000', 'combo:Control+S', 'wait:3000', 'fillar:Name (saved to your Puter cloud):^Smoke Song', 'dialogSave', 'wait:9000'],
+    steps: ['wait:6000', 'combo:Control+S', 'wait:3000', 'fillar:Name (saved to your Puter cloud):^Smoke Song', 'dialogSave', 'wait:2500', 'consent', 'wait:7000'],
     reopenSteps: ['panel:Browser', 'wait:1200', 'tclickcatch:Music Studio files', 'wait:3000', 'tclickcatch:Projects', 'wait:2500'],
     expectRx: /Smoke Song/,
   },
@@ -704,7 +733,7 @@ const RECIPES = {
  * kv identity includes the value length so an update to an existing key
  * counts as a delta, not just brand-new keys. */
 function snapshotData(user) {
-  const root = path.join(here, 'data', 'hub-users', user);
+  const root = path.join(DATA_DIR, 'hub-users', user);
   const files = [];
   const walk = (d, rel = '') => {
     let entries;
@@ -880,7 +909,7 @@ if (mode === 'consent') {
   const con = [];
   const grantCount = async () => {
     const { DatabaseSync } = await import('node:sqlite');
-    const db = new DatabaseSync(path.join(here, 'data', 'cad.db'));
+    const db = new DatabaseSync(path.join(DATA_DIR, 'cad.db'));
     const n = db.prepare(
       "SELECT COUNT(*) AS n FROM hub_grants WHERE user=? AND app='tasks' AND path LIKE '/Documents/consent-probe%' AND revoked_at IS NULL",
     ).get(SMOKE_USER).n;
@@ -935,7 +964,7 @@ if (mode === 'consent') {
     con.push({ step: 'real Allow → write succeeds', pass: r1.ok, detail: r1.message || r1.name });
 
     // 4 — the file really is on the Drive + the grant covers a second write, silently
-    const onDisk = fs.existsSync(path.join(here, 'data', 'files', SMOKE_USER, 'Documents', 'consent-probe', `marker-${stamp}.txt`));
+    const onDisk = fs.existsSync(path.join(DATA_DIR, 'files', SMOKE_USER, 'Documents', 'consent-probe', `marker-${stamp}.txt`));
     con.push({ step: 'file exists in data/files/<user>/Documents', pass: onDisk });
     const ask2 = await keep.page.evaluate(async (p) => {
       const e = await window.puter.fs.write(p, 'again, same granted file', { overwrite: true }).catch((err) => ({ err: err.code }));
@@ -948,7 +977,7 @@ if (mode === 'consent') {
     // app pages ride behind the app's service worker, so the smoke checks the
     // database directly, which is what "revoked" means on this server).
     const { DatabaseSync } = await import('node:sqlite');
-    const dbSrv = new DatabaseSync(path.join(here, 'data', 'cad.db'));
+    const dbSrv = new DatabaseSync(path.join(DATA_DIR, 'cad.db'));
     const mine = dbSrv.prepare(
       "SELECT id FROM hub_grants WHERE user=? AND app='tasks' AND path LIKE '/Documents/consent-probe%' AND revoked_at IS NULL",
     ).all(SMOKE_USER);

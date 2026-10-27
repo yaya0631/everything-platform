@@ -581,10 +581,11 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
 
   const isHtml = /\.html?$/i.test(wanted);
   const isJs = /\.(js|mjs)$/i.test(wanted);
+  const isCss = /\.css$/i.test(wanted);
   const isManifest = /\.webmanifest$/.test(wanted) || /(^|\/)manifest[^/]*\.json$/.test(wanted);
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { code: 'method_not_allowed' });
 
-  if (!isHtml && !isJs && !isManifest) {
+  if (!isHtml && !isJs && !isCss && !isManifest) {
     const staticScriptExtras = rewrite.CSP_SCRIPT_EXTRAS[name] || [];
     const ok = await serveStatic(req, res, appDir(name), wanted, {
       cache: cacheRule,
@@ -611,6 +612,8 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
       }
     } else if (isManifest) {
       entry = { body: Buffer.from(rewrite.rewriteManifest(text, name), 'utf8'), manifest: true };
+    } else if (isCss) {
+      entry = { body: Buffer.from(rewrite.rewriteCss(text, { name }), 'utf8'), css: true };
     } else {
       const out = rewrite.rewriteJs(text, { name });
       // Service workers get the cache guard prepended (see hub-rewrite.js):
@@ -640,11 +643,13 @@ async function serveAppPath(req, res, name, rel, { injectWorkerMap = false } = {
     ? 'text/html; charset=utf-8'
     : isManifest
       ? 'application/manifest+json; charset=utf-8'
-      : 'text/javascript; charset=utf-8';
+      : isCss
+        ? 'text/css; charset=utf-8'
+        : 'text/javascript; charset=utf-8';
   res.writeHead(200, {
     'Content-Type': contentType,
     'Content-Length': Buffer.byteLength(entry.body),
-    'Cache-Control': 'no-cache',
+    'Cache-Control': isCss ? cacheRule(wanted) : 'no-cache',
     'Content-Security-Policy': entry.html
       ? rewrite.cspHeader({
         hashes: entry.hashes,

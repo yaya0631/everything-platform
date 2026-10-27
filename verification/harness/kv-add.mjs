@@ -1,0 +1,26 @@
+import { createRequire } from 'node:module';
+const require = createRequire('D:/Stream/everything/platform/package.json');
+const puppeteer = require('puppeteer-core');
+const BASE = 'http://127.0.0.1:8080';
+const login = await fetch(BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CAD-Request': '1' }, body: JSON.stringify({ username: 'vtest2', password: 'V3rify!Pass2' }) });
+const token = (login.headers.get('set-cookie') || '').split(';')[0].split('=')[1];
+const browser = await puppeteer.launch({ executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', headless: true, args: ['--no-first-run'] });
+const page = await browser.newPage();
+await page.setCookie({ name: 'cad_session', value: token, url: BASE });
+await page.goto(BASE + '/h/notes/', { waitUntil: 'domcontentloaded' });
+await new Promise(r => setTimeout(r, 3000));
+const res = await page.evaluate(async () => {
+  const out = {};
+  const t = async (name, fn) => { try { out[name] = JSON.stringify(await fn()).slice(0, 200); } catch (e) { out[name] = 'THROW: ' + String(e).slice(0, 200); } };
+  await t('add', () => window.puter.kv.add('__vt_add1', 'a'));
+  await t('add2', () => window.puter.kv.add('__vt_add1', 'b'));
+  await t('getAfterAdd', () => window.puter.kv.get('__vt_add1'));
+  await t('incr', () => window.puter.kv.incr('__vt_inc'));
+  await t('list', () => window.puter.kv.list('__vt_*', true));
+  await t('listPrefix', () => window.puter.kv.list('__vt_'));
+  await t('keys', () => window.puter.kv.keys('__vt_*'));
+  await t('del', () => window.puter.kv.del('__vt_add1'));
+  return out;
+});
+console.log(JSON.stringify(res, null, 1));
+await browser.close();

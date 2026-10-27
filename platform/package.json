@@ -12,6 +12,9 @@
     "engines:check": "node engines/install.mjs --check",
     "e2e:engines": "node engine-e2e.mjs",
     "e2e:pyodide": "node pyodide-e2e.mjs",
+    "lint": "eslint .",
+    "verify": "node verify-all.mjs",
+    "verify:full": "node verify-all.mjs --full",
     "user": "node users.js",
     "app": "node apps.js",
     "hub": "node hub.js",
@@ -26,6 +29,9 @@
     "node": ">=22.13"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
     "puppeteer-core": "^25.15.0"
   }
 }

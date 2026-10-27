@@ -18,6 +18,7 @@ import { stripBom } from './lib/jsonread.js';
 import * as hub from './lib/hub.js';
 import * as hubWorkersApi from './lib/hub-workers.js';
 import { buildApp, upstreamRoot, cloneDirty, cleanGeneratedBuildArtifacts, appSourceDir, sourceKind, BuildError, ROOT_DIR } from './lib/hub-build.js';
+import { DATA_DIR } from './lib/paths.js';
 import { zeroMatchVerdict, REWRITE_RULES } from './lib/hub-rewrite.js';
 import * as configm from './lib/config.js';
 
@@ -107,7 +108,7 @@ function allApps() {
 
 // -- building ---------------------------------------------------------------------------
 
-const stateFile = path.join(ROOT_DIR, 'data', 'hub', 'build-state.json');
+const stateFile = path.join(DATA_DIR, 'hub', 'build-state.json');
 function readState() {
   try {
     return JSON.parse(stripBom(fs.readFileSync(stateFile, 'utf8')));
@@ -287,7 +288,7 @@ function statusCommand({ json = false } = {}) {
     }
   }
 
-  const gatesDir = path.join(ROOT_DIR, 'data', 'hub', 'test-gates');
+  const gatesDir = path.join(DATA_DIR, 'hub', 'test-gates');
   const readEvidence = (file) => {
     try { return JSON.parse(fs.readFileSync(path.join(gatesDir, file), 'utf8')); } catch { return null; }
   };
@@ -353,7 +354,11 @@ function statusCommand({ json = false } = {}) {
       // their own puter adapter, where the platform shim's call log does not
       // exist and the round-trip/restart evidence carries the verdict.
       && functional.calls.every((call) => call.status === 'resolved'
-        || ((call.method === 'puter.fs.read' || call.method === 'puter.fs.stat') && call.code === 'not_found'));
+        || ((call.method === 'puter.fs.read' || call.method === 'puter.fs.stat') && call.code === 'not_found')
+        // Same handled first-run probe as functional-gate.mjs: email asks for
+        // the Mail folder and renders its request-access panel after the shim
+        // refuses the stat. Every other rejection still fails.
+        || (name === 'email' && call.method === 'puter.fs.stat' && call.code === 'no_permission_for_app'));
     // The generic gate is infrastructure, not a feature test (audit M10): it
     // proves the page boots with the shim, kv/fs round-trip across a restart,
     // and a canned AI echo. No app feature (editing, gameplay, invoices, ...)

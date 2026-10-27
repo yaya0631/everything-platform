@@ -21,7 +21,7 @@ const chrome = [process.env.BROWSER_EXE, 'C:\\Program Files\\Google\\Chrome\\App
   .filter(Boolean).find((p) => { try { fs.accessSync(p); return true; } catch { return false; } });
 if (!chrome) throw new Error('No Chrome found. Set BROWSER_EXE to the local Chrome executable.');
 
-const gatesDir = path.resolve('data/hub/test-gates');
+const gatesDir = path.join(DATA_DIR, 'hub', 'test-gates');
 fs.mkdirSync(gatesDir, { recursive: true });
 const hasEvidence = (name) => ['-suite.json', '.json'].some((suffix) => fs.existsSync(path.join(gatesDir, `${name}${suffix}`)));
 // Only the 51 upstream apps carry a functional-gate tier verdict; non-upstream
@@ -97,7 +97,43 @@ async function runPoke(page, poke) {
   }
   await new Promise((resolve) => setTimeout(resolve, 4000));
 }
-const failingCalls = (calls) => calls.filter((c) => c.status !== 'resolved' && !firstRunMiss(c));
+const failingCalls = (app, calls) => calls.filter((c) => c.status !== 'resolved'
+  && !firstRunMiss(c)
+  // Email's first-run design asks to read the user's Mail folder. The shim
+  // refuses before consent; the app handles that and renders its request-access
+  // panel (M1 fixed the missing whoami that used to kill the page). All other
+  // rejections, including every write, still fail.
+  && !(app === 'email' && c.method === 'puter.fs.stat' && c.code === 'no_permission_for_app'));
+/** App boot often starts async reads/gets after DOMContentLoaded. A pending
+ * call is not a failure by itself; give the app's own startup work time to
+ * settle, then judge whatever is still pending. */
+async function waitForCallsSettled(page, timeoutMs = 12000) {
+  const deadline = Date.now() + timeoutMs;
+  let quietSince = null;
+  while (Date.now() < deadline) {
+    const pending = await page.evaluate(() => (window.__CAD_PUTER_CALLS__ || []).filter((c) => c.status === 'pending').length).catch(() => 0);
+    if (!pending) {
+      if (quietSince === null) quietSince = Date.now();
+      else if (Date.now() - quietSince >= 1500) return true;
+    } else {
+      quietSince = null;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return false;
+}
+
+/** Capture only after a quiet window; retry because a recurring poll can start
+ * a new call in the gap between the check and the snapshot. */
+async function readSettledCalls(page, timeoutMs = 12000) {
+  let calls = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await waitForCallsSettled(page, timeoutMs);
+    calls = await page.evaluate(() => window.__CAD_PUTER_CALLS__ || []).catch(() => []);
+    if (!calls.some((c) => c.status === 'pending')) return calls;
+  }
+  return calls;
+}
 try {
   for (const app of targets) {
     const page = await context.newPage();
@@ -109,13 +145,13 @@ try {
     // app's own honest record, and the run continues (exit code 1 at the end).
     try {
       try {
-        await page.goto(`${base}/h/${app.name}/`, { waitUntil: 'networkidle2', timeout: 45000 });
+        // Do not wait for network-idle: several apps keep a sync/SSE poll
+        // running, which makes idle never settle. DOM readiness plus the shim
+        // wait below is the actual gate; the separate browser smoke measures
+        // the network.
+        await page.goto(`${base}/h/${app.name}/`, { waitUntil: 'domcontentloaded', timeout: 45000 });
       } catch (navErr) {
-        // Some apps keep persistent connections (streams/sockets), so
-        // network-idle never settles. That is not a probe failure: continue
-        // as long as the document itself is usable and judge the shim wait.
         if (!await page.evaluate(() => document.readyState === 'complete' || document.readyState === 'interactive').catch(() => false)) throw navErr;
-        console.log(`note: ${app.name} never reached network-idle; continuing on DOM state`);
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Apps with an on-demand loader need a control click before window.puter
@@ -130,6 +166,7 @@ try {
       if (!hasPuter) {
         results.set(app.name, { app: app.name, pass: false, initialCalls: [], errors: [...errors, 'puter shim not loaded within 10s of page load'], probe: { kvSet: false, fsRoundTrip: false, key: '', marker: '', file: '' } });
         results.get(app.name).shimMissing = true;
+        await page.close().catch(() => {});
         continue;
       }
       // cad ships its own adapter (window.puter built in the app bundle), so
@@ -181,8 +218,10 @@ try {
       ai.mode = 'echo';
       ai.model = 'test:test-model';
       ai.note = 'canned test provider; proves the puter.ai.chat wiring, not a real model answer';
-      const calls = await page.evaluate(() => window.__CAD_PUTER_CALLS__ || []);
-      results.set(app.name, { app: app.name, pass: !errors.length && probe.kvSet && probe.fsRoundTrip && ai.ok, initialCalls: calls, errors, probe, ai, page, appLocalPuter });
+      const callsSettled = await waitForCallsSettled(page);
+      const calls = await readSettledCalls(page);
+      results.set(app.name, { app: app.name, pass: !errors.length && probe.kvSet && probe.fsRoundTrip && ai.ok, initialCalls: calls, callsSettled, errors, probe, ai, appLocalPuter });
+      await page.close().catch(() => {});
     } catch (err) {
       results.set(app.name, { app: app.name, pass: false, initialCalls: [], errors: [...errors, `gate probe failed: ${String(err.message || err).slice(0, 200)}`], probe: { kvSet: false, fsRoundTrip: false, key: '', marker: '', file: '' } });
       try { await page.close(); } catch {}
@@ -195,26 +234,29 @@ try {
   running = await serverm.startServer({ port, publicPort: 0, host: '127.0.0.1', tls: null });
   const base2 = `http://127.0.0.1:${running.privatePort}`;
   for (const record of results.values()) {
-    const page = record.page;
-    if (!page) continue; // already failed in pass A (shim missing / probe threw) — verdict is written as-is
+    if (!record.probe || !record.probe.key) continue; // already failed in pass A (shim missing / probe threw)
+    const page = await context.newPage();
+    await page.evaluateOnNewDocument(() => { window.__CAD_FUNCTIONAL_GATE__ = true; });
     try {
       try {
         await context.setCookie({ name: 'cad_session', value: token, url: base2 });
-        await page.goto(`${base2}/h/${record.app}/`, { waitUntil: 'networkidle2', timeout: 45000 });
+        await page.goto(`${base2}/h/${record.app}/`, { waitUntil: 'domcontentloaded', timeout: 45000 });
       } catch (navErr) {
         if (!await page.evaluate(() => document.readyState === 'complete' || document.readyState === 'interactive').catch(() => false)) throw navErr;
       }
       await runPoke(page, POKE[record.app]);
       const kvRestart = await page.evaluate(async (key, marker) => ({ pass: (await puter.kv.get(key)) === marker }), record.probe.key, record.probe.marker);
-      const calls = await page.evaluate(() => window.__CAD_PUTER_CALLS__ || []);
+      const calls = await readSettledCalls(page);
       record.kvRestart = kvRestart;
       record.calls = [...record.initialCalls, ...calls];
-      const bad = failingCalls(record.calls);
+      const bad = failingCalls(record.app, record.calls);
       record.failingCalls = bad;
       record.pass = record.pass && kvRestart.pass && (record.calls.length > 0 || record.appLocalPuter === true) && bad.length === 0;
     } catch (err) {
       record.pass = false;
       record.errors = [...(record.errors || []), `restart phase failed: ${String(err.message || err).slice(0, 200)}`];
+    } finally {
+      await page.close().catch(() => {});
     }
     delete record.page; delete record.initialCalls;
   }

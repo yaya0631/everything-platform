@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS, EXTERNAL_EMBED_SOURCES, applyAppJsRules, APP_JS_RULES, rewriteJs } from '../lib/hub-rewrite.js';
+import { REWRITE_RULES, countRuleHits, zeroMatchVerdict, cspHeader, CSP_SCRIPT_EXTRAS, EXTERNAL_EMBED_SOURCES, applyAppJsRules, APP_JS_RULES, rewriteJs, rewriteCss } from '../lib/hub-rewrite.js';
 
 test('the rule counter measures the real built dists (all rules match today)', () => {
   const counts = countRuleHits(path.join('data', 'hub', 'apps'));
@@ -87,11 +87,12 @@ test('zeroMatchVerdict: a dist matching nothing fails unless the rule was retire
 });
 
 test('M6: the 3d bundle\'s Pyodide CDN URL is rewritten to the vendored runtime', () => {
-  const bundle = 'let aw=`https://cdn.jsdelivr.net/pyodide/v${iw}/full/`, load=()=>import(`${aw}pyodide.mjs`); const pin="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.asm.wasm";';
+  const bundle = 'let aw=`https://cdn.jsdelivr.net/pyodide/v${iw}/full/`, load=()=>import(`${aw}pyodide.mjs`); const pin="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.asm.wasm"; const font="/assets/inter-latin-400-normal-CyCys3Eg.woff";';
   const out = rewriteJs(bundle, { name: '3d' }).text;
   assert.match(out, /aw=`\/hub\/pyodide\/`/);
   assert.match(out, /import\(`\$\{aw\}pyodide\.mjs`\)/);
   assert.match(out, /\/hub\/pyodide\/pyodide\.asm\.wasm/);
+  assert.match(out, /font="\/h\/3d\/assets\/inter-latin-400-normal-CyCys3Eg\.woff"/);
   assert.doesNotMatch(out, /cdn\.jsdelivr\.net\/pyodide/, out);
 });
 
@@ -99,6 +100,25 @@ test('M6: 3d may compile the vendored wasm; no external script origin is allowed
   const csp = cspHeader({ extras: CSP_SCRIPT_EXTRAS['3d'] });
   assert.match(csp, /script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'/);
   assert.doesNotMatch(csp, /cdn\.jsdelivr|https:\/\/cdn\./);
+});
+
+test('root-absolute CSS assets get the app prefix; hub and external URLs stay', () => {
+  const css = [
+    '@font-face{src:url(/assets/demo.woff2)format("woff2")}',
+    'body{background:url("/assets/bg.png")}',
+    '.keep{background:url(/hub/pyodide/x)}',
+    '.ext{background:url(https://example.com/x.png)}',
+    '.cdn{background:url(//example.com/y.png)}',
+    '@import "/assets/theme.css";',
+  ].join('\n');
+  const out = rewriteCss(css, { name: '3d' });
+  assert.match(out, /url\(\/h\/3d\/assets\/demo\.woff2\)/);
+  assert.match(out, /url\("\/h\/3d\/assets\/bg\.png"\)/);
+  assert.match(out, /url\(\/hub\/pyodide\/x\)/);
+  assert.match(out, /url\(https:\/\/example\.com\/x\.png\)/);
+  assert.match(out, /url\(\/\/example\.com\/y\.png\)/);
+  assert.match(out, /@import "\/h\/3d\/assets\/theme\.css"/);
+  assert.equal(rewriteCss(css), css, 'no app name means no rewrite');
 });
 
 test('fleet NHTSA lookups point at the opt-in proxy and keep an honest offline message', () => {

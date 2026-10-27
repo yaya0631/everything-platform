@@ -1,0 +1,4 @@
+@font-face{font-family:Demo;src:url(/assets/demo.woff2)format("woff2")}
+body{background:url("/assets/bg.png")}
+.hub-url{background:url(/hub/pyodide/pyodide-lock.json)}
+.external{background:url(https://example.com/asset.png)}
