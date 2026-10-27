@@ -1224,3 +1224,65 @@ Commits: `5ebf63d` (AI), `d8da10e` (Admin bulk).
   image fallback can run. This is a configuration gap, not the plan-loop bug.
 - The image cache is in-process and only learns after a real refusal; there is
   no model-metadata pass that pre-marks text-only models.
+
+## Session 14 - 2026-10-27 - 3D assistant screenshots reach the model
+
+Commit: `34bd79e`.
+
+### Problem
+
+- The 3D assistant sends `capture_view` screenshots, and user image
+  attachments, as Puter's Anthropic-shaped content blocks:
+  `{ type: 'image', source: { type: 'base64', media_type, data } }`.
+- `lib/hub-ai.js` only understood OpenAI's
+  `{ type: 'image_url', image_url: { url } }` blocks. It kept the text and
+  silently dropped the pixels, so the model was told "The screenshot from
+  capture_view:" and then received no screenshot. In the reported run it built
+  a tree into a collection that was not linked to the scene, captured a black
+  isometric view, could not see that the screenshot was empty, and reported
+  success instead of fixing the collection. Every hub app using this block
+  shape was affected.
+- The live configuration had also changed since Session 13: OpenRouter now has
+  a working key and 20 models are enabled, including
+  `nvidia/nemotron-3.5-super-vl:free`. The two stronger code models tried for
+  3D (GLM and Groq Qwen) were rate-limited or out of balance, so the vision
+  model was the working path.
+
+### DONE
+
+- `lib/hub-ai.js` now has `blockImage()`, which accepts both OpenAI
+  `image_url` blocks and Anthropic `image` + base64-source blocks and turns
+  both into the core's data-URI images. The existing vision path, image-refusal
+  fallback and refusal cache now apply to 3D and any other app using Puter's
+  SDK block shape.
+- No app source or `upstream/` file was edited. Images are carried from the
+  app's existing messages; the platform only stops discarding them.
+- Tests cover both block shapes in one hub message and the Anthropic adapter's
+  native image block.
+
+### Verification
+
+- `node --test test/ai.test.js test/hub-ai.test.js`: **21/21 PASS**.
+- `npm test`: **687/687 PASS**.
+- `npm run lint`: **0 errors, 53 warnings** (unchanged).
+- `npm run verify:full`: **PASS** (687/687 tests; 51/51 apps load;
+  infrastructure gate 51/51; engines 9/9; Pyodide 8/8; peer 18/18; chess 8/8;
+  admin bulk PASS; fresh host 12/12).
+- Live restart: PID **10420**, private `0.0.0.0:8080`, public
+  `127.0.0.1:8081`; `/healthz` **200**, private `/` **302 -> /hub/**,
+  `/hub/` **401** without a session. Backup before restart:
+  `data/backups/cad-20261027132620.db`.
+- Live `ai_usage` shows **9 successful calls** with the screenshot's model
+  (`nvidia/nemotron-3.5-super-vl:free`) at 13:10-13:11. The 3D-specific entries
+  at 13:05/13:07 are model-side rate limits, not transport failures (successful
+  core calls are logged as `hub`, so only failures carry the app name). The
+  screenshot-drop fix is live for the next turn.
+
+### PENDING
+
+- Browser confirmation after a hard refresh: ask 3D to build a model, let it
+  call `capture_view`, and confirm the model can see the screenshot and fix an
+  unlinked collection. No model download is needed; the live OpenRouter key is
+  working.
+- PDF attachments still use a different document path; this change covers the
+  image blocks used by `capture_view` and image attachments.
