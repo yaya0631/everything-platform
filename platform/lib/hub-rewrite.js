@@ -529,6 +529,19 @@ export const APP_JS_RULES = {
       replacement: 'o[e]=`${(`__CAD_GUEST_BASE__`.startsWith(`http`)?`__CAD_GUEST_BASE__/w/host/`+new URL(r.url).host.replace(/\\.puter\\.work$/,``):r.url)}/sign/${t}`;',
     },
   ],
+  '3d': [
+    {
+      name: '3d-preserve-drawing-buffer',
+      // The assistant's capture_view copies the shared WebGL canvas into a 2D
+      // canvas after a forced draw. On some Chrome/GPU combinations the
+      // drawing buffer is cleared before that copy, so the model gets a pure
+      // black "screenshot" and works blind. Keeping the buffer makes the
+      // copy deterministic at the cost of one retained framebuffer; the app's
+      // own source stays untouched.
+      old: 'preserveDrawingBuffer:!1,stencil:!0',
+      replacement: 'preserveDrawingBuffer:!0,stencil:!0',
+    },
+  ],
   whiteboard: [
     {
       name: 'wb-worker-path',
@@ -679,6 +692,10 @@ export const REWRITE_RULES = [
   {
     name: 'photo-worker-path',
     hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES['photo-studio'][0].old),
+  },
+  {
+    name: '3d-preserve-drawing-buffer',
+    hits: (text, file) => TEXT_FILE.test(file) && text.includes(APP_JS_RULES['3d'][0].old),
   },
   {
     name: 'fleet-nhtsa-local',

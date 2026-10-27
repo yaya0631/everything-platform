@@ -45,6 +45,29 @@ test('M12: root-absolute collab worker fetches are rewritten onto the hub mount'
   }
 });
 
+test('the 3d bundle keeps the WebGL drawing buffer so capture_view cannot copy a cleared canvas', () => {
+  const rule = APP_JS_RULES['3d'].find((r) => r.name === '3d-preserve-drawing-buffer');
+  assert.ok(rule, 'the 3d serve-time rule is registered');
+  const root = path.join('data', 'hub', 'apps', '3d');
+  let hit = null;
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (/\.js$/.test(e.name)) {
+        const text = fs.readFileSync(full, 'utf8');
+        if (text.includes(rule.old)) hit = text;
+      }
+    }
+  })(root);
+  assert.ok(hit, 'the built 3d bundle still creates the shared renderer with preserveDrawingBuffer:false');
+  const out = applyAppJsRules(hit, '3d');
+  assert.deepEqual(out.applied, [rule.name], `3d applied=${JSON.stringify(out.applied)} missed=${JSON.stringify(out.missed)}`);
+  assert.deepEqual(out.missed, []);
+  assert.ok(out.text.includes(rule.replacement));
+  assert.ok(!out.text.includes(rule.old), 'the non-preserving form must not survive');
+});
+
 test('countRuleHits: fixture dist hits shim-swap and html-strip, misses the rest', () => {
   const counts = countRuleHits(path.join('test', 'fixtures', 'hub', 'fixture-dist'));
   assert.ok(counts['shim-swap'] >= 1, 'the fixture loads js.puter.com twice');

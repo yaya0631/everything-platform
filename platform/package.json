@@ -13,6 +13,7 @@
     "e2e:engines": "node engine-e2e.mjs",
     "e2e:pyodide": "node pyodide-e2e.mjs",
     "e2e:admin-bulk": "node admin-bulk-e2e.mjs",
+    "e2e:3d-capture": "node 3d-capture-e2e.mjs",
     "lint": "eslint .",
     "verify": "node verify-all.mjs",
     "verify:full": "node verify-all.mjs --full",

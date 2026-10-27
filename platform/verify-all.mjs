@@ -101,6 +101,7 @@ try {
     node('peer relay/media in Chrome', 'peer-e2e.mjs');
     node('chess Online against the real build', 'chess-online-e2e.mjs');
     node('admin bulk model UI in Chrome', 'admin-bulk-e2e.mjs');
+    node('3D assistant capture keeps pixels in Chrome', '3d-capture-e2e.mjs');
 
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cad-verify-data-'));
     try {
