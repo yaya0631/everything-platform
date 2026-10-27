@@ -1,5 +1,5 @@
 /** Admin → AI: provider keys, which models people can pick, prices and usage. */
-import { h, clear, icon, api, field, input, button, checkbox, toast, action, table, section, sectionWithActions, notice, badge, select } from './ui.js';
+import { h, clear, icon, api, field, input, button, checkbox, toast, action, table, section, sectionWithActions, notice, badge, select, confirmDialog } from './ui.js';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
 const money = (g) => (g.priced && g.cost ? `$${g.cost.toFixed(g.cost < 1 ? 4 : 2)}` : g.priced ? '$0' : '–');
@@ -67,18 +67,113 @@ export async function page({ refresh }) {
   const prices = { ...info.prices };
   const modelsHolder = h('div');
   const search = input({ type: 'search', placeholder: 'Filter models' });
+  const selected = new Set();
+  let lastPick = -1;
+
+  const selectedCount = h('span.muted', { 'aria-live': 'polite' }, 'No models selected');
+  const enableSelected = button('Enable selected', { sm: true, onClick: action(() => {
+    for (const m of list) if (selected.has(m.id)) m.enabled = true;
+    renderModels();
+  }, { success: 'Selected models enabled. Save models to apply.' }) });
+  const disableSelected = button('Disable selected', { sm: true, onClick: action(() => {
+    for (const m of list) if (selected.has(m.id)) m.enabled = false;
+    renderModels();
+  }, { success: 'Selected models disabled. Save models to apply.' }) });
+  const removeSelected = button('Remove selected', { sm: true, kind: 'danger', onClick: action(async () => {
+    if (!selected.size) return false;
+    if (!(await confirmDialog('Remove selected models?', `${selected.size} model${selected.size === 1 ? '' : 's'} will be removed from the list. Click Save models to apply the change.`, { confirm: 'Remove', danger: true }))) return false;
+    list = list.filter((m) => !selected.has(m.id));
+    selected.clear();
+    lastPick = -1;
+    renderModels();
+    setTimeout(updateBulk, 0);
+  }, { success: 'Selected models removed from the list. Save models to apply.' }) });
+  const keepSelected = button('Keep only selected', { sm: true, onClick: action(async () => {
+    const drop = list.length - selected.size;
+    if (!selected.size || drop < 1) return false;
+    if (!(await confirmDialog('Keep only the selected models?', `The other ${drop} model${drop === 1 ? '' : 's'} will be removed from the list. Click Save models to apply the change.`, { confirm: 'Remove others', danger: true }))) return false;
+    list = list.filter((m) => selected.has(m.id));
+    selected.clear();
+    lastPick = -1;
+    renderModels();
+    setTimeout(updateBulk, 0);
+  }, { success: 'Kept the selected models. Save models to apply.' }) });
+  const clearSelection = button('Clear', { sm: true, onClick: () => {
+    selected.clear();
+    lastPick = -1;
+    renderModels();
+  } });
+  const bulkBar = h(
+    'div.row.bulk-models',
+    selectedCount,
+    h('span.grow'),
+    enableSelected,
+    disableSelected,
+    removeSelected,
+    keepSelected,
+    clearSelection,
+  );
+
+  function updateBulk() {
+    const n = selected.size;
+    selectedCount.textContent = n ? `${fmt(n)} of ${fmt(list.length)} selected` : 'No models selected';
+    for (const b of [enableSelected, disableSelected, removeSelected, clearSelection]) b.disabled = n === 0;
+    keepSelected.disabled = n === 0 || n >= list.length;
+  }
 
   const addModels = (found) => {
     for (const m of found) if (!list.some((x) => x.id === m.id)) list.push({ id: m.id, label: m.label && m.label !== m.id.split(':').slice(1).join(':') ? m.label : '', enabled: false, tools: true });
+    lastPick = -1;
     renderModels();
   };
 
   const renderModels = () => {
     const q = search.value.trim().toLowerCase();
     const rows = list.filter((m) => !q || m.id.toLowerCase().includes(q) || (m.label || '').toLowerCase().includes(q));
+    const shown = rows.map((m) => m.id);
+    const allShown = shown.length > 0 && shown.every((id) => selected.has(id));
+    const selectAll = h('input', {
+      type: 'checkbox',
+      checked: allShown,
+      'aria-label': 'Select all shown models',
+      title: 'Select all shown models',
+      onClick: () => {
+        const all = shown.length > 0 && shown.every((id) => selected.has(id));
+        if (all) for (const id of shown) selected.delete(id);
+        else for (const id of shown) selected.add(id);
+        lastPick = -1;
+        sync();
+      },
+    });
+    const toggle = (m, e) => {
+      const at = rows.findIndex((x) => x.id === m.id);
+      const turnOn = !selected.has(m.id);
+      if (e.shiftKey && lastPick >= 0 && lastPick < rows.length && at >= 0) {
+        const from = Math.min(lastPick, at);
+        const to = Math.max(lastPick, at);
+        for (const row of rows.slice(from, to + 1)) {
+          if (turnOn) selected.add(row.id);
+          else selected.delete(row.id);
+        }
+      } else if (turnOn) selected.add(m.id);
+      else selected.delete(m.id);
+      lastPick = at;
+      sync();
+    };
+    const sync = () => {
+      for (const box of modelsHolder.querySelectorAll('input[data-model-id]')) {
+        box.checked = selected.has(box.dataset.modelId);
+      }
+      const all = shown.length > 0 && shown.every((id) => selected.has(id));
+      const some = shown.some((id) => selected.has(id));
+      selectAll.checked = all;
+      selectAll.indeterminate = some && !all;
+      updateBulk();
+    };
     clear(modelsHolder).append(
       table(
         [
+          { label: selectAll, width: '32px', render: (m) => h('input', { type: 'checkbox', checked: selected.has(m.id), 'data-model-id': m.id, 'aria-label': `Select ${m.id}`, onClick: (e) => toggle(m, e) }) },
           {
             label: 'On',
             width: '48px',
@@ -107,6 +202,8 @@ export async function page({ refresh }) {
                 title: 'Remove from the list',
                 onClick: () => {
                   list = list.filter((x) => x !== m);
+                  selected.delete(m.id);
+                  lastPick = -1;
                   renderModels();
                 },
               }, icon('trash', 14)),
@@ -116,8 +213,12 @@ export async function page({ refresh }) {
         { empty: list.length ? 'No model matches.' : 'No models yet. Save a key above, then Fetch models, or add one by name.' },
       ),
     );
+    sync();
   };
-  search.addEventListener('input', renderModels);
+  search.addEventListener('input', () => {
+    lastPick = -1;
+    renderModels();
+  });
   renderModels();
 
   const providerPick = select(
@@ -165,7 +266,7 @@ export async function page({ refresh }) {
     h('div.split', info.providers.map((p) => providerCard(p, addModels))),
     sectionWithActions(
       'Models',
-      'Turn on the models people can pick in the CAD assistant and in apps. Ollama models appear automatically while Ollama runs.',
+      'Turn on the models people can pick in the CAD assistant and in apps. Select rows to enable, disable, remove, or keep only those; changes apply when you save. Ollama models appear automatically while Ollama runs.',
       [
         search,
         button('Save models', {
@@ -176,6 +277,7 @@ export async function page({ refresh }) {
           }, { success: 'Models saved' }),
         }),
       ],
+      bulkBar,
       modelsHolder,
     ),
     section('Add a model by name', 'For providers that do not list their models (GLM may need this).', addByName),

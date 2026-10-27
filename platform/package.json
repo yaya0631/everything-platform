@@ -12,6 +12,7 @@
     "engines:check": "node engines/install.mjs --check",
     "e2e:engines": "node engine-e2e.mjs",
     "e2e:pyodide": "node pyodide-e2e.mjs",
+    "e2e:admin-bulk": "node admin-bulk-e2e.mjs",
     "lint": "eslint .",
     "verify": "node verify-all.mjs",
     "verify:full": "node verify-all.mjs --full",

@@ -5,11 +5,12 @@
  *   node verify-all.mjs          lint, suite, engine install check, hub smoke,
  *                                fresh-host acceptance
  *   node verify-all.mjs --full   also the real-browser engine/Pyodide/peer/
- *                                chess checks, the installed-app smoke and the
- *                                infrastructure gate. The app checks run on a
- *                                throwaway copy of data/ and copy only the gate
- *                                evidence back, so no test account or test data
- *                                touches the live DB.
+ *                                chess checks, the admin bulk-model UI, the
+ *                                installed-app smoke and the infrastructure
+ *                                gate. The app checks run on a throwaway copy
+ *                                of data/ and copy only the gate evidence back,
+ *                                so no test account or test data touches the
+ *                                live DB.
  *
  * A failure exits non-zero. The full run is intentionally long; it is the
  * hosting acceptance, not the edit loop.
@@ -99,6 +100,7 @@ try {
     node('vendored Pyodide in Chrome', 'pyodide-e2e.mjs');
     node('peer relay/media in Chrome', 'peer-e2e.mjs');
     node('chess Online against the real build', 'chess-online-e2e.mjs');
+    node('admin bulk model UI in Chrome', 'admin-bulk-e2e.mjs');
 
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cad-verify-data-'));
     try {

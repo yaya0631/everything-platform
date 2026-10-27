@@ -501,6 +501,10 @@ button.nav-link {
   gap: 8px;
 }
 
+.bulk-models {
+  margin-bottom: 10px;
+}
+
 .split {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
