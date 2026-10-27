@@ -44,7 +44,8 @@ accepted, and the W4 gate/smoke passes. The qualification is deliberate:
   re-verification.
 
 Commits: W1 `bb69fb7` through `b2080e2`; W2 `a33f6be`, `090fad8`, `ba2a353`;
-W3 `ca61606`; W4 commit recorded in `platform/docs/AI-PROGRESS.md` Session 12.
+W3 `ca61606`; W4 `2c72120` (full evidence in
+`platform/docs/AI-PROGRESS.md` Session 12).
 
 ## Finding closure (24/24)
 
@@ -92,7 +93,7 @@ Machine-readable status: [`findings.json`](findings.json) (`closed: 24`,
 | Installed apps load | **51/51** | `browser-smoke-results.json` |
 | Generic infrastructure gate | **51/51 PASS** | isolated `data/hub/test-gates/*-functional.json` |
 | Persist pass (10 real apps) | **10/10** | `node browser-smoke.mjs persist-all` on the isolated copy; create -> reload -> server restart |
-| Single host runner | **PASS** | `npm run verify:full` — 51-app smoke + gate on an isolated copy; exit 0 |
+| Single host runner | **PASS** | `npm run verify:full` — `PASS: full hosting acceptance` (51-app smoke + gate on an isolated copy) |
 
 The W4 load pass also fixed one real defect found by the gate: 3d emitted
 root-absolute `/assets/...` font URLs in its CSS and runtime JS, so the

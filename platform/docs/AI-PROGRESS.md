@@ -1090,6 +1090,8 @@ Owner scope: everything the audit flagged, in waves. This session is **W3
 
 ## Session 12 — W4 hardening, hosted acceptance, final re-verification (2026-10-26/27)
 
+Commit: `2c72120`.
+
 ### DONE
 
 - **Lint and CI:** ESLint 10 with Node/browser globals (`npm run lint`, **0
@@ -1131,7 +1133,7 @@ Owner scope: everything the audit flagged, in waves. This session is **W3
 ### Verification (W4)
 
 - `npm test`: **682/682**
-- `npm run verify:full`: **PASS** (exit 0, full hosting acceptance)
+- `npm run verify:full`: **PASS** (full hosting acceptance)
 - `npm run lint`: **0 errors, 53 warnings**
 - `node smoke-hub.mjs`: **37/37**
 - `node fresh-host-e2e.mjs`: **12/12**

@@ -84,6 +84,7 @@ Server under test: node server.js (PID 19320) at http://127.0.0.1:8080 (private)
 - Final counts: 2 CRITICAL, 11 MAJOR, 6 MINOR, 5 NOTE (24 findings). Verdict unchanged: FAIL.
 
 ## W4 close (2026-10-26/27)
+- W4 commit: `2c72120`.
 - All 24 findings closed/accepted; `findings.json` now reports `open: 0`, and the original independent FAIL report is preserved as `REPORT-2026-10-25.md`.
 - W1-W3 fixes retained; W4 added lint, one verify runner, CI, hosting checklist, isolated app gate/smoke, and the fresh-host acceptance.
 - Fresh host: 12/12. Suite: 682/682. Lint: 0 errors. Hub HTTP: 37/37. Engines: 9/9. Pyodide: 8/8. Peer: 18/18. Chess: 8/8.
