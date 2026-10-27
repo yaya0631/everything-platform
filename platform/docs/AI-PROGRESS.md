@@ -1286,3 +1286,76 @@ Commit: `34bd79e`.
   working.
 - PDF attachments still use a different document path; this change covers the
   image blocks used by `capture_view` and image attachments.
+
+## Session 15 - 2026-10-27 - 3D screenshots keep their pixels
+
+Commit: `9f81131`.
+
+### Problem
+
+- Session 14 fixed the transport that dropped Anthropic-shaped image blocks, so
+  the model finally received the 3D assistant's screenshots. The owner then
+  retried a live build and the preview in "What the assistant saw" was still a
+  pure black rectangle; the model correctly said the screenshots were coming
+  back black and had to work from scene state.
+- The black image is made in the app, not by the provider. The 3D renderer is
+  created with `preserveDrawingBuffer:false`. A local readback probe copied the
+  viewport *after* the browser composited a frame and got pure black (average
+  luminance 0) even though the page screenshot showed a lit cube and grid.
+  `capture_view` then copies that same shared canvas into the JPEG it shows and
+  sends. The app's forced draw normally wins that race, but the after-compositing
+  copy is a live black path; preserving the buffer removes it. This is the only
+  capture-level black path found in the app; the owner's next run will confirm
+  whether their GPU hits this same path.
+- This is the remaining client-side half of the Session 14 finding. The image
+  transport is working: live `ai_usage` calls are `ok` and input tokens grow
+  with the screenshots.
+
+### DONE
+
+- **Serve-time drawing-buffer rule:** `lib/hub-rewrite.js` now has
+  `APP_JS_RULES['3d']` rule `3d-preserve-drawing-buffer`, which rewrites the
+  built renderer option `preserveDrawingBuffer:!1,stencil:!0` to
+  `preserveDrawingBuffer:!0,stencil:!0`. No app source or `upstream/` file is
+  edited; the app keeps its build, the platform only serves those bytes.
+- The rule is registered in `REWRITE_RULES`, so the §22 zero-match gate keeps
+  it honest when the 3D bundle is rebuilt. A unit test runs the rule against the
+  installed 3D bundle and asserts the non-preserving form is gone.
+- **Browser regression test:** `3d-capture-e2e.mjs` starts a throwaway server,
+  installs the 3D app, loads it in system Chrome, asserts the served bundle
+  carries the rule and that `getContextAttributes().preserveDrawingBuffer` is
+  true, then draws the scene, lets the browser composite it, and copies the
+  viewport without forcing another draw. The copy must still have pixels.
+  Wired as `npm run e2e:3d-capture` and into `verify:full`.
+- The fix applies to every 3D session after the app tab is reloaded. An already
+  open tab keeps the renderer it created before the server restart.
+
+### Verification
+
+- `node --test test/hub-rewrite-rules.test.js`: **11/11 PASS** (new rule test).
+- `npm run e2e:3d-capture`: **PASS** (273x509 viewport, average luminance 63.0,
+  `preserveDrawingBuffer=true`, 0 page errors).
+- Manual browser evidence before the rule: a delayed viewport copy was pure
+  black (avg 0). With the served rule: the same copy averaged 62.96; the
+  assistant's own `capture_view` JPEG averaged 91.85.
+- `npm test`: **688/688 PASS**.
+- `npm run lint`: **0 errors, 53 warnings** (unchanged).
+- `npm run verify:full`: **PASS** (688/688 tests; 51/51 apps load; gate 51/51;
+  engines 9/9; Pyodide 8/8; peer 18/18; chess 8/8; admin bulk PASS; new 3D
+  capture E2E PASS; fresh host 12/12).
+- Live restart after the change: PID **2080**, private `0.0.0.0:8080`, public
+  `127.0.0.1:8081`; `/healthz` **200**, private `/` **302 -> /hub/**,
+  `/hub/` **401** without a session. Backup before restart:
+  `data/backups/cad-20261027151710.db`.
+- `upstream/` is clean; no app source was edited.
+
+### PENDING
+
+- Owner: reload the 3D tab once (Ctrl+Shift+R), start a fresh chat, ask for a
+  capture, and confirm the preview shows the room. The loaded JS from before
+  the restart still has the old renderer.
+- If a preview is still black after that reload, capture the tab's console and
+  `document.querySelector('canvas.gl-canvas').getContext('webgl2').getContextAttributes()`
+  so the next step is measured on the owner's actual GPU, not guessed.
+- The live signed-in Photo Studio image+plan validation and the optional Admin
+  -> AI bulk pass on the 463-model list still need the owner's browser session.

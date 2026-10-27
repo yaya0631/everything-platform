@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-27T12:29:24.655Z",
+  "at": "2026-10-27T14:21:49.943Z",
   "pass": true,
   "steps": [
     {
@@ -15,12 +15,12 @@
     {
       "step": "host mints an invite code",
       "pass": true,
-      "detail": "7S489GTX"
+      "detail": "LHEBP64R"
     },
     {
       "step": "guest connects and the host sees who arrived",
       "pass": true,
-      "detail": "{\"joined\":{\"username\":\"peere2e\",\"name\":\"peere2e\",\"displayName\":\"peere2e\",\"uuid\":\"23eb3550-78d3-46b8-9f56-54ec80b116c1\"},\"hostSees\":{\"username\":\"peere2e-other\",\"name\":\"peere2e-other\",\"displayName\":\"peere2e-other\",\"uuid\":\"414d8f9e-3823-46cb-9915-5fa4e06cd26e\"}}"
+      "detail": "{\"joined\":{\"username\":\"peere2e\",\"name\":\"peere2e\",\"displayName\":\"peere2e\",\"uuid\":\"9a81f6dd-f014-43ce-b415-961080a69932\"},\"hostSees\":{\"username\":\"peere2e-other\",\"name\":\"peere2e-other\",\"displayName\":\"peere2e-other\",\"uuid\":\"c61eb242-9acf-45ac-8174-5eaacebe346e\"}}"
     },
     {
       "step": "both connections report open",
@@ -40,7 +40,7 @@
     {
       "step": "each side receives live audio and video RTP from the other",
       "pass": true,
-      "detail": "{\"host\":{\"inbound\":{\"audio\":1223,\"video\":30719},\"tracks\":[{\"kind\":\"audio\",\"readyState\":\"live\",\"muted\":false},{\"kind\":\"video\",\"readyState\":\"live\",\"muted\":false}]},\"guest\":{\"inbound\":{\"audio\":1641,\"video\":18994},\"tracks\":[{\"kind\":\"audio\",\"readyState\":\"live\",\"muted\":false},{\"kind\":\"video\",\"readyState\":\"live\",\"muted\":false}]}}"
+      "detail": "{\"host\":{\"inbound\":{\"audio\":1144,\"video\":31942},\"tracks\":[{\"kind\":\"audio\",\"readyState\":\"live\",\"muted\":false},{\"kind\":\"video\",\"readyState\":\"live\",\"muted\":false}]},\"guest\":{\"inbound\":{\"audio\":1755,\"video\":19590},\"tracks\":[{\"kind\":\"audio\",\"readyState\":\"live\",\"muted\":false},{\"kind\":\"video\",\"readyState\":\"live\",\"muted\":false}]}}"
     },
     {
       "step": "linkstate reports connected",
@@ -65,7 +65,7 @@
     {
       "step": "onLocal resolves with a subscription",
       "pass": true,
-      "detail": "{\"subject\":\"kv:probe\",\"subId\":\"1-891a5ddd8bbfc37acf\"}"
+      "detail": "{\"subject\":\"kv:probe\",\"subId\":\"1-5f0269731d819742f0\"}"
     },
     {
       "step": "another person’s KV write is not delivered",
@@ -75,7 +75,7 @@
     {
       "step": "a same-person tab receives the KV event with includeValue",
       "pass": true,
-      "detail": "{\"op\":\"set\",\"key\":\"probe\",\"value\":{\"by\":\"peere2e\",\"n\":7},\"type\":\"kv\",\"at\":1793104164228}"
+      "detail": "{\"op\":\"set\",\"key\":\"probe\",\"value\":{\"by\":\"peere2e\",\"n\":7},\"type\":\"kv\",\"at\":1793110909444}"
     },
     {
       "step": "closing tells the other side the reason",
