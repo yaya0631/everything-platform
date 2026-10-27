@@ -291,12 +291,13 @@ test('a photo-studio-style search loop settles on propose_plan before the app gi
   assert.match(sent.messages.at(-1).content, /Tool budget/);
 });
 
-test('Anthropic stream: system field, tool_use and tool_result blocks', async () => {
+test('Anthropic stream: system field, image, tool_use and tool_result blocks', async () => {
+  const image = 'data:image/jpeg;base64,/9j/4AAQ';
   const events = await chat({
     model: 'anthropic:claude-test',
     messages: [
       { role: 'system', content: 'Be brief.' },
-      { role: 'user', content: 'Hi' },
+      { role: 'user', content: 'Hi', images: [image] },
       { role: 'assistant', content: 'Checking', tool_calls: [{ id: 't1', name: 'drawing_info', arguments: {} }] },
       { role: 'tool', tool_call_id: 't1', content: 'ok' },
     ],
@@ -308,6 +309,10 @@ test('Anthropic stream: system field, tool_use and tool_result blocks', async ()
   const sent = seen.at(-1);
   assert.equal(sent.headers['anthropic-version'], '2023-06-01');
   assert.equal(sent.body.system, 'Be brief.');
+  assert.deepEqual(sent.body.messages[0].content[1], {
+    type: 'image',
+    source: { type: 'base64', media_type: 'image/jpeg', data: '/9j/4AAQ' },
+  });
   assert.equal(sent.body.messages[1].content[1].type, 'tool_use');
   assert.equal(sent.body.messages[2].content[0].type, 'tool_result');
   assert.equal(sent.body.tools[0].input_schema.type, 'object');

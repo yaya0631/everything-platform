@@ -50,6 +50,20 @@ export function resolveModel(requested) {
   throw new HttpError(400, 'no_default_model', `"${String(requested).slice(0, 64)}" has no alias on this server and Admin → AI has no default model set for hub apps.`);
 }
 
+/** A content-block image in either OpenAI's or Anthropic's wire shape → data URI. */
+function blockImage(block) {
+  if (block?.type === 'image_url') {
+    const u = block.image_url;
+    return typeof u === 'string' ? u : u?.url;
+  }
+  if (block?.type === 'image') {
+    const s = block.source;
+    if (s?.type === 'base64' && s.data) return `data:${s.media_type || 'image/png'};base64,${s.data}`;
+    if (s?.type === 'url') return s.url;
+  }
+  return null;
+}
+
 /** puter message content → { role, content } items the core accepts. */
 function normalizeMessages(messages) {
   if (typeof messages === 'string') {
@@ -64,9 +78,11 @@ function normalizeMessages(messages) {
     if (typeof m.content === 'string') {
       out = { role: m.role, content: m.content };
     } else if (Array.isArray(m.content)) {
-      // Blocks: [{text}, {image_url:{url}}] — structured so vision models can see them.
+      // Blocks: [{text}, {image_url:{url}}] (OpenAI) or
+      // [{text}, {image:{source:{type:'base64',…}}}] (Anthropic, what Puter's
+      // SDK and the 3D app send). Both become the core's data-URI images.
       const text = m.content.filter((b) => b?.type === 'text').map((b) => b.text).join('\n');
-      const images = m.content.filter((b) => b?.type === 'image_url').map((b) => b.image_url?.url).filter(Boolean);
+      const images = m.content.map(blockImage).filter(Boolean);
       out = images.length
         ? { role: m.role, content: text, images }
         : { role: m.role, content: text };

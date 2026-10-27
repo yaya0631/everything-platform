@@ -83,6 +83,25 @@ test('vision reaches the provider: media attaches to the last user turn', async 
   assert.match(answer.message.content, /\[saw 1 image\]/);
 });
 
+test('vision: content blocks in OpenAI and Anthropic shapes both reach the provider', async () => {
+  config.set('hubAiDefaultModel', 'test:demo');
+  const answer = await hubAi.chat({
+    res: fakeRes(), user: 'person1', app: '3d',
+    body: {
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: 'compare these views' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } },
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'BBBB' } },
+        ],
+      }],
+    },
+  });
+  assert.match(answer.message.content, /^test-reply: compare these views/);
+  assert.match(answer.message.content, /\[saw 2 images\]/);
+});
+
 test('bad calls stream a typed error event and end the stream', async () => {
   // With no default model and no matching alias, the stream starts and must
   // deliver the failure as a typed event rather than an HTTP error status.
