@@ -31,6 +31,9 @@ export const PROVIDERS = {
 };
 
 const MAX_ROUND_MESSAGES = 400;
+// A model that refuses an image is remembered for the life of the process, so
+// later turns skip the pixels instead of paying for another rejected request.
+const VISION_REFUSED = new Set();
 
 const models = () => (Array.isArray(config.get('ai.models')) ? config.get('ai.models') : []);
 
@@ -156,6 +159,53 @@ function safeParse(text) {
   } catch {
     return { _raw: String(text || '') };
   }
+}
+
+/** The tools that end a conversation: a plan, an answer, a finished job. */
+const FINAL_TOOL_RE = /^(answer|respond|reply|finish|final|submit|propose_plan)([_-].*)?$/i;
+
+/**
+ * Apps with a final tool (photo-studio's propose_plan/answer, for example)
+ * loop with small models that keep searching. After four rounds of tool calls
+ * in the current turn, add a system nudge to finish; after six, keep only the
+ * final tools so the model cannot search again. Turns without a final tool are
+ * untouched: the 3D and documents assistants legitimately run longer.
+ */
+function applyToolBudget(messages, tools) {
+  if (!tools?.length) return { messages, tools };
+  const finalTools = tools.filter((t) => FINAL_TOOL_RE.test(t.name));
+  if (!finalTools.length) return { messages, tools };
+  let lastUser = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') { lastUser = i; break; }
+  }
+  let rounds = 0;
+  for (let i = lastUser + 1; i < messages.length; i++) {
+    if (messages[i].role === 'assistant' && messages[i].tool_calls?.length) rounds++;
+  }
+  if (rounds < 4) return { messages, tools };
+  const names = finalTools.map((t) => t.name).join(', ');
+  const narrowed = rounds >= 6 && finalTools.length < tools.length;
+  let nextMessages = messages;
+  if (messages.length < MAX_ROUND_MESSAGES) {
+    nextMessages = [
+      ...messages,
+      {
+        role: 'system',
+        content: `Tool budget: this turn already made ${rounds} rounds of tool calls. Do not search or inspect anything again. Finish the user's request now by calling ${names}.${narrowed ? ' Those final tools are the only ones left.' : ''}`,
+      },
+    ];
+  }
+  return { messages: nextMessages, tools: narrowed ? finalTools : tools };
+}
+
+function stripImages(messages) {
+  return messages.map((m) => {
+    if (!m.images?.length) return m;
+    const copy = { ...m };
+    delete copy.images;
+    return copy;
+  });
 }
 
 // Textual tool calls -----------------------------------------------------------
@@ -655,7 +705,7 @@ async function* sseEvents(body) {
   if (buf.startsWith('data:')) yield buf.slice(5).trim();
 }
 
-async function upstreamError(p, res, hasTools) {
+async function upstreamError(p, res, hasTools, hasImages) {
   let text = '';
   try {
     text = await res.text();
@@ -671,6 +721,16 @@ async function upstreamError(p, res, hasTools) {
   }
   message = String(message || '').slice(0, 400);
   if (res.status === 401 || res.status === 403) return new HttpError(502, 'bad_key', `${p.label} refused the API key (${res.status}). Check it in Admin → AI.`);
+  // The model or route refused the image (most often because the model is
+  // text-only). The caller can retry once without the pixels instead of making
+  // the app invent a "preview was dropped" warning.
+  const imageRefused = hasImages
+    && [400, 404, 413, 415, 422].includes(res.status)
+    && /image|vision|multimodal|media|modality/i.test(message);
+  if (imageRefused) {
+    const permanent = /support|unsupported|not accept|only.*text|no.*vision|modality/i.test(message);
+    return new HttpError(400, permanent ? 'image_unsupported' : 'image_failed', `${p.label} did not accept the image: ${message}`);
+  }
   if (hasTools && /tool|function/i.test(message) && res.status < 500) return new HttpError(400, 'tools_unsupported', "This model can't edit the drawing, chat only.");
   if (res.status === 404) return new HttpError(502, 'no_model', `${p.label} does not offer that model: ${message}`);
   if (res.status === 429) return new HttpError(502, 'rate_limited', `${p.label} is rate limiting or out of credit: ${message}`);
@@ -687,6 +747,7 @@ function networkError(p, err) {
 const DEFAULT_MAX_TOKENS = 4096;
 
 async function runOpenAI(p, model, { messages, tools, temperature, maxTokens }, emit, signal) {
+  const hasImages = messages.some((m) => m.images?.length);
   const body = { model, messages: toOpenAI(messages), stream: true };
   if (p.streamUsage) body.stream_options = { include_usage: true };
   if (tools?.length) body.tools = tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } }));
@@ -700,7 +761,7 @@ async function runOpenAI(p, model, { messages, tools, temperature, maxTokens }, 
   } catch (err) {
     throw networkError(p, err);
   }
-  if (!res.ok) throw await upstreamError(p, res, !!tools?.length);
+  if (!res.ok) throw await upstreamError(p, res, !!tools?.length, hasImages);
   const calls = new Map();
   const usage = { input: 0, output: 0 };
   for await (const data of sseEvents(res.body)) {
@@ -734,6 +795,7 @@ async function runOpenAI(p, model, { messages, tools, temperature, maxTokens }, 
 }
 
 async function runAnthropic(p, model, { messages, tools, temperature, maxTokens }, emit, signal) {
+  const hasImages = messages.some((m) => m.images?.length);
   const { system, messages: msgs } = toAnthropic(messages);
   const body = { model, max_tokens: maxTokens || 4096, messages: msgs, stream: true };
   if (system) body.system = system;
@@ -745,7 +807,7 @@ async function runAnthropic(p, model, { messages, tools, temperature, maxTokens 
   } catch (err) {
     throw networkError(p, err);
   }
-  if (!res.ok) throw await upstreamError(p, res, !!tools?.length);
+  if (!res.ok) throw await upstreamError(p, res, !!tools?.length, hasImages);
   const usage = { input: 0, output: 0 };
   const blocks = new Map();
   for await (const data of sseEvents(res.body)) {
@@ -817,6 +879,11 @@ export async function chat({ user = null, source, model: modelId, messages, tool
   if (p.needsKey && !p.apiKey) throw new HttpError(400, 'no_key', `Add an API key for ${p.label} in Admin → AI.`);
   if (p.kind !== 'test' && (provider === 'ollama' ? !p.enabled : !models().some((m) => m.id === modelId && m.enabled))) throw new HttpError(400, 'bad_model', 'That model is not turned on in Admin → AI.');
   const req = { messages: checkMessages(messages), tools: checkTools(tools), temperature: Number.isFinite(temperature) ? Math.max(0, Math.min(2, temperature)) : null, maxTokens: Number.isInteger(maxTokens) && maxTokens > 0 ? Math.min(maxTokens, 64000) : null };
+  const budget = applyToolBudget(req.messages, req.tools);
+  req.messages = budget.messages;
+  req.tools = budget.tools;
+  const visionKey = `${provider}:${model}`;
+  if (VISION_REFUSED.has(visionKey) && req.messages.some((m) => m.images?.length)) req.messages = stripImages(req.messages);
   const t0 = Date.now();
   let text = '';
   const toolCalls = [];
@@ -831,8 +898,25 @@ export async function chat({ user = null, source, model: modelId, messages, tool
   const capture = repair
     ? (e) => { if (e.type === 'text') repair.text(e.delta); else out(e); }
     : out;
+  const run = () => (p.kind === 'test' ? runTest : p.kind === 'anthropic' ? runAnthropic : runOpenAI)(p, model, req, capture, signal);
   try {
-    const usage = await (p.kind === 'test' ? runTest : p.kind === 'anthropic' ? runAnthropic : runOpenAI)(p, model, req, capture, signal);
+    let usage;
+    try {
+      usage = await run();
+    } catch (err) {
+      const retryImage = (err.code === 'image_unsupported' || err.code === 'image_failed')
+        && req.messages.some((m) => m.images?.length);
+      if (!retryImage) throw err;
+      // Retry the same turn as text. Nothing was streamed yet (the provider
+      // rejected the request before its body), so the app sees one normal reply.
+      req.messages = stripImages(req.messages);
+      text = '';
+      toolCalls.length = 0;
+      usage = await run();
+      // A one-off bad image is not proof the model is blind; only a model-level
+      // refusal is remembered for later turns.
+      if (err.code === 'image_unsupported') VISION_REFUSED.add(visionKey);
+    }
     repair?.finish();
     logUsage({ user, source, provider, model, ...usage, ms: Date.now() - t0, status: 'ok' });
     emit({ type: 'usage', input: usage.input, output: usage.output });

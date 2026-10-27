@@ -206,7 +206,7 @@ export async function chat({ req, res, body, user, app }) {
 export function logMissed(user, app, model, err) {
   db.run(
     'INSERT INTO ai_usage(at, user, source, provider, model, input_tokens, output_tokens, ms, status, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    Date.now(), user, `hub:${app || '?'}`, 'hub', String(model).slice(0, 120), 0, 0, Date.now() - 0,
+    Date.now(), user, `hub:${app || '?'}`, 'hub', String(model).slice(0, 120), 0, 0, 0,
     'error', String(err?.code || err?.message || 'unknown').slice(0, 300),
   );
 }

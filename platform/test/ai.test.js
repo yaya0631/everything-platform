@@ -2,6 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { start, cleanup, client } from './helpers.js';
+import * as hubAi from '../lib/hub-ai.js';
 
 let running, mock, mockUrl, db;
 const seen = [];
@@ -31,6 +32,29 @@ before(async () => {
       if (b.model === 'no-tools' && b.tools) {
         res.writeHead(400);
         return res.end(JSON.stringify({ error: { message: 'This model does not support tools' } }));
+      }
+      if (b.model === 'text-only' && JSON.stringify(b.messages).includes('image_url')) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ error: { message: 'No endpoints found that support image input' } }));
+      }
+      if (b.model === 'bad-image' && JSON.stringify(b.messages).includes('image_url')) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ error: { message: 'Invalid image data' } }));
+      }
+      if (b.model === 'loop') {
+        const searching = (b.tools || []).some((t) => t.function?.name === 'search_catalog');
+        if (searching) {
+          return sse(res, [
+            { choices: [{ delta: { tool_calls: [{ index: 0, id: 'search_1', function: { name: 'search_catalog', arguments: '{}' } }] } }] },
+            { choices: [], usage: { prompt_tokens: 5, completion_tokens: 2 } },
+            '[DONE]',
+          ]);
+        }
+        return sse(res, [
+          { choices: [{ delta: { tool_calls: [{ index: 0, id: 'plan_1', function: { name: 'propose_plan', arguments: '{"steps":[]}' } }] } }] },
+          { choices: [], usage: { prompt_tokens: 5, completion_tokens: 2 } },
+          '[DONE]',
+        ]);
       }
       // A model that prints its call as DeepSeek DSML text instead of tool_calls.
       if (b.model === 'dsml') {
@@ -163,6 +187,108 @@ test('OpenAI-style stream: text, tool call assembled from pieces, usage logged',
   assert.equal(row.output_tokens, 7);
   assert.equal(row.user, 'alex');
   assert.equal(row.source, 'cad');
+});
+
+test('an image refused by a text-only model is retried without pixels and remembered', async () => {
+  const all = (await c.get('admin/ai')).body.models;
+  if (!all.some((m) => m.id === 'openai:text-only')) {
+    await c.put('admin/ai/models', { models: [...all, { id: 'openai:text-only', enabled: true }] });
+  }
+  const image = 'data:image/png;base64,iVBORw0KGgo=';
+  const start = seen.length;
+  const events = await chat({
+    model: 'openai:text-only',
+    messages: [{ role: 'user', content: 'what is this', images: [image] }],
+  });
+  assert.ok(events.some((e) => e.type === 'text'));
+  const requests = seen.slice(start);
+  assert.equal(requests.length, 2);
+  assert.match(JSON.stringify(requests[0].body.messages), /image_url/);
+  assert.doesNotMatch(JSON.stringify(requests[1].body.messages), /image_url/);
+
+  // The model is now known to be text-only: the next turn sends no pixels at all.
+  const before = seen.length;
+  await chat({ model: 'openai:text-only', messages: [{ role: 'user', content: 'and now', images: [image] }] });
+  assert.equal(seen.length - before, 1);
+  assert.doesNotMatch(JSON.stringify(seen.at(-1).body.messages), /image_url/);
+});
+
+test('a one-off bad image is retried without pixels but does not blind the model', async () => {
+  const all = (await c.get('admin/ai')).body.models;
+  await c.put('admin/ai/models', { models: [...all, { id: 'openai:bad-image', enabled: true }] });
+  const image = 'data:image/png;base64,iVBORw0KGgo=';
+  for (let n = 0; n < 2; n++) {
+    const start = seen.length;
+    await chat({ model: 'openai:bad-image', messages: [{ role: 'user', content: 'look', images: [image] }] });
+    assert.equal(seen.length - start, 2, 'each turn should try the image, then fall back for that turn only');
+    assert.match(JSON.stringify(seen[start].body.messages), /image_url/);
+    assert.doesNotMatch(JSON.stringify(seen[start + 1].body.messages), /image_url/);
+  }
+});
+
+test('a tool loop is nudged and then narrowed to the final tools', async () => {
+  const tools = [
+    { name: 'search_catalog', parameters: { type: 'object', properties: {} } },
+    { name: 'get_details', parameters: { type: 'object', properties: {} } },
+    { name: 'propose_plan', parameters: { type: 'object', properties: {} } },
+    { name: 'answer', parameters: { type: 'object', properties: {} } },
+  ];
+  const messages = [
+    { role: 'system', content: 'You edit images.' },
+    { role: 'user', content: 'Make a poster' },
+  ];
+  for (let n = 0; n < 6; n++) {
+    messages.push({ role: 'assistant', content: '', tool_calls: [{ id: `c${n}`, name: 'search_catalog', arguments: {} }] });
+    messages.push({ role: 'tool', tool_call_id: `c${n}`, content: '[]' });
+  }
+  const start = seen.length;
+  const events = await chat({ model: 'openai:gpt-test', messages, tools });
+  assert.equal(events.at(-1).type, 'done');
+  const sent = seen.slice(start).at(-1).body;
+  assert.deepEqual(sent.tools.map((t) => t.function.name).sort(), ['answer', 'propose_plan']);
+  assert.equal(sent.messages.at(-1).role, 'system');
+  assert.match(sent.messages.at(-1).content, /Tool budget/);
+  assert.match(sent.messages.at(-1).content, /Only these final tools|Those final tools|only ones left/);
+});
+
+test('a photo-studio-style search loop settles on propose_plan before the app gives up', async () => {
+  const all = (await c.get('admin/ai')).body.models;
+  await c.put('admin/ai/models', { models: [...all, { id: 'openai:loop', enabled: true }] });
+  const tools = [
+    { name: 'search_catalog', description: 'Search', parameters: { type: 'object', properties: {} } },
+    { name: 'get_details', description: 'Details', parameters: { type: 'object', properties: {} } },
+    { name: 'propose_plan', description: 'Plan', parameters: { type: 'object', properties: {} } },
+    { name: 'answer', description: 'Answer', parameters: { type: 'object', properties: {} } },
+  ];
+  const messages = [
+    { role: 'system', content: 'You edit images.' },
+    { role: 'user', content: 'Make the sky darker' },
+  ];
+  let final = null;
+  let calls = 0;
+  for (let round = 0; round < 8; round++) {
+    const answer = await hubAi.chat({
+      res: { writeHead() {}, write() {}, end() {}, writableEnded: false },
+      user: 'alex',
+      app: 'photo-studio',
+      body: { model: 'openai:loop', messages, tools },
+    });
+    calls++;
+    const made = (answer.message.tool_calls || []).map((t) => ({
+      id: t.id,
+      name: t.function.name,
+      arguments: JSON.parse(t.function.arguments || '{}'),
+    }));
+    if (!made.length) break;
+    messages.push({ role: 'assistant', content: answer.message.content || '', tool_calls: made });
+    messages.push({ role: 'tool', tool_call_id: made[0].id, content: '[]' });
+    if (made[0].name === 'propose_plan') { final = made[0]; break; }
+  }
+  assert.equal(calls, 7, 'the platform should end the loop on round 7, before the app\'s 8-round cap');
+  assert.equal(final?.name, 'propose_plan');
+  const sent = seen.at(-1).body;
+  assert.deepEqual(sent.tools.map((t) => t.function.name).sort(), ['answer', 'propose_plan']);
+  assert.match(sent.messages.at(-1).content, /Tool budget/);
 });
 
 test('Anthropic stream: system field, tool_use and tool_result blocks', async () => {
