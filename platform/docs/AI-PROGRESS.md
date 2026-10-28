@@ -1359,3 +1359,116 @@ Commit: `9f81131`.
   so the next step is measured on the owner's actual GPU, not guessed.
 - The live signed-in Photo Studio image+plan validation and the optional Admin
   -> AI bulk pass on the 463-model list still need the owner's browser session.
+
+## Session 16 - 2026-10-28 - Photo Studio builds staged native artwork
+
+Commit: `a84e06a8` (upstream).
+
+### DONE
+
+- The Photo Studio Assistant no longer stops at a prose plan. Its plan runner
+  now executes the app's own document, layer, selection, shape, pen, gradient,
+  paint, Smart Object, export and project-download operations.
+- Plans can declare `stages`; each step can belong to a stage and every stage
+  can narrate before its steps. The panel offers **Run in One Go** for the
+  normal continuous run and **Run by Stage** with **Next Stage** / **Run the
+  Rest** when the owner wants review points.
+- `MAX_STEPS` is now 120 and `op.new_document` is marked as creating a
+  document, so a plan can start with a blank 3000x4000, 300 ppi RGB document.
+- Layer names are deterministic (the requested name when free, otherwise a
+  numbered suffix), and the runner records the whole plan as one undo step.
+- Direct `.photo` project download and flattened PNG export are part of the
+  native plan path. A structured download is required because the quiet
+  assistant runner cannot drive a browser save dialog.
+- `art.ts` accepts case-insensitive gradient/shape names, numeric or percent
+  stops, one-point paint stamps and line-stroke fallback.
+
+### Verification
+
+- Photo Studio TypeScript check: **PASS**.
+- Assistant unit suite: **42/42 PASS**.
+- Targeted browser tests for staged native artwork, direct `.photo` + PNG
+  downloads, and group/mask/clip/Smart Object assembly: **3/3 PASS**.
+- Full Photo Studio browser suite: **24/24 PASS** after two load-induced
+  5-second timeouts were rerun alone.
+- Production bundle: `node platform/build-hub.mjs build-one --only
+  photo-studio`, **101.3 s**, installed into the served hub.
+- 12 MP blank-document creation benchmark: **2993 ms**.
+- Live server: PID **4628**, private `0.0.0.0:8080`, public
+  `127.0.0.1:8081`; `/healthz` **200**. Backup before restart:
+  `data/backups/cad-20261028010506.db`.
+
+### PENDING
+
+- The live 3000x4000 artwork run still needs the owner's signed-in browser
+  session. The open browser tab redirects to the hub sign-in page.
+- A real 12 MP export/download has not been measured; committed download e2e
+  uses 1200x1600 and the staged e2e uses 600x800.
+- Live Photo Studio generative fill/image validation is blocked because no
+  `hubImageModel` or image-provider key is configured.
+
+## Session 17 - 2026-10-28 - Documents and Whiteboard join the native tool loop
+
+Commits: `0e023619` (Documents), `522a5a6e` (Whiteboard).
+
+### Problem
+
+- Documents had one mutating tool, six rounds, a 4,096-token ceiling and no
+  way to inspect the sent text, so a long rewrite had to be emitted in one
+  shot. Its prompt explicitly asked for a single `edit_document` call.
+- Whiteboard's AI actions were fixed prompts with no board tools at all. It
+  could summarize or cluster a selection, but could not add notes, find
+  objects, update them, frame them, or arrange a multi-stage board.
+
+### DONE
+
+- **Documents** now exposes `get_document`, `read_range` and `find_text` beside
+  `edit_document`. `edit_document` gained a `replace_range` mode with exact
+  UTF-16 offsets. The prompt tells the model to inspect first, edit long text
+  in sections, re-read after a change, and then reply with one short sentence.
+  The loop allows **16 rounds** and **8,192 output tokens**; `Undo all` takes
+  back every edit made in one reply. Range edits require the whole document to
+  have been sent, so the existing selection-only privacy boundary stays intact.
+- **Whiteboard** has a new **Build or edit with AI** action. It runs a JSON
+  tool loop with `get_board`, `find_objects`, `read_object`, `add_notes`,
+  `update_objects`, `delete_objects`, `create_frame`, `arrange_grid` and
+  `finish`. Writes go through the board's ordinary `mutate()` path, lock and
+  read-only checks, and undo history. The loop is capped at eight tool turns;
+  each turn sees a compact result and can correct a failed call. Organization
+  policy maps the agent to the existing summaries permission and the worker
+  accepts the new `agent` task, so no new policy switch or external call path
+  was introduced.
+
+### Verification
+
+- Documents: `npx vitest run tests/assistant-tools.test.js tests/ai.test.js`
+  **13/13 PASS**; production build **PASS**; served hub install
+  `build-one --only documents` **PASS** (23.9 s).
+- Whiteboard: new agent and agent-UI tests plus AI/help tests **39/39 PASS**;
+  production build **PASS** (2,155 modules, 16.3 s); served hub install
+  `build-one --only whiteboard` **PASS** (38.8 s).
+- Whiteboard's new tests cover JSON call parsing, compact board reads, add/
+  update/delete, frame creation, grid arrangement and read-only refusal. The
+  UI test runs `add_notes` through `createAI`, feeds the tool result back, and
+  checks the model's finish message in the dialog.
+- Built assets for both apps were installed at 01:52 on 2026-10-28 and the
+  served bundles contain the new tool strings.
+
+### PENDING
+
+- The full Whiteboard suite still has two failures that reproduce at the
+  predecessor commit `0e023619`: the admin overview link test and the
+  `built editors join the same board` collaboration test (`Unexpected end of
+  JSON input`). Both are pre-existing and unrelated to the Assistant; every
+  AI/agent test in the same run passed.
+- The full Documents suite was run under concurrent load and hit six
+  canvas-editor timeouts (vertical-align, character-spacing, capitalization,
+  text-width). All six passed when rerun alone (the first in 13.1 s; the other
+  five in 34.2 s), confirming load-induced timeouts rather than an assistant
+  regression. The assistant files themselves are green.
+- Live signed-in execution of a multi-stage Documents rewrite and a Whiteboard
+  board build still needs the owner's browser session, as with Photo Studio.
+- CAD, Presentation, Spreadsheet and Video Studio already have native tool
+  loops; their remaining gaps are narrower (blank-project/new-file starts and
+  larger batch operations) and are queued after the three app-native paths
+  above are validated live.
