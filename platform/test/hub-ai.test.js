@@ -38,6 +38,18 @@ test('resolveModel: local ids pass, aliases map, default catches the rest', () =
   config.set('hubAiAliases', null);
 });
 
+test('resolveModel: a stale provider id falls back to the first enabled model', () => {
+  const previousModels = config.get('ai.models');
+  config.set('ai.models', [{ id: 'test:demo', enabled: true, tools: true }]);
+  config.set('hubAiDefaultModel', 'nvidia:nemotron-3.5-super-vl');
+  assert.equal(hubAi.resolveModel(undefined), 'test:demo');
+  assert.equal(hubAi.resolveModel('nvidia:nemotron-3.5-super-vl'), 'test:demo');
+  // An explicitly named enabled local model is still honored.
+  assert.equal(hubAi.resolveModel('test:demo'), 'test:demo');
+  config.set('ai.models', previousModels);
+  config.set('hubAiDefaultModel', null);
+});
+
 test('normalizeMessages: prompt strings, message arrays and image blocks', async () => {
   config.set('hubAiDefaultModel', 'test:demo');
   // String call shape → resolves like a messages-array call.

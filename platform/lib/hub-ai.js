@@ -14,14 +14,35 @@
  */
 import * as config from './config.js';
 import * as db from './db.js';
-import { chat as coreChat } from './ai.js';
+import { chat as coreChat, providerFor } from './ai.js';
 import { HttpError, send } from './http.js';
 
-/** parse "provider:model" ids the core understands. */
+/** Whether this server can actually answer with a "provider:model" id. */
+function usableModel(id) {
+  if (typeof id !== 'string' || !id.includes(':')) return false;
+  const provider = id.slice(0, id.indexOf(':'));
+  const settings = providerFor(provider);
+  if (!settings) return false;
+  // The test provider answers without a model inventory; Ollama is discovered
+  // live, so a known Ollama id is enough. Cloud models must be both enabled in
+  // Admin -> AI and offered by their configured provider.
+  if (provider === 'test' || provider === 'ollama') return true;
+  if (!settings.enabled) return false;
+  const models = Array.isArray(config.get('ai.models')) ? config.get('ai.models') : [];
+  return models.some((m) => m && m.id === id && m.enabled);
+}
+
+/**
+ * The configured Hub default, or the first enabled model when that default is
+ * stale (for example a typo like "nvidia:model" instead of
+ * "openrouter:nvidia/model"). An invalid default must not make every hub app's
+ * puter.ai.chat fail with "That model is not set up on this server.".
+ */
 function defaultModel() {
   const chosen = config.get('hubAiDefaultModel');
-  if (chosen && chosen.includes(':')) return chosen;
-  return null;
+  if (usableModel(chosen)) return chosen;
+  const models = Array.isArray(config.get('ai.models')) ? config.get('ai.models') : [];
+  return models.find((m) => m && m.enabled && usableModel(m.id))?.id || null;
 }
 
 function aliasMap() {
@@ -41,10 +62,18 @@ export function resolveModel(requested) {
     if (fallback) return fallback;
     throw new HttpError(400, 'no_default_model', 'Admin → AI has no default model set for hub apps.');
   }
-  // Already a local "provider:model" id — use it as-is.
-  if (/^[a-z]+:.{1,120}$/.test(requested) && !requested.startsWith('http')) return requested;
+  // A local "provider:model" id is used only when this server can answer with
+  // it. A stale or mistyped id (such as "nvidia:model" when the provider is
+  // OpenRouter) falls back to the working default instead of failing every
+  // request with a misleading "not set up" error.
+  if (/^[a-z]+:.{1,120}$/.test(requested) && !requested.startsWith('http')) {
+    if (usableModel(requested)) return requested;
+    const fallback = defaultModel();
+    if (fallback) return fallback;
+    throw new HttpError(400, 'bad_model', `That model is not set up on this server: ${String(requested).slice(0, 120)}. Pick an enabled model in Admin -> AI, or set a default in Admin -> Hub.`);
+  }
   const map = aliasMap();
-  if (map[requested]) return map[requested];
+  if (map[requested] && usableModel(map[requested])) return map[requested];
   const fallback = defaultModel();
   if (fallback) return fallback;
   throw new HttpError(400, 'no_default_model', `"${String(requested).slice(0, 64)}" has no alias on this server and Admin → AI has no default model set for hub apps.`);
