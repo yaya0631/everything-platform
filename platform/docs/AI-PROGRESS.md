@@ -1472,3 +1472,76 @@ Commits: `0e023619` (Documents), `522a5a6e` (Whiteboard).
   loops; their remaining gaps are narrower (blank-project/new-file starts and
   larger batch operations) and are queued after the three app-native paths
   above are validated live.
+
+## Session 18 - 2026-10-28 - Assistant regressions: Markdown, empty turns, stale model
+
+Commits: `0af51c7f` (Documents), `c0b98f97` (Photo Studio), `4ec1941` (hub AI
+resolution).
+
+### Problem
+
+- The Documents Assistant wrote its reply with the plain-text insert path, so a
+  model that followed the prompt and returned Markdown put literal `#` heading
+  markers, `**bold**` and `-` bullets into the document. The tool loop also sent
+  a messages array while the offline mock only understood one prompt string, so
+  the browser Assistant test could not see its own request.
+- Photo Studio occasionally received an empty model turn. The loop then fell
+  straight through to the prose fallback and told the owner to try again,
+  instead of retrying or leaving the model enough output room for a long plan.
+- Whiteboard's personal AI path failed before any board work with `bad_model`.
+  The live `hubAiDefaultModel` was the stale `nvidia:nemotron-3.5-super-vl`
+  while the enabled model was `openrouter:nvidia/nemotron-3.5-super-vl:free`.
+
+### DONE
+
+- **Documents** now keeps the model's Markdown for insertion and converts it
+  through the engine's existing `markdownHtml` -> `htmlFragment` ->
+  `pasteFragment` path. Headings become real `Heading 1`/`Heading 2` paragraph
+  styles, lists become native list paragraphs, and emphasis becomes run
+  formatting; conversion failure still falls back to a plain insert. The
+  assistant prompt and tool description ask for Markdown. Both the free-form
+  reply path and the `edit_document` tool path are covered in the browser.
+- **Photo Studio** raises `MAX_ROUNDS` to 12 and sends `MAX_TOKENS = 8192`
+  through `chatWithTools`. An empty turn now retries once without the image
+  preview, then retries with an explicit "your previous reply was empty" nudge
+  before the prose fallback appears. The fallback also suggests choosing
+  another model. `puter-ai.ts` forwards `max_tokens` to the hub.
+- **Hub AI** validates every requested `provider:model` id against the
+  configured provider and enabled `ai.models`; a stale default falls back to
+  the first enabled model, and an unknown provider no longer counts as a local
+  model. The live `hubAiDefaultModel` is now
+  `openrouter:nvidia/nemotron-3.5-super-vl:free`; the server was restarted with
+  the new resolution code (PID 11488).
+
+### Verification
+
+- Documents: assistant unit tests **13/13 PASS**; the three Assistant browser
+  tests **3/3 PASS**, including real `Heading 1`/`Heading 2` styles, bold and
+  italic runs, list paragraphs and the tool path; production build and served
+  hub install **PASS** (21.9 s). The HWP file test passes alone **57/57**; a
+  full unit run under load hit its 20 s timeout and was stopped by the command
+  timeout, not by an assistant assertion.
+- Photo Studio: `npx tsc --noEmit` **PASS**; assistant tests **45/45 PASS**;
+  the full suite reached **2,194 passed / 4 timed out** under concurrent load,
+  and those four files passed alone **48/48** with a 120 s timeout. A live probe
+  using the real system prompt, real catalog and real hub model returned a
+  plan for "draw a blue dog". Production build and served hub install **PASS**
+  (85.0 s).
+- Whiteboard: `node --test tests/ai-agent-ui.test.js` **1/1 PASS**. A live
+  `hubAi.chat` call with no explicit model and the corrected default returned
+  `ready` instead of `bad_model`.
+- Platform: root suite **689/689 PASS**; `test/hub-ai.test.js` **9/9 PASS**.
+
+### PENDING
+
+- Signed-in verification of a multi-stage Documents rewrite, a Whiteboard board
+  build, a 3000 x 4000 Photo Studio plan and a real 12 MP flattened PNG/project
+  download still needs the owner's browser session.
+- Photo Studio generative fill and image validation remain blocked until an
+  image model (`hubImageModel`) or an image-provider key is configured.
+- The two pre-existing Whiteboard full-suite failures remain: the admin
+  overview link test and `built editors join the same board`
+  (`Unexpected end of JSON input`).
+- The full Documents browser suite (2,717 tests in 785 files) and the full
+  Documents unit suite were not completed in this session; the affected
+  Assistant tests and the HWP suite were run directly.
