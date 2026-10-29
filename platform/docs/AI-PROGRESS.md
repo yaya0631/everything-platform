@@ -1545,3 +1545,78 @@ resolution).
 - The full Documents browser suite (2,717 tests in 785 files) and the full
   Documents unit suite were not completed in this session; the affected
   Assistant tests and the HWP suite were run directly.
+
+## Session 19 - 2026-10-29 - Assistant consistency: Whiteboard execution, Photo plans, Building Design entry
+
+Upstream commits: `bba8dead` (Whiteboard), `0936adcc` (Photo Studio),
+`8189d758` (Building Design).
+
+### Problem
+
+- Whiteboard's "Build or edit with AI" printed the model's JSON instead of
+  changing the board: the model emitted `{"type":"add_notes",...}` and
+  OpenAI-style `tool_calls`, while `parseAgentReply` only understood
+  `{"tool":...,"args":...}`. The dialog also had no way to choose among the
+  server's models.
+- A long Photo Studio plan grew past the assistant panel, so its Run All,
+  Step and Next Step controls scrolled out of reach.
+- Building Design had no assistant at all: no dock panel, titlebar button,
+  shortcut or phone entry, and no way to ask about the open project.
+
+### DONE
+
+- **Whiteboard** normalizes `tool`/`type`/`action`/`name`/`function`,
+  OpenAI-style `tool_calls`, a single call wrapped in an array, string or
+  object `args`/`arguments`, top-level arguments, and `finish` messages.
+  Anything that is not a tool call stays a prose answer, so raw JSON is no
+  longer printed. Personal boards get a model picker in the AI dialog fed by
+  `p.ai.models()` with `tools !== false`; the choice is stored in
+  `whiteboard:assistant:model` and forwarded to `p.ai.chat`. Organization
+  boards keep the administrator's model policy.
+- **Photo Studio** caps `.ast-plan` at the visible log height, makes the plan
+  header and footer non-shrinking, and gives `.ast-steps` the only scrollbar.
+  Run All, Step and Next Step stay visible while the steps scroll.
+- **Building Design** now has an Assistant tab in the lower dock (Browser /
+  Assistant), a titlebar Assistant button, the `AI` shortcut and a phonebar
+  button. The panel sends a factual project brief (name, units, levels,
+  element counts, rooms, active view, selection) and is advisory: it never
+  edits the BIM model. The model list comes from `p.ai.models()` and persists
+  under `bd.assistant.model`; with no list the server default applies. It has
+  sign-in and unavailable states, suggested questions, Markdown-lite replies,
+  a scrollable log, Stop and New conversation.
+- **Audit**: CAD (View -> Palettes -> Assistant), 3D (titlebar + dock),
+  parametric (Ctrl+J), presentation (Ctrl+J), spreadsheet, video studio,
+  Documents, Whiteboard and Photo Studio already have a visible entry point,
+  model choice and a scrolling conversation. CRM, help desk and survey use
+  inline AI actions by design, so they were left unchanged. No further code
+  changes were needed.
+- The served hub now has rebuilt Building Design and Whiteboard bundles at
+  upstream `8189d758`; Documents and Photo Studio remain at `c0b98f97`.
+
+### Verification
+
+- Whiteboard: `node --test tests/ai-agent.test.js tests/ai-agent-ui.test.js`
+  **8/8 PASS** (alternate call shapes, model list filtering, persistence and
+  forwarding of the chosen model).
+- Photo Studio: the new 24-step browser test **1/1 PASS**; it asserts the
+  steps scroll, the footer stays between the plan and the log edge, and
+  Run All stays in the viewport after scrolling to the last step.
+- Building Design: production build **PASS**; the full e2e suite **12/12
+  PASS** on desktop and phone, including the assistant discoverability,
+  model and project-context test and the phone layout test.
+- Hub: `node build-hub.mjs build-one --only building-design,whiteboard`
+  **PASS** (19.0 s and 49.8 s); the upstream clone stayed clean.
+
+### PENDING
+
+- Signed-in verification still needs the owner's browser session: run a
+  Whiteboard board build with a chosen model, review and run a 3000 x 4000
+  Photo Studio plan and export, and ask the Building Design assistant about a
+  real project.
+- Whiteboard's two pre-existing full-suite failures are unchanged: the admin
+  overview link test and `built editors join the same board`
+  (`Unexpected end of JSON input`).
+- Photo Studio generative fill still needs an image model (`hubImageModel`)
+  or an image-provider key.
+- CAD's assistant entry remains View -> Palettes -> Assistant; a titlebar
+  button would match the other apps if the owner wants one.
