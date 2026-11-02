@@ -1620,3 +1620,65 @@ Upstream commits: `bba8dead` (Whiteboard), `0936adcc` (Photo Studio),
   or an image-provider key.
 - CAD's assistant entry remains View -> Palettes -> Assistant; a titlebar
   button would match the other apps if the owner wants one.
+
+## Session 20 - 2026-11-02 - Photo Studio bundle rebuilt and the sweep repeated
+
+Upstream commits: product fixes remain `bba8dead`, `0936adcc`, `8189d758`;
+the Photo Studio test timing change is `b760b00a`.
+
+### Problem
+
+- Session 19 rebuilt only Building Design and Whiteboard. The served Photo
+  Studio bundle still predated `0936adcc`, so the app at `/h/photo-studio/`
+  did not have the plan-scroll fix even though the source did.
+- Re-running the Photo Studio assistant suite exposed a timing assumption:
+  the first plan renders only after the Assistant loads every command's
+  settings. A cold Vite dev server transforms a different command module per
+  step and took about 30.4 s, just past the 30 s default assertion budget.
+  A production build ships those modules pre-bundled.
+
+### DONE
+
+- Committed a 90 s budget on that one count assertion, with a comment that
+  explains the dev-transform cost; no product code changed for this.
+- Rebuilt the served Photo Studio bundle with
+  `node build-hub.mjs build-one --only photo-studio`. The build installed 236
+  files in 93.1 s and `data/hub/build-state.json` records `ok: true`; the
+  upstream clone stayed clean. The served assets and `index.html` are from
+  this build.
+- Repeated the full verification sweep below so the rebuilt bundle and the
+  three assistant fixes are backed by current evidence.
+
+### Verification
+
+- Building Design e2e: **12/12 PASS** (11 desktop plus 1 phone), including
+  the assistant dock/titlebar discoverability, model picker and project
+  context test. The bundled Playwright Chromium is not downloaded on this
+  machine, so the suite ran against the installed Chrome channel through a
+  temporary config; the config was removed afterwards and the clone is
+  clean. The suite had failed before any test ran only because that browser
+  was missing. Building Design unit suite: **82/82 PASS** (13 files).
+- Photo Studio assistant browser suite: **12/12 PASS**, including the
+  validated/edited/stepped plan, the 24-step scroll test, staged native
+  artwork, layered project and flattened PNG downloads, and Generation
+  History. Photo Studio unit tests `assistant.test.ts` and
+  `assist-ai.test.ts`: **52/52 PASS**.
+- Whiteboard `ai-agent.test.js` and `ai-agent-ui.test.js`: **8/8 PASS**.
+- Platform root suite: **689/689 PASS**.
+- Hub build-state: `photo-studio` `{ ok: true, files: 236, workers: [] }`;
+  Building Design and Whiteboard remain the `8189d758` bundles.
+
+### PENDING
+
+- Signed-in verification still needs the owner's browser session: a
+  Whiteboard board build with a chosen model, reviewing and running a
+  3000 x 4000 Photo Studio plan plus a real 12 MP project/PNG download, a
+  multi-stage Documents rewrite, and a Building Design question about a real
+  project.
+- Photo Studio generative fill still needs an image model (`hubImageModel`)
+  or an image-provider key.
+- Whiteboard's two pre-existing full-suite failures are unchanged: the admin
+  overview link test and `built editors join the same board`
+  (`Unexpected end of JSON input`).
+- CAD's assistant entry remains View -> Palettes -> Assistant; a titlebar
+  button would match the other apps if the owner wants one.
